@@ -65,7 +65,7 @@ def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queu
         # Shelve the goal and try something else if we're stuck:
         if goal_try_count > goal_try_limit:
             this_goal = cur_goals.pop()
-            cur_goals = [this_goal].append(cur_goals)
+            cur_goals.insert(0, this_goal)
             goal_try_count = 0
 
         print('Current goal queue (right-most first): '+ str([g.text for g in cur_goals]))
@@ -119,13 +119,13 @@ def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queu
     solved = conclusion not in cur_goals
     if solved:
         cleaned_proof = clean_proof(lines, conclusion)
+        print('\n' + '-'*100)
         print('\nSuccess! Here is the proof:')
         print(str_proof(cleaned_proof))
     else:
         print("Failed!")
 
     return cleaned_proof if solved else None
-
 
 def search_form(lines, form):
     '''
