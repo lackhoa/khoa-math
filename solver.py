@@ -1,7 +1,7 @@
 from prep import *
 from proof import *
 
-def prove(premises: List, conclusion, loop_limit=5, len_limit=20) -> List:
+def prove(premises: List, conclusion, loop_limit=5, len_limit=40) -> List:
     '''
     Prove some formula from the premises
     :param loop_limit: How many loops does the program take at most
@@ -12,34 +12,40 @@ def prove(premises: List, conclusion, loop_limit=5, len_limit=20) -> List:
         assert(p.type == MathType.PL_PROOF_LINE)
     assert(conclusion.type == MathType.PL_FORMULA)
     
+    # Check that the conclusion is within length limit:
+    assert(len(conclusion.text) <= len_limit), 'Please make the length limit higher'
+    
     # The main proof lines
     lines = premises
     # This goals list works like a stack
     # We always focus on the item at the end of the goal list
     goals = [conclusion]
+    # Check if there's still any goal
+    check_goal = lambda: True if goals else False
     
     loop_count = 0 # Keep count to check against the loop limit
     # The main loop:
     while conclusion in goals and loop_count <= loop_limit:
         loop_count += 1
-        print([g.text for g in goals])
+        print('Goals: '+ str([g.text for g in goals]))
         
         # Goal-oriented approach first: see if we can deduce the
         # conclusion immediately
         
         # Check if we've already achieved the goal:
+        check_goal()
         if search_form(lines, goals[-1]):
             goals.pop()
             continue
-
         # Try and-intro:
+        check_goal()
         if(goals[-1].cons == PlCons.CONJUNCTION):
             l = search_form(lines, goals[-1].left)
             r = search_form(lines, goals[-1].right)
             if l and r:
-                add_line(lines, and_intro(len(lines), l, r), len_limit)
-                goals.pop()
-                continue
+                if add_line(lines, and_intro(len(lines), l, r), len_limit):
+                    goals.pop()
+                    continue
             # If that doesn't work, try breaking the conjunction into two branches:
             tmp = goals[-1]
             goals.append(tmp.left)
@@ -47,21 +53,22 @@ def prove(premises: List, conclusion, loop_limit=5, len_limit=20) -> List:
 
         # Try and-elim1:
         con_left = lambda line: line.form.cons == PlCons.CONJUNCTION and line.form.left == goals[-1]
+        check_goal()
         for line in filter(con_left, lines):
-            add_line(lines, and_elim1(len(lines), line), len_limit)
-            goals.pop()
-            continue
+            if add_line(lines, and_elim1(len(lines), line), len_limit):
+                goals.pop()
 
         # Try and-elim2:
         con_right = lambda line: line.form.cons == PlCons.CONJUNCTION and line.form.right == goals[-1]
+        check_goal()
         for line in filter(con_right, lines):
-            add_line(lines, and_elim2(len(lines), line), len_limit)
-            goals.pop()
-            continue
+            if add_line(lines, and_elim2(len(lines), line), len_limit):
+                goals.pop()
+                break
 
         # Then we switch to... guessing aimlessly (with restraint, of course)
         l_con = lambda line: line.form.cons == PlCons.CONJUNCTION
-        # Loop through everything we have, and try stuffs
+        # Loop through everything we have, and try out everything we know
         for line in lines:
             if l_con(line):
                 # Try and-elim1:
@@ -72,19 +79,26 @@ def prove(premises: List, conclusion, loop_limit=5, len_limit=20) -> List:
     solved = conclusion not in goals
     if solved:
         cleaned_proof = clean_proof(lines, conclusion)
-        print_proof(cleaned_proof) # Success!
+        print('\nSuccess! Here is the proof:')
+        print(str_proof(cleaned_proof))
     else:
         print("Failed!")
 
     return cleaned_proof if solved else None
 
-def add_line(lines, line, len_limit):
+def add_line(lines, line, len_limit) -> bool:
     '''
     Safely add a line to the proof
+    returns True if succeeded, False if not
     '''
     if (not search_form(lines, line.form)) and (len(line.form.text) <= len_limit) and (line.num == len(lines)):
+        print(str_line(line))
         lines.append(line)
-
+        
+        return True
+        
+    return False
+        
 def search_form(lines, form):
     '''
     Search in a list of lines for a particular formula
@@ -122,12 +136,10 @@ def clean_proof(lines: List, conclusion):
             relevant_line_num.add(n)
             # Since everything traces back to the premise,
             # There should be no infinite loops:
-            print(lines[n].rule_anno.symbol)
             if lines[n].rule_anno.symbol != 'Premise':
                 changed = True
                 tmp2.extend(lines[n].rule_anno.args)
             tmp1 = tmp2
-            tmp2 = []
     
     # With all the needed line numbers, let's sort them:
     relevant_line_num = sorted(list(relevant_line_num))

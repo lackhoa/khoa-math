@@ -63,12 +63,16 @@ def line(line_num: int, form, rule_anno, dep: Set[int]):
     line.dep = dep # Dependency
     return line
 
-def print_proof(lines: List):
-    print('{0:20}{1:6}{2:40}{3}'.format('Dep', 'Line', 'Formula', 'RA'))
+# ToString() functions:
+def str_line(line):
+    line_str = str(line.num)+'.'
+    args = ",".join(map(str, line.rule_anno.args))
+    form_str = line.form.text
+    dep_str = str(line.dep)
+    return '{0:20}{1:6}{2:40}{3} {4}'.format(dep_str, line_str, form_str, line.rule_anno.symbol, args)
+    
+def str_proof(lines: List):
+    result = '{0:20}{1:6}{2:40}{3}\n'.format('Dep', 'Line', 'Formula', 'Rule Annotation')
     for line in lines:
-        line_str = str(line.num)+'.'
-        args = ",".join(map(str, line.rule_anno.args))
-        form_str = line.form.text
-        dep_str = str(line.dep)
-        print('{0:20}{1:6}{2:40}{3} {4}'.format(dep_str, line_str, form_str, line.rule_anno.symbol, args))
-
+        result += str_line(line) + '\n'
+    return result
