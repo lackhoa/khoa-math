@@ -1,10 +1,11 @@
 from prep import *
 from proof import *
 
-def prove(premises: List, conclusion, loop_limit=5, len_limit=40) -> List:
+def prove(premises: List, conclusion, loop_limit=5, goal_try_limit=5, len_limit=40) -> List:
     '''
     Prove some formula from the premises
     :param loop_limit: How many loops does the program take at most
+    :param goal_try_limit: How many loops does the program take for a goal before shelving it
     :param len_limit: The length limit of the text of a sentence
     '''
     # Check input types:
@@ -13,32 +14,44 @@ def prove(premises: List, conclusion, loop_limit=5, len_limit=40) -> List:
     assert(conclusion.type == MathType.PL_FORMULA)
     
     # Check that the conclusion is within length limit:
-    assert(len(conclusion.text) <= len_limit), 'Please make the length limit higher'
+    assert(len(conclusion.text) <= len_limit), 'Please raise the length limit'
     
     # The main proof lines
     lines = premises
     # This goals list works like a stack
     # We always focus on the item at the end of the goal list
     goals = [conclusion]
-    # Check if there's still any goal
-    check_goal = lambda: True if goals else False
+    # Check if the conclusion is not yet made
+    # Also checks if there is any goal remaining
+    def check_goal():
+        for goal in goals:
+            if conclusion.text == goal.text:
+                return True
+        return False
     
     loop_count = 0 # Keep count to check against the loop limit
+    goal_try_count = 0
     # The main loop:
-    while conclusion in goals and loop_count <= loop_limit:
+    while check_goal() and loop_count <= loop_limit:
         loop_count += 1
-        print('Goals: '+ str([g.text for g in goals]))
+        goal_try_count += 1
+        # Shelve the goal and try something else if we're stuck:
+        if goal_try_count > goal_try_limit:
+            this_goal = goals.pop()
+            goals = [this_goal].append(goals)
+            goal_try_count = 0
+
+        print('Current goal queue (right-most first): '+ str([g.text for g in goals]))
         
-        # Goal-oriented approach first: see if we can deduce the
-        # conclusion immediately
-        
+        # Goal-oriented approach first: see if we can somehow
+        # deduce the conclusion immediately
+
         # Check if we've already achieved the goal:
-        check_goal()
         if search_form(lines, goals[-1]):
             goals.pop()
             continue
-        # Try and-intro:
-        check_goal()
+
+        # Try and-introduction:
         if(goals[-1].cons == PlCons.CONJUNCTION):
             l = search_form(lines, goals[-1].left)
             r = search_form(lines, goals[-1].right)
@@ -52,19 +65,19 @@ def prove(premises: List, conclusion, loop_limit=5, len_limit=40) -> List:
             goals.append(tmp.right)
 
         # Try and-elim1:
-        con_left = lambda line: line.form.cons == PlCons.CONJUNCTION and line.form.left == goals[-1]
-        check_goal()
-        for line in filter(con_left, lines):
-            if add_line(lines, and_elim1(len(lines), line), len_limit):
-                goals.pop()
+        if check_goal:
+            con_left = lambda line: line.form.cons == PlCons.CONJUNCTION and line.form.left == goals[-1]
+            for line in filter(con_left, lines):
+                if add_line(lines, and_elim1(len(lines), line), len_limit):
+                    goals.pop()
 
         # Try and-elim2:
         con_right = lambda line: line.form.cons == PlCons.CONJUNCTION and line.form.right == goals[-1]
-        check_goal()
-        for line in filter(con_right, lines):
-            if add_line(lines, and_elim2(len(lines), line), len_limit):
-                goals.pop()
-                break
+        if check_goal():
+            for line in filter(con_right, lines):
+                if add_line(lines, and_elim2(len(lines), line), len_limit):
+                    goals.pop()
+                    break
 
         # Then we switch to... guessing aimlessly (with restraint, of course)
         l_con = lambda line: line.form.cons == PlCons.CONJUNCTION

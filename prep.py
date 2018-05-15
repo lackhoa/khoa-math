@@ -36,7 +36,7 @@ def atom(text=''):
     p = MathObject()
     p.type = MathType.PL_FORMULA
     p.cons = PlCons.ATOM
-    p.text = text
+    p.text = text # It's official: the text works as identification for a sentence now
     return p
 
 def neg(form):
