@@ -9,6 +9,7 @@ class MathObject:
 
 class MathType(Enum):
     PL_FORMULA = auto()
+    PL_RULE_ANNOTATION = auto()
     PL_PROOF_LINE = auto()
 
 class Truth(Enum):
