@@ -1,7 +1,7 @@
 from prep import *
 from typing import List, Tuple, Set, FrozenSet
 
-# Inference rules: these accept input proof lines and return ONE proof line
+# Inference rules: these accept input proof lines
 # They return None if the inputs are illegal
 def pre_intro(form):
     '''

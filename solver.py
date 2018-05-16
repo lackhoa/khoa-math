@@ -113,7 +113,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
                 add_goal(tmp.left)
                 add_goal(tmp.right)
 
-        # Conditional: try CP tactics
+        # Conditional: use CP tactics
         elif cur_goals[-1].cons == PlCons.CONDITIONAL:
             add_line( make_line(assume(cur_goals[-1].ante)) )
             tmp = cur_goals[-1]
@@ -126,11 +126,9 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
             # If the line contains a conjunction,
             # break it down
             # Try and-elim1:
-            if and_elim1(line):
-                add_line( make_line(and_elim1(line)) )
+            if and_elim1(line): add_line( make_line(and_elim1(line)) )
             # Try and-elim2:
-            if and_elim2(line):
-                add_line( make_line(and_elim2(line)) )
+            if and_elim2(line): add_line( make_line(and_elim2(line)) )
 
             # If the line contains a conditional,
             # try to get the consequent
