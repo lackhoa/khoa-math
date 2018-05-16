@@ -2,7 +2,7 @@ from prep import *
 from proof import *
 from typing import Callable
 
-def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queue_limit=8, len_limit=40) -> List:
+def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queue_limit=8, len_limit=40) -> List:
     '''
     Prove some formula from the premises
     :param premises: A list of formulas as premises
@@ -136,16 +136,17 @@ def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queu
             if line.form.cons == PlCons.CONDITIONAL:
                 # Try modus ponens:
                 ante = search_form(lines, line.form.ante)
-                if ante:
-                    add_line( make_line(modus_ponens(line, ante)) )
+                if ante: add_line( make_line(modus_ponens(line, ante)) )
+                # If we don't have the antecedent then try proving it!
+                else: add_goal(line.form.ante)
 
             # If the line depends on assumptions,
             # make a conditional statement:
             asps = line.dep - premise_nums
-            # asps should now contains only ONE element which is the
-            # line number of the assumption that this line depends on
-            if len(asps) == 1:
-                asp_num = list(asps)[0]
+            # asps should now contains (potentially many) lines numbers
+            # of the assumptions that this line depends on
+            # so now we discharge them one by one and see what happens
+            for asp_num in asps:
                 add_line( make_line(cp(lines[asp_num], line)) )
 
     solved = conclusion not in cur_goals

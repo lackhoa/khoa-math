@@ -2,22 +2,11 @@ from proof import *
 from solver import *
 
 print("Test #1:")
-P = atom('P')
-Q = atom('Q')
-R = atom('R')
-S = atom('S')
-PQ = conj(P, Q)
-QP = conj(Q, P)
-QR = conj(Q, R)
-PR = conj(P, R)
-RS = conj(R, S)
-P2Q = cond(P, Q)
-Q2R = cond(Q, R)
-R2S = cond(R, S)
-R2P = cond(R, P)
-R2Q = cond(R, Q)
+P, Q, R, S = atom('P'), atom('Q'), atom('R'), atom('S')
+PQ, QP, QR, RQ, PR, RS, RP = conj(P, Q), conj(Q, P), conj(Q, R), conj(R, Q), conj(P, R), conj(R, S), conj(R, P)
+P2Q, Q2R, R2S, R2P, R2Q, P2R, Q2S, S2Q, S2R = cond(P, Q), cond(Q, R), cond(R, S), cond(R, P), cond(R, Q), cond(P, R), cond(Q, S), cond(S, Q), cond(S, R)
 
-premises = [P2Q, R2P]
-conclusion = R2Q
+premises = [P2Q]
+conclusion = cond(cond(RQ, S), cond(RP, S))
 
-prove(premises, conclusion, loop_limit=30, len_limit=400)
+prove(premises, conclusion, loop_limit=100, goal_try_limit = 1, len_limit=40)
