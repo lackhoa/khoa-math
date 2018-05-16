@@ -2,11 +2,12 @@ from proof import *
 from solver import *
 
 print("Test #1:")
-P, Q, R, S = atom('P'), atom('Q'), atom('R'), atom('S')
-PQ, QP, QR, RQ, PR, RS, RP = conj(P, Q), conj(Q, P), conj(Q, R), conj(R, Q), conj(P, R), conj(R, S), conj(R, P)
-P2Q, Q2R, R2S, R2P, R2Q, P2R, Q2S, S2Q, S2R = cond(P, Q), cond(Q, R), cond(R, S), cond(R, P), cond(R, Q), cond(P, R), cond(Q, S), cond(S, Q), cond(S, R)
+p, q, r, s = atom('P'), atom('Q'), atom('R'), atom('S')
+pq, qp, qr, rq, pr, rs, rp = conj(p, q), conj(q, p), conj(q, r), conj(r, q), conj(p, r), conj(r, s), conj(r, p)
+p2q, q2r, r2s, r2p, r2q, p2r, q2s, s2q, s2r, q2p = cond(p, q), cond(q, r), cond(r, s), cond(r, p), cond(r, q), cond(p, r), cond(q, s), cond(s, q), cond(s, r), cond(q, p)
+p3q, q3p, q3r, p3r = bicond(p, q), bicond(q, p), bicond(q, r), bicond(p, r)
 
-premises = [Q]
-conclusion = P2Q
+premises = [p3q, q3r]
+conclusion = p3r
 
-prove(premises, conclusion, loop_limit=100, goal_try_limit = 1, len_limit=40)
+prove(premises, conclusion, loop_limit=50, goal_try_limit = 3, len_limit=40)

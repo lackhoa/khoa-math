@@ -5,7 +5,9 @@ class MathObject:
     '''
     This class is the base for all mathematical objects, that's why it doesn't do anything
     '''
-    pass
+    def __init__(self):
+        # The text acts like an identication to compare objects
+        self.text = ''
 
 class MathType(Enum):
     PL_FORMULA = auto()
@@ -94,7 +96,7 @@ def cond(ante, conse):
     p.text = '({} -> {})'.format(ante.text, conse.text)
     return p
 
-def biconditional(left, right):
+def bicond(left, right):
     '''
     Create a biconditional
     '''

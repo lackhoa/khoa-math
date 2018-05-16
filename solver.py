@@ -2,7 +2,7 @@ from prep import *
 from proof import *
 from typing import Callable
 
-def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queue_limit=8, len_limit=40) -> List:
+def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queue_limit=8, len_limit=40) -> List:
     '''
     Prove some formula from the premises
     :param premises: A list of formulas as premises
@@ -39,17 +39,22 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
     def make_line(l: Callable[..., MathObject]):
         # Returns line if you have lambda, automatically increment line number
         return l(len(lines))
-        
+
     def add_line(line) -> bool:
         # Safely add a line to the proof
         # returns True if succeeded, False if not
         assert(line.type == MathType.PL_PROOF_LINE)
-        if (not search_form(lines, line.form)) and (len(line.form.text) <= len_limit) and (line.num == len(lines)):
-            print(str_line(line))
+
+        # Only reject if there's a line with the same text and dependency (to combat under-dependency)
+        # Furthremore, don't assume the same thing twice
+        b1 = not [l for l in lines if l.form.text == line.form.text and (l.dep == line.dep or l.rule_anno.symbol == line.rule_anno.symbol == 'A')]
+        length_check = len(line.form.text) <= len_limit
+        if b1 and length_check:
+            print(line.text)
             lines.append(line)
             return True
         return False
-        
+
     def add_goal(goal) -> bool:
         # Safely add a goal, returns True if successful
         assert(goal.type == MathType.PL_FORMULA)
@@ -64,7 +69,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
         return False
 
     # Enough wait, the proofwork starts here:
-    
+
     # Add premises, and record the line numbers for future use:
     premise_nums = set()
     for premise in premises:
@@ -82,11 +87,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
         loop_count += 1
         goal_try_count += 1
         # Shelve the goal and try something else if we're stuck:
-        if goal_try_count > goal_try_limit:
+        if goal_try_count >= goal_try_limit:
             this_goal = cur_goals.pop()
             cur_goals.insert(0, this_goal)
             goal_try_count = 0
-        
+
         # Check if we've already achieved the goal:
         if search_form(lines, cur_goals[-1]):
             cur_goals.pop()
@@ -95,7 +100,6 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
         # Because we do not know if the queue is empty
         # If you think you've achieved a goal, simply command 'continue'
         print('Current goal queue (right-most first): '+ str([g.text for g in cur_goals]))
-
 
         # Goal-oriented approach first: for rules that has
         # loose requirements, which pollutes the proof lines
@@ -108,7 +112,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
                 add_line( make_line(and_intro(l, r)) )
                 continue
             else:
-                # If that doesn't work, try breaking the conjunction into two branches:
+                # If we don't have the components yet, find them:
                 tmp = cur_goals[-1]
                 add_goal(tmp.left)
                 add_goal(tmp.right)
@@ -118,6 +122,24 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
             add_line( make_line(assume(cur_goals[-1].ante)) )
             tmp = cur_goals[-1]
             add_goal(tmp.conse)
+            if (search_form(lines, tmp.ante)):
+                # If we already possess the consequent, then this is a trap:
+                # We must prove the conjunction of the antecedent along with the consequent...
+                # ...to "pretend" that we can derive the consequent from the antecedent
+                add_goal(conj(tmp.ante, tmp.conse))
+
+        # Biconditional: find the components
+        elif cur_goals[-1].cons == PlCons.BICONDITIONAL:
+            l, r = cur_goals[-1].left, cur_goals[-1].right
+            lr, rl = search_form(lines, cond(l, r)), search_form(lines, cond(r, l))
+            if lr and rl:
+                add_line( make_line(bicond_intro(lr, rl)) )
+                continue
+            else:
+                # If we don't have the components yet, find them:
+                tmp = cur_goals[-1]
+                add_goal(cond(tmp.left, tmp.right))
+                add_goal(cond(tmp.right, tmp.left))
 
         # Then we switch to... guessing aimlessly (with restraint, of course)
 
@@ -129,6 +151,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
             if and_elim1(line): add_line( make_line(and_elim1(line)) )
             # Try and-elim2:
             if and_elim2(line): add_line( make_line(and_elim2(line)) )
+            # Try biconditional-elim:
+            if bicond_elim(line): add_line( make_line(bicond_elim(line)) )
 
             # If the line contains a conditional,
             # try to get the consequent
@@ -136,7 +160,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
                 # Try modus ponens:
                 ante = search_form(lines, line.form.ante)
                 if ante: add_line( make_line(modus_ponens(line, ante)) )
-                # If we don't have the antecedent then try proving it!
+                # If we don't have the antecedent yet, try proving it!
                 else: add_goal(line.form.ante)
 
             # If the line depends on assumptions,
