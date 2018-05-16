@@ -1,7 +1,7 @@
 from prep import *
 from typing import List, Tuple, Set, FrozenSet
 
-# Inference rules: these accept proof lines and return proof lines
+# Inference rules: these accept input proof lines and return ONE proof line
 def pre_intro(form):
     '''
     Premise introduction
@@ -46,7 +46,30 @@ def modus_ponens(conditional, antecedent):
     assert(antecedent.form.text == conditional.form.ante.text)
     
     return lambda l_num: line(l_num, conditional.form.conse, rule_anno('MP', frozenset({conditional.num, antecedent.num})), conditional.dep | antecedent.dep)
+
+def assume(form):
+    '''
+    Assume something
+    '''
+    assert(form.type == MathType.PL_FORMULA)
     
+    return lambda l_num: line(l_num, form, rule_anno('A', frozenset()), frozenset({l_num}))
+
+def cp(antecedent, consequent):
+    '''
+    Assume p, q |- p -> q
+    '''
+    assert(antecedent.type == MathType.PL_PROOF_LINE)
+    assert(consequent.type == MathType.PL_PROOF_LINE)
+    # the antecedent must be an assumption
+    assert(antecedent.rule_anno.symbol == 'A')
+    # the consequent must depends on the assumption
+    assert(antecedent.num in consequent.dep)
+    
+    return lambda l_num: line(l_num, cond(antecedent.form, consequent.form), rule_anno('CP', frozenset({antecedent.num, consequent.num})), consequent.dep - antecedent.dep)
+    
+    
+# Math objects concerning proofs
 def rule_anno(symbol: str, args: FrozenSet[int]):
     '''
     Create a Rule Annotation: A str that represents the rule plus a list of arguments

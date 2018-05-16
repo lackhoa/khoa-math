@@ -65,11 +65,15 @@ def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queu
 
     # Enough wait, the proofwork starts here:
     
-    # Add premises:
+    # Add premises, and record the line numbers for future use:
+    premise_nums = set()
     for premise in premises:
-        add_line( make_line(pre_intro(premise)) )
+        premise_line = make_line(pre_intro(premise))
+        add_line( premise_line )
+        premise_nums.add(premise_line.num)
 
-        
+    premise_nums = frozenset(premise_nums) # Lock the premises for good measure
+
     loop_count = 0 # Keep count to check against the loop limit
     goal_try_count = 0
     # The main loop: as long as the conclusion is there, and
@@ -93,39 +97,56 @@ def prove(premises: List, conclusion, loop_limit=10, goal_try_limit=5, goal_queu
         print('Current goal queue (right-most first): '+ str([g.text for g in cur_goals]))
 
 
-        # Goal-oriented approach first: for rules that needs many
-        # requirements, since they're expensive
+        # Goal-oriented approach first: for rules that has
+        # loose requirements, which pollutes the proof lines
 
-        # Try and-introduction:
-        if(cur_goals[-1].cons == PlCons.CONJUNCTION):
+        # Conjunction: try and-introduction:
+        if cur_goals[-1].cons == PlCons.CONJUNCTION:
             l = search_form(lines, cur_goals[-1].left)
             r = search_form(lines, cur_goals[-1].right)
             if l and r:
-                if add_line( make_line(and_intro(l, r)) ):
-                    continue
+                add_line( make_line(and_intro(l, r)) )
+                continue
             else:
                 # If that doesn't work, try breaking the conjunction into two branches:
                 tmp = cur_goals[-1]
                 add_goal(tmp.left)
                 add_goal(tmp.right)
-                
+
+        # Conditional: try CP tactics
+        elif cur_goals[-1].cons == PlCons.CONDITIONAL:
+            add_line( make_line(assume(cur_goals[-1].ante)) )
+            tmp = cur_goals[-1]
+            add_goal(tmp.conse)
+
         # Then we switch to... guessing aimlessly (with restraint, of course)
-        
+
         # Loop through everything we have, and try to add more lines
         for line in lines:
-            # If the line contains a conjunction:
+            # If the line contains a conjunction,
+            # break it down
             if line.form.cons == PlCons.CONJUNCTION:
                 # Try and-elim1:
                 add_line( make_line(and_elim1(line)) )
                 # Try and-elim2:
                 add_line( make_line(and_elim2(line)) )
-            
-            # If the line contains a conditional:
+
+            # If the line contains a conditional,
+            # try to get the consequent
             if line.form.cons == PlCons.CONDITIONAL:
                 # Try modus ponens:
                 ante = search_form(lines, line.form.ante)
                 if ante:
                     add_line( make_line(modus_ponens(line, ante)) )
+
+            # If the line depends on assumptions,
+            # make a conditional statement:
+            asps = line.dep - premise_nums
+            # asps should now contains only ONE element which is the
+            # line number of the assumption that this line depends on
+            if len(asps) == 1:
+                asp_num = list(asps)[0]
+                add_line( make_line(cp(lines[asp_num], line)) )
 
     solved = conclusion not in cur_goals
     print('\n' + '-'*100)
