@@ -22,7 +22,7 @@ class PlCons(Enum):
     NEGATION = auto()
     CONJUNCTION = auto()
     DISJUNCTION = auto()
-    CONDITIONAl = auto()
+    CONDITIONAL = auto()
     BICONDITIONAL = auto()
 
 def ass_pl(form):
@@ -91,7 +91,7 @@ def cond(ante, conse):
     p.cons = PlCons.CONDITIONAL
     p.ante = ante
     p.conse = conse
-    p.text = '({} -> {})'.format(left.text, right.text)
+    p.text = '({} -> {})'.format(ante.text, conse.text)
     return p
 
 def biconditional(left, right):
