@@ -121,14 +121,15 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=2, goal_queu
 
         # Then we switch to... guessing aimlessly (with restraint, of course)
 
-        # Loop through everything we have, and try to add more lines
+        # Loop through everything we have, and add more to our knowledge
         for line in lines:
             # If the line contains a conjunction,
             # break it down
-            if line.form.cons == PlCons.CONJUNCTION:
-                # Try and-elim1:
+            # Try and-elim1:
+            if and_elim1(line):
                 add_line( make_line(and_elim1(line)) )
-                # Try and-elim2:
+            # Try and-elim2:
+            if and_elim2(line):
                 add_line( make_line(and_elim2(line)) )
 
             # If the line contains a conditional,
