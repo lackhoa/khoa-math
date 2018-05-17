@@ -24,17 +24,43 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         
     # This goal list, which shows the cur_goals we're trying works like a stack or queue
     # We always focus on the item at the end of the goal list
-    cur_goals = [conclusion]
+    cur_goals = []
     # Store the cur_goals that we've tried and failed:
     tried_goals = []
 
-    # Subroutine to check if the conclusion has not yet been made,
-    # which also checks if there is any goal remaining
-    def check_goal():
-        for goal in cur_goals:
-            if conclusion.text == goal.text:
-                return True
-        return False
+    def add_goal(goal) -> bool:
+        nonlocal cur_goals # use the common goal queue, not create another
+        # Safely add a goal, returns True if successful
+        assert(goal.type == 'goal')
+        
+        length_ok = len(cur_goals) < goal_queue_limit
+        tried = lambda: goal in tried_goals
+        trying = lambda: goal in cur_goals
+        succeeded = solved_goal(goal)
+
+        if length_ok:
+            if (not tried()) and (not trying()) and (not succeeded):
+                cur_goals.append(goal)
+                return goal
+        else:
+            # When the goal queue gets too big, just go to sleep,
+            # forget everything, and try again from the start:
+            print('Cleaning up the goal queue!')
+            cur_goals = [conclusion_goal]
+
+        return None
+
+    # Subroutine to search for a formula, returns None if there is none
+    def search_form(form, dep=None) -> List:
+        '''
+        Search in a list of lines that contains a particular formula
+        and dependency, if dependency is None then anything goes
+        '''
+        result = []
+        for line in lines:
+            if line.form == form and (dep == None or line.dep <= dep):
+                result.append(line)
+        return result
 
     def make_line(l: Callable[..., MathObject]):
         # Returns line if you have lambda, automatically increment line number
@@ -42,36 +68,28 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     def add_line(line) -> bool:
         # Safely add a line to the proof
-        # returns True if succeeded, False if not
+        # returns the line if succeeded, None if not
         assert(line.type == MathType.PL_PROOF_LINE)
 
         # Only reject if there's a line with the same text and dependency (to combat under-dependency)
         # Furthremore, don't assume the same thing twice
-        b1 = not [l for l in lines if l.form.text == line.form.text and (l.dep == line.dep or l.rule_anno.symbol == line.rule_anno.symbol == 'A')]
+        b1 = not [l for l in lines if l.form == line.form and (l.dep == line.dep or l.rule_anno.symbol == line.rule_anno.symbol == 'A')]
         length_check = len(line.form.text) <= len_limit
         if b1 and length_check:
-            print(line.text)
+            print(line)
             lines.append(line)
-            return True
-        return False
-
-    def add_goal(goal) -> bool:
-        # Safely add a goal, returns True if successful
-        assert(goal.type == MathType.PL_FORMULA)
-        length_ok = len(cur_goals) < goal_queue_limit
-        tried = lambda: goal.text in [g.text for g in tried_goals]
-        trying = lambda: goal.text in [g.text for g in cur_goals]
-        succeeded = lambda: search_form(lines, goal)
-
-        if length_ok and (not tried()) and (not trying()) and (not succeeded()):
-            cur_goals.append(goal)
-            return True
-        return False
+            return line
+        return None
+    
+    def solved_goal(goal):
+        # See if we've already achieved a goal:
+        return True if search_form(goal.form, goal.dep) else False
 
     # Enough wait, the proofwork starts here:
 
     # Add premises, and record the line numbers for future use:
     premise_nums = set()
+    print('Introducing premises')
     for premise in premises:
         premise_line = make_line(pre_intro(premise))
         add_line( premise_line )
@@ -79,71 +97,97 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     premise_nums = frozenset(premise_nums) # Lock the premises for good measure
 
+    # The conclusion depends only on the premises
+    conclusion_goal = goal(conclusion, premise_nums)
+    cur_goals = [conclusion_goal]
+
     loop_count = 0 # Keep count to check against the loop limit
     goal_try_count = 0
     # The main loop: as long as the conclusion is there, and
     # we've not exceeded loop quota
-    while check_goal() and loop_count <= loop_limit:
+    while conclusion_goal in cur_goals and loop_count <= loop_limit:
         loop_count += 1
+        print('\nLoop #{}:'.format(loop_count))
         goal_try_count += 1
-        # Shelve the goal and try something else if we're stuck:
+        
+        # Shelving goal because we are stuck
         if goal_try_count >= goal_try_limit:
+            print('Shelving the current goal because we are stuck')
             this_goal = cur_goals.pop()
             cur_goals.insert(0, this_goal)
             goal_try_count = 0
 
         # Check if we've already achieved the goal:
-        if search_form(lines, cur_goals[-1]):
+        if solved_goal(cur_goals[-1]):
+            print('Goal achieved! Removing goal')
             cur_goals.pop()
             continue
         # Note: Do NOT pop the goal queue for the rest of the loop,
         # Because we do not know if the queue is empty
         # If you think you've achieved a goal, simply command 'continue'
-        print('Current goal queue (right-most first): '+ str([g.text for g in cur_goals]))
+        print('Current goal queue (right-most first): '+ str(cur_goals))
 
         # Goal-oriented approach first: for rules that has
         # loose requirements, which pollutes the proof lines
 
         # Conjunction: try and-introduction:
-        if cur_goals[-1].cons == PlCons.CONJUNCTION:
-            l = search_form(lines, cur_goals[-1].left)
-            r = search_form(lines, cur_goals[-1].right)
-            if l and r:
-                add_line( make_line(and_intro(l, r)) )
-                continue
+        if cur_goals[-1].form.cons == PlCons.CONJUNCTION:
+            print('The goal is a conjunction: try and-introduction:')
+            left = search_form(cur_goals[-1].form.left, cur_goals[-1].dep)
+            right = search_form(cur_goals[-1].form.right, cur_goals[-1].dep)
+            
+            if left and right:
+                add_line( make_line(and_intro(left[0], right[0])) )
             else:
-                # If we don't have the components yet, find them:
+                print('We don\'t have the components yet, find them')
                 tmp = cur_goals[-1]
-                add_goal(tmp.left)
-                add_goal(tmp.right)
+                add_goal(goal(tmp.form.left, cur_goals[-1].dep))
+                add_goal(goal(tmp.form.right, cur_goals[-1].dep))
 
         # Conditional: use CP tactics
-        elif cur_goals[-1].cons == PlCons.CONDITIONAL:
-            add_line( make_line(assume(cur_goals[-1].ante)) )
+        elif cur_goals[-1].form.cons == PlCons.CONDITIONAL:
+            print('The goal is a conditional:')
+            ante = make_line(assume(cur_goals[-1].form.ante))
+            add_line( ante )
             tmp = cur_goals[-1]
-            add_goal(tmp.conse)
-            if (search_form(lines, tmp.ante)):
-                # If we already possess the consequent, then this is a trap:
-                # We must prove the conjunction of the antecedent along with the consequent...
-                # ...to "pretend" that we can derive the consequent from the antecedent
-                add_goal(conj(tmp.ante, tmp.conse))
+            conse = search_form(tmp.form.conse, tmp.dep)
+            if conse:
+                print('But we already possess the consequent even before the assumption, this is a trap, we must prove the conjunction of the consequent and the antecedent, detach the consequent, and then we will be done')
+                conjunction = add_line( make_line(and_intro(ante, conse[0])) )
+                new_conse = add_line( make_line(and_elim2(conjunction)) )
+                add_line( make_line(cp(ante, new_conse)) )
+                # And I believe we're done
+                continue
+            else:
+                print('assume the antecedent and prove the consequent with dependency on both the goal\'s and the antecedent')
+                add_goal(goal(tmp.form.conse, tmp.dep | ante.dep))
 
         # Biconditional: find the components
-        elif cur_goals[-1].cons == PlCons.BICONDITIONAL:
-            l, r = cur_goals[-1].left, cur_goals[-1].right
-            lr, rl = search_form(lines, cond(l, r)), search_form(lines, cond(r, l))
+        elif cur_goals[-1].form.cons == PlCons.BICONDITIONAL:
+            print('Biconditional: find the components')
+            l, r = cur_goals[-1].form.left, cur_goals[-1].form.right
+            lr = search_form(cond(l, r), cur_goals[-1].dep)
+            rl = search_form(cond(r, l), cur_goals[-1].dep)
             if lr and rl:
-                add_line( make_line(bicond_intro(lr, rl)) )
+                add_line( make_line(bicond_intro(lr[0], rl[0])) )
                 continue
             else:
                 # If we don't have the components yet, find them:
+                print('We don\'t have the components yet, find them:')
                 tmp = cur_goals[-1]
-                add_goal(cond(tmp.left, tmp.right))
-                add_goal(cond(tmp.right, tmp.left))
+                add_goal(goal(cond(l, r), tmp.dep))
+                add_goal(goal(cond(r, l), tmp.dep))
 
-        # Then we switch to... guessing aimlessly (with restraint, of course)
+        # Find some conditional
+        win_cond = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.conse == cur_goals[-1].form and l.dep <= cur_goals[-1].dep]
+        if win_cond:
+            print('We have some conditional that can deduce the goal, try to prove the antecedents of those')
+            for c in win_cond:
+                add_goal(goal(c.form.ante, cur_goals[-1].dep))
 
-        # Loop through everything we have, and add more to our knowledge
+        #Then we switch to... guessing aimlessly (with restraint, of course)
+
+        print('Loop through everything we have, and add more to our knowledge')
         for line in lines:
             # If the line contains a conjunction,
             # break it down
@@ -157,25 +201,24 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             # If the line contains a conditional,
             # try to get the consequent
             if line.form.cons == PlCons.CONDITIONAL:
-                # Try modus ponens:
-                ante = search_form(lines, line.form.ante)
-                if ante: add_line( make_line(modus_ponens(line, ante)) )
-                # If we don't have the antecedent yet, try proving it!
-                else: add_goal(line.form.ante)
+                # Just guess the antecedent, dude, it's still efficient
+                for ante in lines:
+                    if modus_ponens(line, ante):
+                        add_line( make_line(modus_ponens(line, ante)) )
 
             # If the line depends on assumptions,
             # make a conditional statement:
             asps = line.dep - premise_nums
             # asps should now contains (potentially many) lines numbers
             # of the assumptions that this line depends on
-            # so now we discharge them one by one and see what happens
+            # so now we discharge them one
             for asp_num in asps:
                 add_line( make_line(cp(lines[asp_num], line)) )
 
-    solved = conclusion not in cur_goals
+    solved = conclusion_goal not in cur_goals
     print('\n' + '-'*100)
     if solved:
-        cleaned_proof = clean_proof(lines, conclusion)
+        cleaned_proof = clean_proof(lines, conclusion_goal)
         print('\nSuccess! Here is the proof:')
         print(str_proof(cleaned_proof))
     else:
@@ -184,26 +227,43 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     return cleaned_proof if solved else None
 
-def search_form(lines, form):
+def goal(form, dep: FrozenSet):
     '''
-    Search in a list of lines for a particular formula
+    A goal is a formula plus a set of dependency lines
+    This is just a conceptual data structure in proofs
     '''
-    for line in lines:
-        # We must compare the text, saying '==' doesn't work!
-        if line.form.text == form.text:
-            return line
-    return None
+    assert (form.type == MathType.PL_FORMULA)
+    
+    goal = MathObject()
+    goal.type = 'goal'
+    goal.form = form
+    goal.dep = dep
+    goal.text = 'goal({}, {})'.format(form.text, str(dep))
+    return goal
 
-def clean_proof(lines: List, conclusion):
+def clean_proof(lines: List, conclusion_goal):
     '''
     Receive a proof, a conclusion and return a clean version of the proof
     '''
+    def search_form(form, dep=None) -> List:
+        '''
+        Search in a list of lines that contains a particular formula
+        and dependency, if dependency is None then anything goes
+        '''
+        result = []
+        for line in lines:
+            if line.form == form and (dep == None or line.dep <= dep):
+                result.append(line)
+        return result
+
     # Checking the input:
-    assert(conclusion.type == MathType.PL_FORMULA)
+    assert(conclusion_goal.type == 'goal')
     
-    # Check that the there is actually a line containing the proof
-    con_line = search_form(lines, conclusion)
+    # Check that the there is actually a line containing...
+    # the conclusion with adequate dependency
+    con_line = search_form(conclusion_goal.form, conclusion_goal.dep)
     assert(con_line)
+    con_line = con_line[0] # There should only be one conclusion line, right?
     
     # If a line is in tmp1 then it along with all of its
     # 'antecedent' will be added in relevant_line_num

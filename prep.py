@@ -8,6 +8,18 @@ class MathObject:
     def __init__(self):
         # The text acts like an identication to compare objects
         self.text = ''
+        self.type = '' # If important, the type should be a value in MathType
+    def __eq__(self, other):
+        """
+        Overrides the default implementation
+        Compare the attributes of the object rather than the IDs
+        """
+        if isinstance(self, other.__class__):
+            return self.text == other.text
+        return False
+    
+    def __repr__(self):
+        return self.text
 
 class MathType(Enum):
     PL_FORMULA = auto()

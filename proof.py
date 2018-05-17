@@ -71,6 +71,7 @@ def assume(form):
 def cp(antecedent, consequent):
     '''
     Assume p, q |- p -> q
+    It is conditional introduction, I don't know why it's called cp
     '''
     try:
         assert(antecedent.type == MathType.PL_PROOF_LINE)
