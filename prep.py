@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from typing import Dict
 
+# This file contains definitions of constructs in Prepositional Logic
+
 class MathObject:
     '''
     This class is the base for all mathematical objects, that's why it doesn't do anything
@@ -25,6 +27,7 @@ class MathType(Enum):
     PL_FORMULA = auto()
     PL_RULE_ANNOTATION = auto()
     PL_PROOF_LINE = auto()
+    PL_CONNECTION = auto()
 
 class Truth(Enum):
     TRUE = True

@@ -1,18 +1,21 @@
 from prep import *
 from typing import List, Tuple, Set, FrozenSet
 
-# Inference rules: these accept input proof lines
+# This file contains fundamental constructs concerning proofs.
+# However, it does not provide a mechanism to prove.
+
+# Inference rules: these accept input proof lines and return a proof line
 # They return None if the inputs are illegal
-def pre_intro(form):
+def pre_intro(form, id_):
     '''
     Premise introduction
     '''
     try: ass_pl(form)
     except: return None
 
-    return lambda l_num: line(l_num, form, rule_anno('Premise', frozenset()), frozenset({l_num}))
+    return line(id_, form, rule_anno('Premise', frozenset()), frozenset({id_}))
 
-def and_intro(left, right):
+def and_intro(left, right, id_):
     '''
     A, B => A /\ B
     '''
@@ -21,9 +24,9 @@ def and_intro(left, right):
         assert(right.type == MathType.PL_PROOF_LINE)
     except: return None
 
-    return lambda l_num: line(l_num, conj(left.form, right.form), rule_anno('&I', frozenset([left.num, right.num])), left.dep | right.dep)
+    return line(id_, conj(left.form, right.form), rule_anno('&I', frozenset([left.id_, right.id_])), left.dep | right.dep)
 
-def and_elim1(conj):
+def and_elim1(conj, id_):
     '''
     A /\ B => A
     '''
@@ -32,9 +35,9 @@ def and_elim1(conj):
         assert(conj.form.cons == PlCons.CONJUNCTION)
     except: return None
 
-    return lambda l_num: line(l_num, conj.form.left, rule_anno('&E', frozenset([conj.num])), conj.dep)
+    return line(id_, conj.form.left, rule_anno('&E', frozenset([conj.id_])), conj.dep)
 
-def and_elim2(conj):
+def and_elim2(conj, id_):
     '''
     A /\ B => B
     '''
@@ -43,9 +46,9 @@ def and_elim2(conj):
         assert(conj.form.cons == PlCons.CONJUNCTION)
     except: return None
 
-    return lambda l_num: line(l_num, conj.form.right, rule_anno('&E', frozenset([conj.num])), conj.dep)
+    return line(id_, conj.form.right, rule_anno('&E', frozenset([conj.id_])), conj.dep)
 
-def modus_ponens(conditional, antecedent):
+def modus_ponens(conditional, antecedent, id_):
     '''
     P -> Q, P |- Q
     '''
@@ -56,9 +59,9 @@ def modus_ponens(conditional, antecedent):
         assert(antecedent.form.text == conditional.form.ante.text)
     except: return None
 
-    return lambda l_num: line(l_num, conditional.form.conse, rule_anno('MP', frozenset({conditional.num, antecedent.num})), conditional.dep | antecedent.dep)
+    return line(id_, conditional.form.conse, rule_anno('MP', frozenset({conditional.id_, antecedent.id_})), conditional.dep | antecedent.dep)
 
-def assume(form):
+def assume(form, id_):
     '''
     Assume something
     '''
@@ -66,9 +69,9 @@ def assume(form):
         assert(form.type == MathType.PL_FORMULA)
     except: return None
 
-    return lambda l_num: line(l_num, form, rule_anno('A', frozenset()), frozenset({l_num}))
+    return line(id_, form, rule_anno('A', frozenset()), frozenset({id_}))
 
-def cp(antecedent, consequent):
+def cp(antecedent, consequent, id_):
     '''
     Assume p, q |- p -> q
     It is conditional introduction, I don't know why it's called cp
@@ -79,12 +82,12 @@ def cp(antecedent, consequent):
         # the antecedent must be an assumption
         assert(antecedent.rule_anno.symbol == 'A')
         # the consequent must depends on the assumption
-        assert(antecedent.num in consequent.dep)
+        assert(antecedent.id_ in consequent.dep)
     except: return None
 
-    return lambda l_num: line(l_num, cond(antecedent.form, consequent.form), rule_anno('CP', frozenset({antecedent.num, consequent.num})), consequent.dep - antecedent.dep)
+    return line(id_, cond(antecedent.form, consequent.form), rule_anno('CP', frozenset({antecedent.id_, consequent.id_})), consequent.dep - antecedent.dep)
 
-def bicond_intro(lr_line, rl_line):
+def bicond_intro(lr_line, rl_line, id_):
     # P -> Q, Q -> P |- P <-> Q
     try:
         assert(lr_line.type == MathType.PL_PROOF_LINE)
@@ -93,9 +96,9 @@ def bicond_intro(lr_line, rl_line):
         assert(rl_line.form.cons == PlCons.CONDITIONAL)
     except: return None
 
-    return lambda l_num: line(l_num, bicond(lr_line.form.ante, rl_line.form.ante), rule_anno('<->I', frozenset({lr_line.num, rl_line.num})), lr_line.dep | rl_line.dep)
+    return line(id_, bicond(lr_line.form.ante, rl_line.form.ante), rule_anno('<->I', frozenset({lr_line.id_, rl_line.id_})), lr_line.dep | rl_line.dep)
 
-def bicond_elim(bicon):
+def bicond_elim(bicon, id_):
     # P <-> Q |- (P -> Q) & (Q -> P)
     try:
         assert(bicon.type == MathType.PL_PROOF_LINE)
@@ -104,9 +107,9 @@ def bicond_elim(bicon):
 
     left_right = cond(bicon.form.left, bicon.form.right)
     right_left = cond(bicon.form.right, bicon.form.left)
-    return lambda l_num: line(l_num, conj(left_right, right_left), rule_anno('<->E', frozenset({bicon.num})), bicon.dep)
+    return line(id_, conj(left_right, right_left), rule_anno('<->E', frozenset({bicon.id_})), bicon.dep)
 
-def dne(p_line):
+def dne(p_line, id_):
     '~~P |- P'
     try:
         assert(p_line.type == MathType.PL_PROOF_LINE)
@@ -115,18 +118,18 @@ def dne(p_line):
     except:
         return None
 
-    return lambda l_num: line(l_num, p_line.form.form.form, rule_anno('DNE', frozenset({p_line.num})), p_line.dep)
+    return line(id_, p_line.form.form.form, rule_anno('DNE', frozenset({p_line.id_})), p_line.dep)
 
-def dni(p_line):
+def dni(p_line, id_):
     'P |- ~~P'
     try:
         assert(p_line.type == MathType.PL_PROOF_LINE)
     except:
         return None
 
-    return lambda l_num: line(l_num, neg(neg(p_line.form)), rule_anno('DNI', frozenset({p_line.num})), p_line.dep)
+    return line(id_, neg(neg(p_line.form)), rule_anno('DNI', frozenset({p_line.id_})), p_line.dep)
 
-def modus_tollens(cond, n_conse):
+def modus_tollens(cond, n_conse, id_):
     try:
         assert(cond.type == MathType.PL_PROOF_LINE)
         assert(n_conse.type == MathType.PL_PROOF_LINE)
@@ -135,7 +138,7 @@ def modus_tollens(cond, n_conse):
         assert(cond.form.conse == n_conse.form.form)
     except: return None
 
-    return lambda l_num: line(l_num, neg(cond.form.ante), rule_anno('MT', frozenset({cond.num, n_conse.num})), cond.dep | n_conse.dep)
+    return line(id_, neg(cond.form.ante), rule_anno('MT', frozenset({cond.id_, n_conse.id_})), cond.dep | n_conse.dep)
 
 
 
@@ -153,7 +156,7 @@ def rule_anno(symbol: str, args: FrozenSet[int]):
     anno.args = args
     return anno
 
-def line(line_num: int, form, rule_anno, dep: FrozenSet[int]):
+def line(id_: int, form, rule_anno, dep: FrozenSet[int]):
     '''
     Create a line of formal proof
     '''
@@ -163,18 +166,36 @@ def line(line_num: int, form, rule_anno, dep: FrozenSet[int]):
 
     line = MathObject()
     line.type = MathType.PL_PROOF_LINE
-    line.num = line_num # Line Number
+    line.id_ = id_ # It's essentially "line number", I name it like this to emphasize that
+        # it's just a short-hand name for the line
     line.form = form # Formula
     line.rule_anno = rule_anno # Rule Annotation
     line.dep = dep # Dependency
     def str_line():
-        line_str = str(line.num)+'.'
+        line_str = str(line.id_)+'.'
         args = ",".join(map(str, line.rule_anno.args))
         form_str = line.form.text
         dep_str = '{' + ','.join(map(str, line.dep)) + '}'
         return '{0:15}{1:6}{2:60}{3} {4}'.format(dep_str, line_str, form_str, line.rule_anno.symbol, args)
     line.text = str_line()
     return line
+
+def goal(form, dep: FrozenSet):
+    '''
+    A goal is what I called a connection: a formula plus a set of dependency lines
+    When you achieve a goal (demonstrated the connection),...
+    ...you have shown that the given formula can be derived from the given dependency
+    This is a conceptual data structure in proofs
+    '''
+    assert (form.type == MathType.PL_FORMULA)
+
+    goal = MathObject()
+    goal.type = MathType.PL_CONNECTION
+    goal.form = form
+    goal.dep = dep
+    goal.text = 'connection({}, {})'.format(form.text, str(dep))
+    return goal
+
 
 # Utility functions
 def str_proof(lines: List):

@@ -2,6 +2,8 @@ from prep import *
 from proof import *
 from typing import Callable
 
+# This file provides my mechanism to form proofs
+
 def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queue_limit=8, len_limit=40) -> List:
     '''
     Prove some formula from the premises
@@ -34,7 +36,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # Reason: the purpoes of this action
 
         nonlocal cur_goals # use the common goal queue, not create another
-        assert(goal.type == 'goal')
+        assert(goal.type == MathType.PL_CONNECTION)
 
         tried = lambda: goal in tried_goals
         trying = lambda: goal in cur_goals
@@ -60,9 +62,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 result.append(line)
         return result
 
-    def make_line(l: Callable[..., MathObject]):
-        # Returns line if you have lambda, automatically increment line number
-        return l(len(lines))
+    # This is a function to provide an id for new lines (increments by one each time)
+    get_id = lambda: len(lines)
 
     def add_line(line, desc:str = '') -> bool:
         # Safely add a line to the proof
@@ -93,9 +94,9 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     premise_nums = set()
     print('Introducing premises')
     for premise in premises:
-        premise_line = make_line(pre_intro(premise))
+        premise_line = pre_intro(premise, get_id())
         add_line( premise_line )
-        premise_nums.add(premise_line.num)
+        premise_nums.add(premise_line.id_)
 
     premise_nums = frozenset(premise_nums) # Lock the premises for good measure
 
@@ -153,7 +154,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             right = search_form(cur_goals[-1].form.right, cur_goals[-1].dep)
 
             if left and right:
-                add_line( make_line(and_intro(left[0], right[0])), 'And-introduction' )
+                add_line( and_intro(left[0], right[0], get_id()), 'And-introduction' )
             else:
                 print('We don\'t have the components yet, find them')
                 tmp = cur_goals[-1]
@@ -163,15 +164,15 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # Conditional: use CP tactics
         elif cur_goals[-1].form.cons == PlCons.CONDITIONAL:
             print('The goal is a conditional:')
-            ante = make_line(assume(cur_goals[-1].form.ante))
+            ante = assume(cur_goals[-1].form.ante, get_id())
             add_line( ante, 'Assuming for CP' )
             tmp = cur_goals[-1]
             conse = search_form(tmp.form.conse, tmp.dep)
             if conse:
                 print('But we already possess the consequent even before the assumption, this is a trap, we must prove the conjunction of the consequent and the antecedent, detach the consequent, and then we will be done')
-                conjunction = add_line( make_line(and_intro(ante, conse[0])), 'Step one' )
-                new_conse = add_line( make_line(and_elim2(conjunction)), 'Step two' )
-                add_line( make_line(cp(ante, new_conse)), 'Step three: And I believe we\'re done!' )
+                conjunction = add_line( and_intro(ante, conse[0], get_id()), 'Step one' )
+                new_conse = add_line( and_elim2(conjunction, get_id()) ,'Step two' )
+                add_line( cp(ante, new_conse, get_id()), 'Step three: And I believe we\'re done!' )
                 continue
             else:
                 print('assume the antecedent and prove the consequent with dependency on both the goal\'s and the antecedent')
@@ -184,7 +185,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             lr = search_form(cond(l, r), cur_goals[-1].dep)
             rl = search_form(cond(r, l), cur_goals[-1].dep)
             if lr and rl:
-                add_line( make_line(bicond_intro(lr[0], rl[0])), '<->-intro' )
+                add_line( bicond_intro(lr[0], rl[0], get_id()), '<->-intro' )
                 continue
             else:
                 # If we don't have the components yet, find them:
@@ -206,7 +207,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 print('Goal is a double negation')
                 e = search_form(cur_goals[-1].form.form.form, cur_goals[-1].dep)
                 if e:
-                    add_line( make_line(dni(e[0])), 'Got the core of the double negation' )
+                    add_line( dni(e[0], get_id()), 'Got the core of the double negation' )
                     continue
                 else:
                     print('We can\'t find the core of the DN')
@@ -215,8 +216,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # A negation can also mean a Modus Tollens opportunity:
         if cur_goals[-1].form.cons == PlCons.NEGATION:
             conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == cur_goals[-1].form.form]
-            for cond in conds:
-                add_goal( goal(neg(cond.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
+            for cond_ in conds:
+                add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
 
         # ---------------------------------------------------------
         # Part 3: Try to create more lines
@@ -229,25 +230,25 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             # If the line contains a conjunction,
             # break it down
             # Try and-elim1:
-            if and_elim1(line): add_line( make_line(and_elim1(line)), '&-elimination on the left' )
+            if and_elim1(line, get_id()): add_line(and_elim1(line, get_id()), '&-elimination on the left' )
             # Try and-elim2:
-            if and_elim2(line): add_line( make_line(and_elim2(line)), '&-elimination on the right' )
+            if and_elim2(line, get_id()): add_line(and_elim2(line, get_id()), '&-elimination on the right' )
             # Try biconditional-elim:
-            if bicond_elim(line): add_line( make_line(bicond_elim(line)), '<-> elimination' )
+            if bicond_elim(line, get_id()): add_line( bicond_elim(line, get_id()), '<-> elimination' )
             # Try double negation elimination:
-            if dne(line): add_line( make_line(dne(line)), 'Double negation elimination' )
+            if dne(line, get_id()): add_line( dne(line, get_id()), 'Double negation elimination' )
 
             # If the line contains a conditional,
             # try to get the consequent
             if line.form.cons == PlCons.CONDITIONAL:
                 # Just guess the antecedent, dude, it's still efficient
                 for ante in lines:
-                    if modus_ponens(line, ante):
-                        add_line( make_line(modus_ponens(line, ante)), 'Did some Modus Ponens!' )
+                    if modus_ponens(line, ante, get_id()):
+                        add_line( modus_ponens(line, ante, get_id()), 'Did some Modus Ponens!' )
                     # Or get the negation of the antecedent
                     neg_conse = ante
-                    if modus_tollens(line, neg_conse):
-                        add_line( make_line(modus_tollens(line, neg_conse)), 'Did some Modus Tollens!' )
+                    if modus_tollens(line, neg_conse, get_id()):
+                        add_line( modus_tollens(line, neg_conse, get_id()), 'Did some Modus Tollens!' )
 
             # If the line depends on assumptions,
             # make a conditional statement:
@@ -256,7 +257,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             # of the assumptions that this line depends on
             # so now we discharge them one
             for asp_num in asps:
-                add_line( make_line(cp(lines[asp_num], line)), 'Did some conditional proof!' )
+                add_line( cp(lines[asp_num], line, get_id()), 'Did some conditional proof!' )
 
     solved = conclusion_goal not in cur_goals
     print('\n' + '-'*100)
@@ -270,19 +271,6 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     return cleaned_proof if solved else None
 
-def goal(form, dep: FrozenSet):
-    '''
-    A goal is a formula plus a set of dependency lines
-    This is just a conceptual data structure in proofs
-    '''
-    assert (form.type == MathType.PL_FORMULA)
-
-    goal = MathObject()
-    goal.type = 'goal'
-    goal.form = form
-    goal.dep = dep
-    goal.text = 'goal({}, {})'.format(form.text, str(dep))
-    return goal
 
 def clean_proof(lines: List, conclusion_goal):
     '''
@@ -300,7 +288,7 @@ def clean_proof(lines: List, conclusion_goal):
         return result
 
     # Checking the input:
-    assert(conclusion_goal.type == 'goal')
+    assert(conclusion_goal.type == MathType.PL_CONNECTION)
 
     # Check that the there is actually a line containing...
     # the conclusion with adequate dependency
@@ -314,7 +302,7 @@ def clean_proof(lines: List, conclusion_goal):
 
     # Let's fulfill the prophecy above
     relevant_line_num = set()
-    relevant_line_num.add(con_line.num)
+    relevant_line_num.add(con_line.id_)
     relevant_line_num.update(set(tmp1))
     changed = True
     while changed:
