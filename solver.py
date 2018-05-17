@@ -193,10 +193,17 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 if e:
                     print('Got it!')
                     add_line( make_line(dni(e[0])) )
+                    continue
                 else:
                     print('Let\'s find its core')
                     add_goal( goal(cur_goals[-1].form.form.form, cur_goals[-1].dep) )
-
+        
+        # A negation can also mean a Modus Tollens opportunity:
+        if cur_goals[-1].form.cons == PlCons.NEGATION:
+            conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == cur_goals[-1].form.form]
+            for cond in conds:
+                add_goal( goal(neg(cond.form.conse), cur_goals[-1].dep) )
+        
         #Then we switch to... guessing aimlessly (with restraint, of course)
 
         print('Loop through everything we have, and add more to our knowledge')
@@ -219,6 +226,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 for ante in lines:
                     if modus_ponens(line, ante):
                         add_line( make_line(modus_ponens(line, ante)) )
+                    # Or get the negation of the antecedent
+                    neg_conse = ante
+                    if modus_tollens(line, neg_conse):
+                        print('did it get here?')
+                        add_line( make_line(modus_tollens(line, neg_conse)) )
 
             # If the line depends on assumptions,
             # make a conditional statement:
@@ -228,7 +240,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             # so now we discharge them one
             for asp_num in asps:
                 add_line( make_line(cp(lines[asp_num], line)) )
-
+                
     solved = conclusion_goal not in cur_goals
     print('\n' + '-'*100)
     if solved:

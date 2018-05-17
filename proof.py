@@ -11,7 +11,7 @@ def pre_intro(form):
     except: return None
 
     return lambda l_num: line(l_num, form, rule_anno('Premise', frozenset()), frozenset({l_num}))
-    
+
 def and_intro(left, right):
     '''
     A, B => A /\ B
@@ -20,7 +20,7 @@ def and_intro(left, right):
         assert(left.type == MathType.PL_PROOF_LINE)
         assert(right.type == MathType.PL_PROOF_LINE)
     except: return None
-    
+
     return lambda l_num: line(l_num, conj(left.form, right.form), rule_anno('&I', frozenset([left.num, right.num])), left.dep | right.dep)
 
 def and_elim1(conj):
@@ -55,7 +55,7 @@ def modus_ponens(conditional, antecedent):
         assert(antecedent.type == MathType.PL_PROOF_LINE)
         assert(antecedent.form.text == conditional.form.ante.text)
     except: return None
-    
+
     return lambda l_num: line(l_num, conditional.form.conse, rule_anno('MP', frozenset({conditional.num, antecedent.num})), conditional.dep | antecedent.dep)
 
 def assume(form):
@@ -126,7 +126,21 @@ def dni(p_line):
 
     return lambda l_num: line(l_num, neg(neg(p_line.form)), rule_anno('DNI', frozenset({p_line.num})), p_line.dep)
 
+def modus_tollens(cond, n_conse):
+    try:
+        assert(cond.type == MathType.PL_PROOF_LINE)
+        assert(n_conse.type == MathType.PL_PROOF_LINE)
+        assert(cond.form.cons == PlCons.CONDITIONAL)
+        assert(n_conse.form.cons == PlCons.NEGATION)
+        assert(cond.form.conse == n_conse.form.form)
+    except: return None
     
+    return lambda l_num: line(l_num, neg(cond.form.ante), rule_anno('MT', frozenset({cond.num, n_conse.num})), cond.dep | n_conse.dep)
+
+
+
+
+
 # Math objects concerning proofs
 def rule_anno(symbol: str, args: FrozenSet[int]):
     '''
@@ -138,7 +152,7 @@ def rule_anno(symbol: str, args: FrozenSet[int]):
     anno.symbol = symbol # For example &E, &I...
     anno.args = args
     return anno
-    
+
 def line(line_num: int, form, rule_anno, dep: FrozenSet[int]):
     '''
     Create a line of formal proof
@@ -146,7 +160,7 @@ def line(line_num: int, form, rule_anno, dep: FrozenSet[int]):
     # Checking input types
     assert (form.type == MathType.PL_FORMULA)
     assert (rule_anno.type == MathType.PL_RULE_ANNOTATION)
-    
+
     line = MathObject()
     line.type = MathType.PL_PROOF_LINE
     line.num = line_num # Line Number
