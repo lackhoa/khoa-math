@@ -17,7 +17,7 @@ class MathObject:
         if isinstance(self, other.__class__):
             return self.text == other.text
         return False
-    
+
     def __repr__(self):
         return self.text
 

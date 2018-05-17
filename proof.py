@@ -134,7 +134,7 @@ def modus_tollens(cond, n_conse):
         assert(n_conse.form.cons == PlCons.NEGATION)
         assert(cond.form.conse == n_conse.form.form)
     except: return None
-    
+
     return lambda l_num: line(l_num, neg(cond.form.ante), rule_anno('MT', frozenset({cond.num, n_conse.num})), cond.dep | n_conse.dep)
 
 
