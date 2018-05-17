@@ -62,7 +62,7 @@ def neg(form):
     p.type = MathType.PL_FORMULA
     p.cons = PlCons.NEGATION
     p.form = form
-    p.text = '(~ {})'.format(form.text)
+    p.text = '(~{})'.format(form.text)
     return p
 
 def conj(left, right):

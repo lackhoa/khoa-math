@@ -105,6 +105,28 @@ def bicond_elim(bicon):
     left_right = cond(bicon.form.left, bicon.form.right)
     right_left = cond(bicon.form.right, bicon.form.left)
     return lambda l_num: line(l_num, conj(left_right, right_left), rule_anno('<->E', frozenset({bicon.num})), bicon.dep)
+
+def dne(p_line):
+    '~~P |- P'
+    try:
+        assert(p_line.type == MathType.PL_PROOF_LINE)
+        assert(p_line.form.cons == PlCons.NEGATION)
+        assert(p_line.form.form.cons == PlCons.NEGATION)
+    except:
+        return None
+
+    return lambda l_num: line(l_num, p_line.form.form.form, rule_anno('DNE', frozenset({p_line.num})), p_line.dep)
+
+def dni(p_line):
+    'P |- ~~P'
+    try:
+        assert(p_line.type == MathType.PL_PROOF_LINE)
+    except:
+        return None
+
+    return lambda l_num: line(l_num, neg(neg(p_line.form)), rule_anno('DNI', frozenset({p_line.num})), p_line.dep)
+
+    
 # Math objects concerning proofs
 def rule_anno(symbol: str, args: FrozenSet[int]):
     '''

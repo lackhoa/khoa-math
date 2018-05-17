@@ -185,6 +185,18 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             for c in win_cond:
                 add_goal(goal(c.form.ante, cur_goals[-1].dep))
 
+        # If the goal is a Double Negation:
+        if cur_goals[-1].form.cons == PlCons.NEGATION:
+            if cur_goals[-1].form.form.cons == PlCons.NEGATION:
+                print('Goal is a double negation')
+                e = search_form(cur_goals[-1].form.form.form, cur_goals[-1].dep)
+                if e:
+                    print('Got it!')
+                    add_line( make_line(dni(e[0])) )
+                else:
+                    print('Let\'s find its core')
+                    add_goal( goal(cur_goals[-1].form.form.form, cur_goals[-1].dep) )
+
         #Then we switch to... guessing aimlessly (with restraint, of course)
 
         print('Loop through everything we have, and add more to our knowledge')
@@ -197,6 +209,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             if and_elim2(line): add_line( make_line(and_elim2(line)) )
             # Try biconditional-elim:
             if bicond_elim(line): add_line( make_line(bicond_elim(line)) )
+            # Try double negation elimination:
+            if dne(line): add_line( make_line(dne(line)) )
 
             # If the line contains a conditional,
             # try to get the consequent
