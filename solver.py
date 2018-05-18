@@ -27,29 +27,35 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     
     # The main proof lines, will be populated with premises:
     lines = []
-    # This goal list, which shows the cur_goals we're trying works like a stack or queue
-    # We always focus on the item at the end of the goal list
+    # This goal list, which shows the cur_goals we're trying works like a queue (FCFS)
+    # We always focus on the goal at the end of the goal list
     cur_goals = []
     # Store the cur_goals that we've tried and failed:
     tried_goals = []
 
     # -----------------------------------------------------------
     # Subroutines
-    def add_goal(goal, reason: str = '') -> bool:
+    def add_goal(goal, reason: str = '', prioritize=False) -> bool:
         # Safely add a goal, returns True if successful
         # (does not check the length of the queue)
         # Reason: the purpoes of this action
+        # prioritize: set to True to insert at the end of the goal list, otherwise insert at the beginning
 
         nonlocal cur_goals # use the common goal queue, not create another
         assert(goal.type == MathType.PL_CONNECTION)
 
+        length_ok = len(goal.form.text) <= len_limit
         tried = lambda: goal in tried_goals
         trying = lambda: goal in cur_goals
         succeeded = solved_goal(goal)
 
-        if (not tried()) and (not trying()) and (not succeeded):
-            cur_goals.append(goal)
-            print('Added goal: ' + str(goal))
+        if length_ok and (not tried()) and (not trying()) and (not succeeded):
+            if prioritize:
+                cur_goals.append(goal)
+                print('\nPrioritized goal: ' + str(goal))
+            else:
+                cur_goals.insert(0, goal)
+                print('\nAdded goal: ' + str(goal))
             print('Reason: {}'.format(reason))
             return goal
 
@@ -81,9 +87,10 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         b1 = not [l for l in lines if l.form == line.form and (l.dep == line.dep or l.rule_anno.symbol == line.rule_anno.symbol == 'A')]
         length_check = len(line.form.text) <= len_limit
         if b1 and length_check:
-            print(desc)
-            print(line)
             lines.append(line)
+            print('\nAdded line:')
+            print(line)
+            print('\nReason: ' + desc)
             return line
         return None
 
@@ -91,7 +98,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # See if we've already achieved a goal:
         return True if search_form(goal.form, goal.dep) else False
 
-    print_goal = lambda: print('Current goal queue (right-most first): '+ str(cur_goals))
+    print_goals = lambda: print('Current goal queue (right-most first): '+ str(cur_goals))
 
     # ---------------------------------------------------------------
     # Enough wait, the proofwork starts here:
@@ -101,7 +108,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     print('Introducing premises')
     for premise in premises:
         premise_line = pre_intro(premise, get_id())
-        add_line( premise_line )
+        add_line( premise_line, desc='Just a premise, bruh!' )
         premise_nums.add(premise_line.id_)
 
     premise_nums = frozenset(premise_nums) # Lock the premises for good measure
@@ -109,6 +116,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     # The conclusion depends only on the premises
     conclusion_goal = goal(conclusion, premise_nums)
     cur_goals = [conclusion_goal]
+    print('We are trying to prove: {}'.format(conclusion_goal))
 
     loop_count = 0 # Keep count to check against the loop limit
     goal_try_count = 0
@@ -116,7 +124,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     # we've not exceeded loop quota
     # I'll try to do one goal per loop, to show clearly
     # which goal we're focusing on
-    while conclusion_goal in cur_goals and loop_count <= loop_limit:
+    while (not solved_goal(conclusion_goal)) and loop_count <= loop_limit:
         # Part 1: Goal management
         loop_count += 1
         print('\nLoop #{}:'.format(loop_count))
@@ -144,6 +152,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # Because we do not know if the queue is empty
         # and to make it clear what we're doing
         # If you think you've achieved a goal, command 'continue'
+        print_goals()
         print('We are currently focusing on: {}'.format(str(cur_goals[-1])))
 
         # ---------------------------------------------------------
@@ -163,8 +172,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             else:
                 print('We don\'t have the components yet, find them')
                 tmp = cur_goals[-1]
-                add_goal(goal(tmp.form.left, cur_goals[-1].dep), reason='The left conjunct')
-                add_goal(goal(tmp.form.right, cur_goals[-1].dep), reason='The right conjunct')
+                add_goal(goal(tmp.form.left, cur_goals[-1].dep), reason='The left conjunct', prioritize=True)
+                add_goal(goal(tmp.form.right, cur_goals[-1].dep), reason='The right conjunct', prioritize=True)
 
         # Conditional: use CP tactics
         elif cur_goals[-1].form.cons == PlCons.CONDITIONAL:
@@ -180,8 +189,8 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 add_line( cp(ante, new_conse, get_id()), 'Step three: And I believe we\'re done!' )
                 continue
             else:
-                print('assume the antecedent and prove the consequent with dependency on both the goal\'s and the antecedent')
-                add_goal(goal(tmp.form.conse, tmp.dep | ante.dep), reason='Assuming for CP')
+                # Assume the antecedent and prove the consequent with dependency on both the goal\'s and the antecedent
+                add_goal(goal(tmp.form.conse, tmp.dep | ante.dep), reason='Proving this will prove that {} -> {}'.format(tmp.form.ante.text, tmp.form.conse.text), prioritize=True)
 
         # Biconditional: find the components
         elif cur_goals[-1].form.cons == PlCons.BICONDITIONAL:
@@ -196,15 +205,15 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 # If we don't have the components yet, find them:
                 print('We don\'t have the components yet, find them:')
                 tmp = cur_goals[-1]
-                add_goal(goal(cond(l, r), tmp.dep), reason='From left to rigth')
-                add_goal(goal(cond(r, l), tmp.dep), reason='From right to left')
+                add_goal(goal(cond(l, r), tmp.dep), reason='From left to rigth', prioritize=True)
+                add_goal(goal(cond(r, l), tmp.dep), reason='From right to left', prioritize=True)
 
         # Find some conditional
         win_cond = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.conse == cur_goals[-1].form and l.dep <= cur_goals[-1].dep]
         if win_cond:
             print('We have some conditional that can deduce the goal, try to prove the antecedents of those')
             for c in win_cond:
-                add_goal(goal(c.form.ante, cur_goals[-1].dep), reason='There is a conditional to get us from this to the goal')
+                add_goal(goal(c.form.ante, cur_goals[-1].dep), reason='There is a conditional to get us from this to the goal', prioritize=True)
 
         # If the goal is a Double Negation:
         if cur_goals[-1].form.cons == PlCons.NEGATION:
@@ -216,18 +225,18 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                     continue
                 else:
                     print('We can\'t find the core of the DN')
-                    add_goal(goal(cur_goals[-1].form.form.form, cur_goals[-1].dep), reason='This is the core of the DN')
+                    add_goal(goal(cur_goals[-1].form.form.form, cur_goals[-1].dep), reason='This is the core of the DN', prioritize=True)
 
         # Try to use Modus Tollens
             conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == neg(cur_goals[-1].form)]
             for cond_ in conds:
-                add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
+                add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens', prioritize=True )
 
         # ---------------------------------------------------------
         # Part 3: Try to create more lines
         # (Using rules that have strict requirements)
         # So we don't loop too much
-        # This part does not conclude anything
+        # This part does not conclude any goals
 
         # Loop through everything we have, and add more to our knowledge
         for line in lines:
@@ -250,15 +259,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                     if modus_ponens(line, ante, get_id()):
                         add_line( modus_ponens(line, ante, get_id()), 'Did some Modus Ponens!' )
                         break
-                else: add_goal( goal(line.form.ante, cur_goals[-1].dep), 'Trying to use Modus Ponens' )
-                    # Or try to get the negation of the antecedent
+                # Or try to get the negation of the antecedent
                 for neg_conse in lines:
                     if modus_tollens(line, neg_conse, get_id()):
                         add_line( modus_tollens(line, neg_conse, get_id()), 'Did some Modus Tollens!' )
                         break
-                else:
-                    add_goal( goal(neg(line.form.conse), cur_goals[-1].dep), 'Trying to use Modus Tollens' )
-
 
             # If the line depends on assumptions,
             # make a conditional statement:
@@ -275,14 +280,17 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         # We only enters this mode on desperation
         if loop_count >= loop_limit / 2:    
             if loop_count == loop_limit / 2:
+                print('\n' + '-'*100)
                 print('Oh this game is on!')
-            for i in random.choices(lines, k=2):
-                for j in random.choices(lines, k=2):
-                    add_line(and_intro(i, j, get_id()), 'Just and-intro these together, see what happens')
+            for i in lines:
+                # for j in random.choices(lines, k=2):
+                    # add_line(and_intro(i, j, get_id()), 'Just and-intro these together, see what happens')
                 
+                add_goal( goal(cond(neg(cur_goals[-1].form), neg(i.form)), cur_goals[-1].dep), reason='Desperation use of Modus Tollens' )
             
-
-    solved = conclusion_goal not in cur_goals
+    # ---------------------------------------------------------------
+    # The end! Success, or failure?
+    solved = solved_goal(conclusion_goal)
     print('\n' + '-'*100)
     if solved:
         cleaned_proof = clean_proof(lines, conclusion_goal)
