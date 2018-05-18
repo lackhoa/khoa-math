@@ -1,5 +1,6 @@
 from prep import *
 from proof import *
+import random 
 from typing import Callable
 
 # This file provides my mechanism to form proofs
@@ -21,15 +22,19 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
     # Check that the conclusion is within length limit:
     assert(len(conclusion.text) <= len_limit), 'Please raise the length limit'
 
+    # -------------------------------------------------------------
+    # Variables
+    
     # The main proof lines, will be populated with premises:
     lines = []
-
     # This goal list, which shows the cur_goals we're trying works like a stack or queue
     # We always focus on the item at the end of the goal list
     cur_goals = []
     # Store the cur_goals that we've tried and failed:
     tried_goals = []
 
+    # -----------------------------------------------------------
+    # Subroutines
     def add_goal(goal, reason: str = '') -> bool:
         # Safely add a goal, returns True if successful
         # (does not check the length of the queue)
@@ -88,6 +93,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     print_goal = lambda: print('Current goal queue (right-most first): '+ str(cur_goals))
 
+    # ---------------------------------------------------------------
     # Enough wait, the proofwork starts here:
 
     # Add premises, and record the line numbers for future use:
@@ -212,13 +218,7 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                     print('We can\'t find the core of the DN')
                     add_goal(goal(cur_goals[-1].form.form.form, cur_goals[-1].dep), reason='This is the core of the DN')
 
-        # A negation can also mean a Modus Tollens opportunity:
-        if cur_goals[-1].form.cons == PlCons.NEGATION:
-            conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == cur_goals[-1].form.form]
-            for cond_ in conds:
-                add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
-        else:
-        # But Modus Tollens can also produce positive sentences
+        # Try to use Modus Tollens
             conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == neg(cur_goals[-1].form)]
             for cond_ in conds:
                 add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
@@ -268,6 +268,19 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             # so now we discharge them one
             for asp_num in asps:
                 add_line( cp(lines[asp_num], line, get_id()), 'Did some conditional proof!' )
+        
+        # ---------------------------------------------------------
+        # Part 4: Desperation Mode
+        # Just start doing random shit, as the name suggest
+        # We only enters this mode on desperation
+        if loop_count >= loop_limit / 2:    
+            if loop_count == loop_limit / 2:
+                print('Oh this game is on!')
+            for i in random.choices(lines, k=2):
+                for j in random.choices(lines, k=2):
+                    add_line(and_intro(i, j, get_id()), 'Just and-intro these together, see what happens')
+                
+            
 
     solved = conclusion_goal not in cur_goals
     print('\n' + '-'*100)

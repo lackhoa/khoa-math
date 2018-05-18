@@ -9,6 +9,7 @@ from typing import List, Tuple, Set, FrozenSet
 def pre_intro(form, id_):
     '''
     Premise introduction
+    Only do this at the beginning, when you are given the premise
     '''
     try: ass_pl(form)
     except: return None
@@ -17,7 +18,7 @@ def pre_intro(form, id_):
 
 def and_intro(left, right, id_):
     '''
-    A, B => A /\ B
+    A, B |- A /\ B
     '''
     try:
         assert(left.type == MathType.PL_PROOF_LINE)
@@ -28,7 +29,7 @@ def and_intro(left, right, id_):
 
 def and_elim1(conj, id_):
     '''
-    A /\ B => A
+    A /\ B |- A
     '''
     try:
         assert(conj.type == MathType.PL_PROOF_LINE)
@@ -39,7 +40,7 @@ def and_elim1(conj, id_):
 
 def and_elim2(conj, id_):
     '''
-    A /\ B => B
+    A /\ B |- B
     '''
     try:
         assert(conj.type == MathType.PL_PROOF_LINE)
@@ -63,7 +64,7 @@ def modus_ponens(conditional, antecedent, id_):
 
 def assume(form, id_):
     '''
-    Assume something
+    Assume something, for conditional proof
     '''
     try:
         assert(form.type == MathType.PL_FORMULA)
@@ -73,8 +74,8 @@ def assume(form, id_):
 
 def cp(antecedent, consequent, id_):
     '''
-    Assume p, q |- p -> q
-    It is conditional introduction, I don't know why it's called cp
+    Conditional Proof, or conditional introduction
+    A (Assumed), B |- A -> B
     '''
     try:
         assert(antecedent.type == MathType.PL_PROOF_LINE)
@@ -88,7 +89,10 @@ def cp(antecedent, consequent, id_):
     return line(id_, cond(antecedent.form, consequent.form), rule_anno('CP', frozenset({antecedent.id_, consequent.id_})), consequent.dep - antecedent.dep)
 
 def bicond_intro(lr_line, rl_line, id_):
-    # P -> Q, Q -> P |- P <-> Q
+    '''
+    Biconditional Introduction
+    P -> Q, Q -> P |- P <-> Q
+    '''
     try:
         assert(lr_line.type == MathType.PL_PROOF_LINE)
         assert(lr_line.form.cons == PlCons.CONDITIONAL)
@@ -99,7 +103,10 @@ def bicond_intro(lr_line, rl_line, id_):
     return line(id_, bicond(lr_line.form.ante, rl_line.form.ante), rule_anno('<->I', frozenset({lr_line.id_, rl_line.id_})), lr_line.dep | rl_line.dep)
 
 def bicond_elim(bicon, id_):
-    # P <-> Q |- (P -> Q) & (Q -> P)
+    '''
+    Biconditional Elimination
+    P <-> Q |- (P -> Q) & (Q -> P)
+    '''
     try:
         assert(bicon.type == MathType.PL_PROOF_LINE)
         assert(bicon.form.cons == PlCons.BICONDITIONAL)
@@ -110,7 +117,10 @@ def bicond_elim(bicon, id_):
     return line(id_, conj(left_right, right_left), rule_anno('<->E', frozenset({bicon.id_})), bicon.dep)
 
 def dne(p_line, id_):
-    '~~P |- P'
+    '''
+    Double Negation Elimination
+    ~~P |- P
+    '''
     try:
         assert(p_line.type == MathType.PL_PROOF_LINE)
         assert(p_line.form.cons == PlCons.NEGATION)
@@ -121,7 +131,10 @@ def dne(p_line, id_):
     return line(id_, p_line.form.form.form, rule_anno('DNE', frozenset({p_line.id_})), p_line.dep)
 
 def dni(p_line, id_):
-    'P |- ~~P'
+    '''
+    Double Negation Introduction
+    'P |- ~~P
+    '''
     try:
         assert(p_line.type == MathType.PL_PROOF_LINE)
     except:
@@ -130,6 +143,10 @@ def dni(p_line, id_):
     return line(id_, neg(neg(p_line.form)), rule_anno('DNI', frozenset({p_line.id_})), p_line.dep)
 
 def modus_tollens(cond, n_conse, id_):
+    '''
+    Modus Tollens
+    P -> Q, ~Q |- ~P
+    '''
     try:
         assert(cond.type == MathType.PL_PROOF_LINE)
         assert(n_conse.type == MathType.PL_PROOF_LINE)
