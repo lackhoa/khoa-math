@@ -116,12 +116,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
         print('\nLoop #{}:'.format(loop_count))
         goal_try_count += 1
 
-        # Shelving goal because we are stuck
-        if goal_try_count >= goal_try_limit:
-            print('Shelving the current goal because we are stuck')
-            this_goal = cur_goals.pop()
-            cur_goals.insert(0, this_goal)
-            goal_try_count = 0
+        # When the goal queue gets too big, just go to sleep,
+        # forget everything, and try again from the start:
+        if len(cur_goals) > goal_queue_limit:
+            print('Too many goals! Cleaning up the goal queue!')
+            cur_goals = [conclusion_goal]
 
         # Check if we've already achieved the goal:
         if solved_goal(cur_goals[-1]):
@@ -129,11 +128,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             cur_goals.pop()
             continue
 
-        # When the goal queue gets too big, just go to sleep,
-        # forget everything, and try again from the start:
-        if len(cur_goals) > goal_queue_limit:
-            print('Too many goals! Cleaning up the goal queue!')
-            cur_goals = [conclusion_goal]
+        # Shelving goal if we're stuck
+        if goal_try_count >= goal_try_limit:
+            this_goal = cur_goals.pop()
+            cur_goals.insert(0, this_goal)
+            goal_try_count = 0
 
         # Note: Do NOT pop the goal queue for the rest of the loop,
         # Because we do not know if the queue is empty
@@ -218,6 +217,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
             conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == cur_goals[-1].form.form]
             for cond_ in conds:
                 add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
+        else:
+        # But Modus Tollens can also produce positive sentences
+            conds = [l for l in lines if l.form.cons == PlCons.CONDITIONAL and l.form.ante == neg(cur_goals[-1].form)]
+            for cond_ in conds:
+                add_goal( goal(neg(cond_.form.conse), cur_goals[-1].dep), reason='To use Modus Tollens' )
 
         # ---------------------------------------------------------
         # Part 3: Try to create more lines
@@ -245,10 +249,16 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
                 for ante in lines:
                     if modus_ponens(line, ante, get_id()):
                         add_line( modus_ponens(line, ante, get_id()), 'Did some Modus Ponens!' )
-                    # Or get the negation of the antecedent
-                    neg_conse = ante
+                        break
+                else: add_goal( goal(line.form.ante, cur_goals[-1].dep), 'Trying to use Modus Ponens' )
+                    # Or try to get the negation of the antecedent
+                for neg_conse in lines:
                     if modus_tollens(line, neg_conse, get_id()):
                         add_line( modus_tollens(line, neg_conse, get_id()), 'Did some Modus Tollens!' )
+                        break
+                else:
+                    add_goal( goal(neg(line.form.conse), cur_goals[-1].dep), 'Trying to use Modus Tollens' )
+
 
             # If the line depends on assumptions,
             # make a conditional statement:
