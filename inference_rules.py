@@ -137,3 +137,48 @@ def modus_tollens(cond, n_conse, id_: int):
 
     return line(id_, neg(cond.form.ante), rule_anno('MT', frozenset({cond.id_, n_conse.id_})), cond.dep | n_conse.dep)
 
+def or_intro_right(true_line, other_form, id_: int):
+    '''
+    P |- P \/ Q
+    '''
+    try:
+        assert(true_line.type == MathType.PL_PROOF_LINE)
+        assert(other_form.type == MathType.PL_FORMULA)
+    except AssertionError:
+        return None
+
+    return line(id_, disj(true_line.form, other_form), rule_anno('vI-left', [true_line.id_]), true_line.dep)
+
+def or_intro_left(other_form, true_line, id_: int):
+    '''
+    P |- Q \/ P
+    '''
+    try:
+        assert(true_line.type == MathType.PL_PROOF_LINE)
+        assert(other_form.type == MathType.PL_FORMULA)
+    except AssertionError:
+        return None
+
+    return line(id_, disj(other_form, true_line.form), rule_anno('vI-right', [true_line.id_]), true_line.dep)
+
+def or_elim(disj, left_assumption, left_conclusion, right_assumption, right_conclusion, id_: int):
+    try:
+        assert(disj.type == MathType.PL_PROOF_LINE)
+        assert(left_assumption.type == MathType.PL_PROOF_LINE)
+        assert(left_conclusion.type == MathType.PL_PROOF_LINE)
+        assert(right_assumption.type == MathType.PL_PROOF_LINE)
+        assert(right_conclusion.type == MathType.PL_PROOF_LINE)
+        assert(disj.form.cons == PlCons.DISJUNCTION)
+        assert(disj.form.left == left_assumption.form)
+        assert(disj.form.right == right_assumption.form)
+        assert(left_conclusion.form == right_conclusion.form)
+        assert(left_assumption.rule_anno.symbol == 'A')
+        assert(right_assumption.rule_anno.symbol == 'A')
+
+    except AssertionError:
+        return None
+
+    return line(id_,
+            form=left_conclusion.form,
+            rule_anno=rule_anno('vE', {disj.id_, left_assumption.id_, left_conclusion.id_, right_assumption.id_, right_conclusion.id_}),
+            dep=(disj.dep | left_conclusion.dep | right_conclusion.dep)- (left_assumption.dep | right_assumption.dep))

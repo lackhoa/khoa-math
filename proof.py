@@ -77,21 +77,23 @@ def proof(premises: List, conclusion, lines: List):
         assert( premises == [line.form for line in lines if line.rule_anno.symbol == 'Premise'] )
         # The final line must be the conclusion
         assert(lines[-1].form == conclusion)
+        premise_lines = [l for l in lines if l.rule_anno.symbol == 'Premise']
+        assert(lines[-1].dep.issubset( set([l.id_ for l in premise_lines])) )
     except AssertionError:
-        print('Illegal!')
         return None
 
     proof_ = MathObject(MathType.PL_PROOF)
     proof_.lines = lines
     proof_.conclusion = conclusion
     proof_.premises = premises
-
-    def str_proof():
-        # Printing out the proof
-        result = '{0:15}{1:6}{2:60}{3}\n'.format('Dep', 'Line', 'Formula', 'Rule Annotation')
-        for line in lines:
-            result += line.text + '\n'
-        return result
-    proof_.text = str_proof()
+    proof_.text = str_lines(lines)
 
     return proof_
+
+def str_lines(lines):
+    # Printing out the list of lines
+    result = '{0:15}{1:6}{2:60}{3}\n'.format('Dep', 'Line', 'Formula', 'Rule Annotation')
+    for line in lines:
+        result += line.text + '\n'
+    return result
+
