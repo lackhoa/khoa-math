@@ -17,5 +17,3 @@ l2 = pre_intro(p, 2)
 l3 = modus_ponens(l1, l2, 3)
 
 pr = proof(premises, conclusion, lines = [l1, l2, l3])
-
-# prove(premises, conclusion, loop_limit=50, goal_try_limit = 0, len_limit=40, goal_queue_limit=20)
