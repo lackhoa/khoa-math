@@ -1,5 +1,6 @@
 from prep import *
 from proof import *
+from inference_rules import *
 from typing import Callable
 
 # This file provides my mechanism to form proofs
