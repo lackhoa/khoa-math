@@ -174,6 +174,9 @@ def or_elim(disj, left_assumption, left_conclusion, right_assumption, right_conc
         assert(left_conclusion.form == right_conclusion.form)
         assert(left_assumption.rule_anno.symbol == 'A')
         assert(right_assumption.rule_anno.symbol == 'A')
+        # Weird rule? The conclusions must be explicitly reliant on the assumptions
+        assert(left_assumption.id_ in left_conclusion.dep)
+        assert(right_assumption.id_ in right_conclusion.dep)
 
     except AssertionError:
         return None
@@ -182,3 +185,22 @@ def or_elim(disj, left_assumption, left_conclusion, right_assumption, right_conc
             form=left_conclusion.form,
             rule_anno=rule_anno('vE', {disj.id_, left_assumption.id_, left_conclusion.id_, right_assumption.id_, right_conclusion.id_}),
             dep=(disj.dep | left_conclusion.dep | right_conclusion.dep)- (left_assumption.dep | right_assumption.dep))
+
+def raa(assumption, contradiction, id_: int):
+    '''
+    Reductio ad Absurdum
+    :param assumption: Some stupid assumption
+    :param contradiction: must looks like P /\ ~P
+    '''
+    try:
+        assert(assumption.type == MathType.PL_PROOF_LINE)
+        assert(assumption.rule_anno.symbol == 'A')
+        assert(contradiction.type == MathType.PL_PROOF_LINE)
+        assert(assumption.id_ in contradiction.dep) # contra must be derived from assumption
+        assert(contradiction.form.cons == PlCons.CONJUNCTION)
+        assert(contradiction.form.right.cons == PlCons.NEGATION)
+        assert(contradiction.form.right.form == contradiction.form.left) # Right must negate left
+    except AssertionError:
+        return None
+
+    return line(id_, neg(assumption.form), rule_anno('RAA', {assumption.id_, contradiction.id_}), contradiction.dep - assumption.dep)

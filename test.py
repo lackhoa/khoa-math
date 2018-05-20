@@ -2,6 +2,7 @@ from proof import *
 from solver import *
 import os
 import readline
+import re  # Regular expression
 
 # This is a test file
 
@@ -13,8 +14,8 @@ p2p, p2q, q2r, r2s, r2p, r2q, p2r, q2s, s2q, s2r, q2p, p2s, s2q = cond(p, p), co
 p3q, q3p, q3r, p3r = bicond(p, q), bicond(q, p), bicond(q, r), bicond(p, r)
 pvq, qvp, pvr, rvs = disj(p, q), disj(q, p), disj(p,r), disj(r, s)
 
-premises = [p2q, p]
-conclusion = q
+premises = [p2q, cond(p, nq)]
+conclusion = np
 l = []
 
 # Premise introduction
@@ -31,9 +32,14 @@ while True:
         # Add a line
         line = input('Enter line: ')
         # Processing the input line:
-        for (find, replace) in [('mp', 'modus_ponens'), ('mt', 'modus_tollens'), ('#', str(len(l)))]:
-            # Replace the string on the left with the one on the right
-            line = line.replace(find, replace)
+        line_pattern = re.compile(r'#(?P<line_number>[0-9]+)')
+        for (pattern, replace) in [('mp', 'modus_ponens'),  # Modus Ponens shortcut
+                ('mt', 'modus_tollens'),                    # Modus Tollens shortcut
+                (r'\)$', ',' + str(len(l)) + ')'),           # automatically use the next line number
+                (line_pattern, r'l[\g<line_number>]')]:     # '#<number>' returns l[number]
+
+            line = re.sub(pattern, replace, line)
+        print('Interpreted as: \'{}\''.format(line))
 
         try:
             if eval(line) is not None:
