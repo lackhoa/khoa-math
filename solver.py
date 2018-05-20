@@ -303,30 +303,11 @@ def prove(premises: List, conclusion, loop_limit=30, goal_try_limit=1, goal_queu
 
     return cleaned_proof if solved else None
 
-
-def clean_proof(lines: List, conclusion_goal):
+def clean_proof(lines: List):
     '''
     Receive a proof, a conclusion and return a clean version of the proof
     '''
-    def search_form(form, dep=None) -> List:
-        '''
-        Search in a list of lines that contains a particular formula
-        and dependency, if dependency is None then anything goes
-        '''
-        result = []
-        for line in lines:
-            if line.form == form and (dep == None or line.dep <= dep):
-                result.append(line)
-        return result
-
-    # Checking the input:
-    assert(conclusion_goal.type == MathType.PL_CONNECTION)
-
-    # Check that the there is actually a line containing...
-    # the conclusion with adequate dependency
-    con_line = search_form(conclusion_goal.form, conclusion_goal.dep)
-    assert(con_line)
-    con_line = con_line[0] # There should only be one conclusion line, right?
+    con_line = lines[-1]
 
     # If a line is in tmp1 then it along with all of its
     # 'antecedent' will be added in relevant_line_num

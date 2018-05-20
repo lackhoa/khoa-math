@@ -14,28 +14,43 @@ p2p, p2q, q2r, r2s, r2p, r2q, p2r, q2s, s2q, s2r, q2p, p2s, s2q = cond(p, p), co
 p3q, q3p, q3r, p3r = bicond(p, q), bicond(q, p), bicond(q, r), bicond(p, r)
 pvq, qvp, pvr, rvs = disj(p, q), disj(q, p), disj(p,r), disj(r, s)
 
-premises = [p2q, cond(p, nq)]
-conclusion = np
+counter = 0
+premises = [neg(conj(np,nq))]
+conclusion = disj(p, q)
 l = []
 
 # Premise introduction
 for i in range(len(premises)):
     l.append(pre_intro(premises[i], i))
 
+def rerender():
+    # Clear screen
+    os.system('clear')
+    # View proof:
+    print(str_lines(l))
+    # View conclusion:
+    print('Aim: {}'.format(str(conclusion)))
 
 # The CLI:
-choice = ''
+command = ''
 while True:
-    choice = input('PL>>> ')
+    command = input('PL> ')
     # Respond to user input
-    if choice == 'a':
-        # Add a line
-        line = input('Enter line: ')
+    if command.startswith('a'):
+        # User wants to add a line
         # Processing the input line:
+        line = command[2:]
         line_pattern = re.compile(r'#(?P<line_number>[0-9]+)')
         for (pattern, replace) in [('mp', 'modus_ponens'),  # Modus Ponens shortcut
                 ('mt', 'modus_tollens'),                    # Modus Tollens shortcut
                 (r'\)$', ',' + str(len(l)) + ')'),           # automatically use the next line number
+                (r'A\(', r'assume('),
+                (r'&I', r'and_intro'),
+                (r'&E1', r'and_elim1'),
+                (r'&E2', r'and_elim2'),
+                (r'vIl', r'or_intro_left'),
+                (r'vIr', r'or_intro_right'),
+                (r'vE', r'or_elim'),
                 (line_pattern, r'l[\g<line_number>]')]:     # '#<number>' returns l[number]
 
             line = re.sub(pattern, replace, line)
@@ -44,24 +59,29 @@ while True:
         try:
             if eval(line) is not None:
                 l.append(eval(line))
-                print(eval(line))
+                rerender()
             else: print('You messed up!')
         except: print('That wasn\'t even coherent!')
 
-    elif choice == 'p':
-        # Clear screen
-        os.system('clear')
-        # View proof:
-        print(str_lines(l))
-        # View conclusion:
-        print('Aim: {}'.format(str(conclusion)))
+    elif command.startswith('c'):
+        rerender()
 
-    elif choice == 'done':
+    elif command.startswith('t'):
+        # Trim the proof
+        l = clean_proof(l)
+        rerender()
+
+    elif command.startswith('p'):
+        # Pop the last line:
+        l.pop()
+        rerender()
+
+    elif command.startswith('done'):
         if proof(premises, conclusion, l):
             print('Well done! You can save your work if you want')
         else: print('We\'re not done yet!')
 
-    elif choice == 's':
+    elif command.startswith('s'):
         # Write down the proof:
         try:
             file_name = input('Give me the file name: ')
@@ -70,7 +90,7 @@ while True:
             print('File written!')
         except: print('Failed!')
 
-    elif choice == 'q':
+    elif command.startswith('q') or command.startswith('e'):
         print('Good bye!')
         break
     else:

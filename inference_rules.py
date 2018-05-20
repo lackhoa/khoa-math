@@ -147,7 +147,7 @@ def or_intro_right(true_line, other_form, id_: int):
     except AssertionError:
         return None
 
-    return line(id_, disj(true_line.form, other_form), rule_anno('vI-left', [true_line.id_]), true_line.dep)
+    return line(id_, disj(true_line.form, other_form), rule_anno('vI-right', [true_line.id_]), true_line.dep)
 
 def or_intro_left(other_form, true_line, id_: int):
     '''
@@ -159,7 +159,7 @@ def or_intro_left(other_form, true_line, id_: int):
     except AssertionError:
         return None
 
-    return line(id_, disj(other_form, true_line.form), rule_anno('vI-right', [true_line.id_]), true_line.dep)
+    return line(id_, disj(other_form, true_line.form), rule_anno('vI-left', [true_line.id_]), true_line.dep)
 
 def or_elim(disj, left_assumption, left_conclusion, right_assumption, right_conclusion, id_: int):
     try:
