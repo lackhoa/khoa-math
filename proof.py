@@ -4,14 +4,11 @@ from typing import List, Tuple, Set, FrozenSet
 # This file contains fundamental constructs concerning proofs.
 # However, it does not provide a mechanism to prove.
 
-def rule_anno(symbol: str, args: FrozenSet[int]):
+def rule_anno(symbol: str, args: List):
     '''
     Create a Rule Annotation: A str that represents the rule plus a list of arguments
     '''
-    try:
-        assert(iter(args))
-    except AssertionError:
-        return None
+    assert(iter(args))
 
     anno = MathObject(MathType.PL_RULE_ANNOTATION)
     anno.symbol = symbol # For example &E, &I...
@@ -66,21 +63,18 @@ def proof(premises: List, conclusion, lines: List):
     :param lines: Indexed set of proof lines
     '''
     # Doing assertion here!
-    try:
-        assert(conclusion.type == MathType.PL_FORMULA)
-        for p in premises:
-            assert(p.type == MathType.PL_FORMULA)
-        for line in lines:
-            assert(line.type == MathType.PL_PROOF_LINE)
+    assert(conclusion.type == MathType.PL_FORMULA)
+    for p in premises:
+        assert(p.type == MathType.PL_FORMULA)
+    for line in lines:
+        assert(line.type == MathType.PL_PROOF_LINE)
 
-        # All the lines that are premises must registered
-        assert( premises == [line.form for line in lines if line.rule_anno.symbol == 'Premise'] )
-        # The final line must be the conclusion
-        assert(lines[-1].form == conclusion)
-        premise_lines = [l for l in lines if l.rule_anno.symbol == 'Premise']
-        assert(lines[-1].dep.issubset( set([l.id_ for l in premise_lines])) )
-    except AssertionError:
-        return None
+    # All the lines that are premises must registered
+    assert( premises == [line.form for line in lines if line.rule_anno.symbol == 'Premise'] )
+    # The final line must be the conclusion
+    assert(lines[-1].form == conclusion)
+    premise_lines = [l for l in lines if l.rule_anno.symbol == 'Premise']
+    assert(lines[-1].dep.issubset( set([l.id_ for l in premise_lines])) )
 
     proof_ = MathObject(MathType.PL_PROOF)
     proof_.lines = lines

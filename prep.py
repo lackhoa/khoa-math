@@ -29,6 +29,7 @@ class MathType(Enum):
     PL_PROOF_LINE = auto()
     PL_CONNECTION = auto()
     PL_PROOF = auto()
+    PL_THEOREM = auto()
 
 class PlCons(Enum):
     ATOM = auto()

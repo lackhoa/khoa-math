@@ -43,7 +43,7 @@ while True:
         line_pattern = re.compile(r'#(?P<line_number>[0-9]+)')
         for (pattern, replace) in [('mp', 'modus_ponens'),  # Modus Ponens shortcut
                 ('mt', 'modus_tollens'),                    # Modus Tollens shortcut
-                (r'\)$', ',' + str(len(l)) + ')'),           # automatically use the next line number
+                (r'\)$', ', '+str(len(l))+')'),           # automatically use the next line number
                 (r'A\(', r'assume('),
                 (r'&I', r'and_intro'),
                 (r'&E1', r'and_elim1'),
@@ -57,11 +57,9 @@ while True:
         print('Interpreted as: \'{}\''.format(line))
 
         try:
-            if eval(line) is not None:
-                l.append(eval(line))
-                rerender()
-            else: print('You messed up!')
-        except: print('That wasn\'t even coherent!')
+            l.append(eval(line))
+            rerender()
+        except Exception as error: print(str(error))
 
     elif command.startswith('c'):
         rerender()
