@@ -28,7 +28,6 @@ class MathObject():
         return self.text
 
 class MathType(Enum):
-    PL_CONNECTION = auto()
     '''
     All MathObject should have a type belonging to this enum
     But, since there are so many types, sometimes you can just use strings
