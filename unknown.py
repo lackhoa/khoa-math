@@ -3,9 +3,10 @@ from typing import Iterable
 
 def kset(explicit: Iterable=None):
     '''
-    Sets represent knowledge, you always assume everything that could be
+    Sets represent knowledge, containing every possibility that could be.
     :param explicit: None is unknown (could be anything). And the empty set
-    is an impossibility
+    is an impossibility.
+    A set is "explicit" when its 'explicit' is present
     '''
     res = MathObject(MathType.KSET)
     self.explicit = Set(explicit)
@@ -33,23 +34,28 @@ def unify(s1, s2):
     return res
 
 # Unknown:
-def unknown():
+def unknown(poss=kset()):
     '''
     Kind of like a throaway structure, but it's important nonetheless
-    Every attribute of an unknown is a set
+    Every attribute of an unknown is an unknown.
+    An unknown is "grounded" when its possibilities (as KSET) is explicit,
+    otherwise it is "free"
     '''
+    assert(poss.type = MathType.KSET)
     u = MathObject(MathType.UNKNOWN)
+    u.poss = poss
     return u
 
 # Functions defined on Unknowns:
 def lookup(u, attr: str):
     '''
-    Return an attribute of an Unknown object whenever possible
-    If attribute does not exist, return the unknown set
+    Does two things:
+    1) If attribute does not exist, assign it a free unknown
+    2) Return the attribute's value
     Use the 'dot' chain to look deeper into the components of the unknown
     '''
-    if hasattr(u, attr): return getattr(u, attr)
-    else: return kset()
+    if not hasattr(u, attr): setattr(u, attr, unknown())
+    return getattr(u, attr)
 
 def add_knowledge(u, attr: str, ks):
     '''
@@ -57,7 +63,8 @@ def add_knowledge(u, attr: str, ks):
     This function is always "safe", which means you never lose knowledge
     '''
     assert(ks.type == MathType.KSET)
-    setattr(u, attr, unify( lookup(u, attr), ks ))
+    lookup(u, attr)  # Make sure the attribute exists
+    setattr(u, attr.poss, unify( u.attr.poss, ks ))
     
 def reduce(u):
     '''
@@ -70,4 +77,5 @@ def reduce(u):
         elif u.cons == PlCons.ATOM:
             pass
         elif u.cons == PlCons.NEGATION:
-            add_knowledge( u, 'body', kset({}) )
+            lookup(u, 'body')  # Says: if it's a negation then it has a body
+            add_knowledge( u.body, 'type', kset({MathType.FORMULA}) )
