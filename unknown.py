@@ -1,84 +1,73 @@
 from khoa_math import *
 from typing import Iterable
 
-def always():
-    return True
-
-def never():
-    return False
-
-def k_set(explicit: Set=None, qualifier: Callable[..., bool]=None):
+def kset(explicit: Iterable=None):
     '''
     Sets represent knowledge, you always assume everything that could be
-    :param qualifier: always() for the universal set and never() for the empty set
-    :param explicit: Provide the explicit set whenever possibe!
-    When both are None, this set is unknown. The __bool__ function will return False
-    You cannot provide explicit and qualifier!
+    :param explicit: None is unknown (could be anything). And the empty set
+    is an impossibility
     '''
-    res = MathObject(MathType.SET)
-
-    assert( bool(explicit) == bool(qualifier) == True ), 'You cannot supply both!'
-
-    if explicit:
-        # You can always derive the qualifier from the explicit
-        self.qualifier = lambda j: j in explicit
-
-    # You can also derive the explicit if the qualifier is special:
-    if qualifier == never:
-        self.explicit = set()
-
-    self.explicit = explicit
-    self.qualifier = qualifier
+    res = MathObject(MathType.KSET)
+    self.explicit = Set(explicit)
 
     return res
 
-# Helper functions defined on k_set:
-is_empty = lambda k_set_: k_set_.qualifier == never
-is_universal = lambda k_set_: k_set_.qualifier == always
-is_unknown = lambda k_set_: k_set_.qualifier == k_set_.explicit == None
+# Helper functions defined on kset:
+is_unknown = lambda kset_: kset_.qualifier == kset_.explicit == None
 
-def union(s1, s2):
+def unify(s1, s2):
+    '''
+    Binary operation unifying two sets of knowledge
+    You can never learn less, you can only learn more
+    '''
+    assert(s1.type == s2.type == MathType.KSET)
+    
     res = None
 
     if s1.explicit and s2.explicit:
-        res = s1.explicit.union(s2.explicit)
-    elif s1.explicit:
-        if is_empty(s2): res = k_set(explicit = set())
-        else: res = s1
-    elif s2.explicit:
-        if is_empty(s1): res = k_set(explicit = set())
-        else: res = s2
-    else: res = k_set(qualifier = lambda x: s1.qualifier(x) and s2.qualifier(x))
+        res = kset( s1.explicit.unify(s2.explicit) )
+    elif s1.explicit: res = s1
+    elif s2.explicit: res = s2
+    else: res = kset()
 
     return res
-
 
 # Unknown:
 def unknown():
     '''
     Kind of like a throaway structure, but it's important nonetheless
+    Every attribute of an unknown is a set
     '''
     u = MathObject(MathType.UNKNOWN)
     return u
 
-
+# Functions defined on Unknowns:
 def lookup(u, attr: str):
     '''
     Return an attribute of an Unknown object whenever possible
     If attribute does not exist, return the unknown set
+    Use the 'dot' chain to look deeper into the components of the unknown
     '''
     if hasattr(u, attr): return getattr(u, attr)
-    else: return k_set()
+    else: return kset()
 
+def add_knowledge(u, attr: str, ks):
+    '''
+    Add knowledge 'ks' to an attribute 'attr' of the unknown 'u'
+    This function is always "safe", which means you never lose knowledge
+    '''
+    assert(ks.type == MathType.KSET)
+    setattr(u, attr, unify( lookup(u, attr), ks ))
+    
 def reduce(u):
     '''
     Narrow down an unknown object based on its determined attributes
     This is basically what the UNKNOWN type is for
     '''
     if u.type == MathType.PL_FORMULA:
-        setattr(u, 'cons', union( lookup(u, 'cons'), k_set(explicit=set(list(MathType))) ))
+        add_knowledge( u, 'cons', kset(list(MathType)) )
 
         elif u.cons == PlCons.ATOM:
             pass
         elif u.cons == PlCons.NEGATION:
-            setattr(u, 'body', union( lookup(u, 'body'), k_set(explicit=set(list(MathType))) ))
+            add_knowledge( u, 'body', kset({}) )

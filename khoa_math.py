@@ -46,5 +46,5 @@ class MathType(AutoName):
     PL_PROOF = auto()
     PL_THEOREM = auto()
     PL_TRUTH = auto()
-    SET = auto()
+    KSET = auto()
     UNKNOWN = auto()
