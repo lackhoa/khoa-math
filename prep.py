@@ -48,12 +48,7 @@ def neg(body):
     p.cons = PlCons.NEGATION
     p.body = body
     p.text = '(~{})'.format(form.text)
-
-    def self_test():
-        if body.type == MathType.PL_FORMULA: return True
-        elif body.type == MathType.UNKNOWN:
-            if body.type == MathType.UNKNOWN: return True
-            elif body.
+    
     return p
 
 def conj(left, right):

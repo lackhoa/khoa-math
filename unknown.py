@@ -4,7 +4,7 @@ from typing import Iterable
 def kset(explicit: Iterable=None):
     '''
     Sets represent knowledge, containing every possibility that could be.
-    :param explicit: None is unknown (could be anything). And the empty set
+    :param explicit: None means 'could be anything'. And the empty explicit set
     is an impossibility.
     A set is "explicit" when its 'explicit' is present
     '''
@@ -14,8 +14,6 @@ def kset(explicit: Iterable=None):
     return res
 
 # Helper functions defined on kset:
-is_unknown = lambda kset_: kset_.qualifier == kset_.explicit == None
-
 def unify(s1, s2):
     '''
     Binary operation unifying two sets of knowledge
@@ -49,10 +47,9 @@ def unknown(poss=kset()):
 # Functions defined on Unknowns:
 def lookup(u, attr: str):
     '''
-    Does two things:
+    This function does two things:
     1) If attribute does not exist, assign it a free unknown
     2) Return the attribute's value
-    Use the 'dot' chain to look deeper into the components of the unknown
     '''
     if not hasattr(u, attr): setattr(u, attr, unknown())
     return getattr(u, attr)
@@ -69,13 +66,21 @@ def add_knowledge(u, attr: str, ks):
 def reduce(u):
     '''
     Narrow down an unknown object based on its determined attributes
-    This is basically what the UNKNOWN type is for
+    This is basically what the concept of UNKNOWN is for
     '''
-    if u.type == MathType.PL_FORMULA:
-        add_knowledge( u, 'cons', kset(list(MathType)) )
-
-        elif u.cons == PlCons.ATOM:
+    lookup(u, 'type')
+    if u.type == kset({MathType.PL_FORMULA}):
+        lookup(u, 'cons')
+        if u.cons == kset()  # If it is not known
+            add_knowledge( u, 'cons', kset(list(MathType)) )
+        elif u.cons == kset({PlCons.ATOM}):
             pass
         elif u.cons == PlCons.NEGATION:
             lookup(u, 'body')  # Says: if it's a negation then it has a body
-            add_knowledge( u.body, 'type', kset({MathType.FORMULA}) )
+            if u.body == kset():  # Says: you at least know that you have a body formula
+                add_knowledge( u.body, 'type', kset({MathType.FORMULA}) )
+        elif u.cons == PlCons.CONJUNCTION:
+            lookup(u, 'left')
+            lookup(u, 'right')
+            if u.left == kset():
+                add_knowledge( u.left, 'type', kset({MathType.FORMULA}) )
