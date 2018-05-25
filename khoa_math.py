@@ -1,3 +1,5 @@
+from kset import *
+
 from enum import Enum, auto
 from anytree import Anynode, RenderTree
 
@@ -25,6 +27,8 @@ class MathObject(NodeMixin):
     A Math Object is 'nailed' either when its value contains only a single item, or when all
     of its children are nailed. (that was super made up!)
     '''
+    separator = '.'
+
     def __init__(self, role=None, value=None, parent=None):
         self.parent = parent  # The only tree feature we need
 
@@ -47,7 +51,30 @@ class MathObject(NodeMixin):
         return self.text
 
     # Real code:
-    def add_knowledge()
+    def get(self, role):
+        list = [n for n in self.children if n.role == 'role']
+        assert (len(list) <= 1 ),\
+            'Many nodes with the same role detected for {}'.format(role)
+
+        if list: return list[0]
+        else: return None
+
+
+    def add_knowledge(self, kset_):
+        '''
+        For atomic objects only.
+        First we detach this node, and then we re-attach a better version.
+        To make some noise for the attach/detach protocol.
+        '''
+        self.value = unify(self.value, kset_)
+        old_parent = self.parent
+        self.parent = None
+        self.parent = old_parent  # Tada! Same parent!
+
+
+
+
+
 
 # Awesome class to name Enums
 class AutoName(Enum):
