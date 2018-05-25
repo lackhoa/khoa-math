@@ -60,27 +60,69 @@ class MathObject(NodeMixin):
         if list: return list[0]
         else: return None
 
-
     def add_knowledge(self, kset_):
         '''
         For atomic objects only.
-        
-        First we detach this node, and then we re-attach a better version,
-        to make some noise for the attach/detach protocol.
-        
-        If parent is None, the notification protocol won't work, but it doesn't matter
-        because there should be no change to the rest of the system.
+
+        Every change in the system must go through the method _post_attach,
+        which is why we want to detach and re-attach the node if it changes
         '''
+        assert(self.value is not None), 'Cannot add knowledge to a composite object!'
+        old_value = self.value
         self.value = unify(self.value, kset_)
-        old_parent = self.parent
-        self.parent = None
-        self.parent = old_parent  # Tada! Same parent!
+
+        if self.value != old_value:
+            old_parent = self.parent
+            self.parent = None
+            self.parent = old_parent  # Tada! Same parent!
+
+    'Overridden because I need same-role handling'
+    @parent.setter
+    def parent(self, p):
+        if p is not None and not isinstance(p, NodeMixin):
+            msg = "Parent node %r is not of type 'NodeMixin'." % (p)
+            raise TreeError(msg)
+        try:
+            parent = self.__parent
+        except AttributeError:
+            parent = None
+        # BOOKMARKED! I WAS HERE!
+        # if parent is not p:  # Condition removed
+        self.__check_loop(p)
+        self.__detach(parent)
+        self.__attach(p)
 
 
+    def _post_attach(self, parent):
+        """Method call after attaching to `parent`."""
+        queue = []
 
+        role = self.role
+        if role == 'type':
+            if self.value == kset({MathType.PL_FORMULA}):
+                if not parent.get('cons'):
+                    MathObject(role='cons', value=kset(), parent=parent)
+                parent.get('cons').add_knowledge( kset(list(PlCons)) )
+        elif role == 'cons':
+            if self.value == kset({PlCons.ATOM}):
+                # Atoms have texts
+                if not parent.get('text'):
+                    MathObject(role='text', value=kset(), parent=parent)
+            elif self.value == kset({PlCons.NEGATION}):
+                # Negations have bodies typed formula
+                if not parent.get('body'):
+                    MathObject(role='body', value=kset(), parent=parent)
 
+                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('body'))
+            elif self.value == kset({PlCons.CONJUNCTION}):
+                # Conjunctions have left and right typed formula
+                if not parent.get('left'):
+                    MathObject(role='left', value=kset(), parent=parent)
+                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('left'))
 
-
+                if not parent.get('right'):
+                    MathObject(role='right', value=kset(), parent=parent)
+                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('right'))
 
 
 
