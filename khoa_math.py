@@ -26,11 +26,18 @@ class MathObject(NodeMixin):
 
     A Math Object is 'nailed' either when its value contains only a single item, or when all
     of its children are nailed. (that was super made up!)
+
+    Mental note: only none-tree (non-math) attributes can be accessed with the dot notation
+    (the only exception is 'parent', because it cannot be a subtree)
+
+    Mental note: We can override __attach later if needed.
+
+    Mental note: value is the only attribute that can affect the state of the tree
     '''
     separator = '.'
 
-    def __init__(self, role=None, value=None, parent=None):
-        self.parent = parent  # The only tree feature we need
+    def __init__(self, role: str=None, value=None, parent=None):
+        self.parent = parent  # The only tree attribute we need
 
     def __eq__(self, other):
         """
@@ -41,19 +48,13 @@ class MathObject(NodeMixin):
             return self.__dict__ == other.__dict__
         else: return False
 
-    def __hash__(self):
-        '''
-        We vow that MathObjects will never change once they're created
-        '''
-        return id(self)
-
     def __repr__(self):
         return self.text
 
     # Real code:
     def get(self, role):
         list = [n for n in self.children if n.role == 'role']
-        assert (len(list) <= 1 ),\
+        assert(len(list) <= 1),\
             'Many nodes with the same role detected for {}'.format(role)
 
         if list: return list[0]
@@ -63,13 +64,21 @@ class MathObject(NodeMixin):
     def add_knowledge(self, kset_):
         '''
         For atomic objects only.
-        First we detach this node, and then we re-attach a better version.
-        To make some noise for the attach/detach protocol.
+        
+        First we detach this node, and then we re-attach a better version,
+        to make some noise for the attach/detach protocol.
+        
+        If parent is None, the notification protocol won't work, but it doesn't matter
+        because there should be no change to the rest of the system.
         '''
         self.value = unify(self.value, kset_)
         old_parent = self.parent
         self.parent = None
         self.parent = old_parent  # Tada! Same parent!
+
+
+
+
 
 
 

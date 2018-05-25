@@ -12,10 +12,11 @@ def kset(explicit: Iterable=None):
     A set is "explicit" when it does not contain the single None value.
 
     As of now, a kset NEVER contains other math objects, it only serves as a collection
-    of possible literal values.
+    of literal values.
 
-    Question: Why did I not just use regular set (I mean, ksets are literally sets)?
-    Answer: Well, the way I treat it is different, and worthy of a concept declaration.
+    Question: Why did I not just use regular set (I mean, ksets are just sets anyways)?
+    Answer: Well, it is just a concept declaration. Also, the implicit set cannot be defined
+    using python's vanilla sets
     '''
     if explicit:
         return set(explicit)
