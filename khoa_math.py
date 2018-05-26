@@ -1,12 +1,13 @@
 from kset import *
+from prep import *
 
 from enum import Enum, auto
 from typing import List, Set
-from anytree import Anynode, RenderTree
+from anytree import NodeMixin, RenderTree
 
 # This file contains the basis of mathematics
 
-class MathObject(NodeMixin):
+class MathObj(NodeMixin):
     """
     This class is the base for all mathematical objects, that's why it doesn't do anything
     Most math objects are recursive, that's why they should be trees.
@@ -15,7 +16,7 @@ class MathObject(NodeMixin):
     they must be checked by a validating routine.
 
     The "content" of a Math Object can be described by either a single 'value'
-    attribute (then we call the object 'atomic'), or by many MathObject as children
+    attribute (then we call the object 'atomic'), or by many MathObj as children
     (then we call it 'composite'). Each child node has its role. All leaves are atomic,
     and all atoms are leaves.
 
@@ -69,45 +70,48 @@ class MathObject(NodeMixin):
         if list: return list[0]
         else: return None
 
-    def kattach(self, p):
+    def kattach(self, p=None):
         """
-        Wrapper method for attaching node (don't call the one in the API directly!),
-        with role collision handling, knowledge unification, change propagation, and queue inheritance.
+        This is the gateway to changing the tree: by attaching nodes.
         """
-        same = p.get(self.role)
-        if same:
-            unified = unify(self.value, same.value)
-            if unified != same.value:  # Did we learn something new?
-                same.value = unified
-                propagate_change(same, p)
-        else:
-            # Do things normally here:
-            self.queue = p.queue  # queue inheritance
-            self.attach(p)
-            propagate_change(self, p)
+        if p is not None:
+            assert(type(p) == MathObj), 'You can only kattach to Math Objects!'
+            same = p.get(self.role)
+            if same:
+                unified = unify(self.value, same.value)
+                if unified != same.value:  # Did we learn something new?
+                    same.value = unified
+                    MathObj._propagate_change(same, p)
+            else:
+                # Do things normally here:
+                self.queue = p.queue  # queue inheritance
+                self.parent = p
+                MathObj._propagate_change(self, p)
 
-    @staticmethod
-    def propagate_change(child, p):
+    def _propagate_change(child, p):
         """
         Method called by the leaf after attaching to a parent, this is the heart of the machine.
         This will populate the tree queue with (node, parent) tuples.
         """
         role = child.role
         val = child.value
+        pl_cons_set = kset(list(PlCons))
+        math_type_formula_set = kset({MathType.PL_FORMULA})
+
         if role == 'type':
-            if val == kset({MathType.PL_FORMULA}):
-                child.queue += [(MathObject(role='cons', value=kset(kset(list(PlCons))), parent=None), p)]
+            if val == {MathType.PL_FORMULA}:
+                child.queue += [( MathObj(role='cons', value=pl_cons_set, parent=None), p )]
 
         elif role == 'cons':
-            if child.value == kset({PlCons.ATOM}):
+            if child.value == {PlCons.ATOM}:
                 # Atoms have texts
-                child.queue += [(MathObject(role='text', value=kset(), parent=None), p)]
+                child.queue += [( MathObj( role='text', value=kset(), parent=None), p )]
 
-            elif child.value == kset({PlCons.NEGATION}):
+            elif child.value == {PlCons.NEGATION}:
                 # Negations have bodies typed formula
-                child.queue += [(MathObject(role='body', parent=None), p)]
-                child.queue += [(MathObject(role='type', value=kset(MathType.PL_FORMULA),\
-                        parent=None), p.get('body'))]
+                child.queue += [( MathObj(role='body', parent=None), p )]
+                child.queue += [( MathObj(role='type', value=math_type_formula_set,\
+                        parent=None), p.get('body') )]
 
 
 
@@ -118,7 +122,7 @@ class AutoName(Enum):
 
 class MathType(AutoName):
     """
-    All MathObject should have a type belonging to this enum
+    All MathObj should have a type belonging to this enum
     But, since we're inventing, sometimes you can just use strings
     """
     PL_FORMULA = auto()
