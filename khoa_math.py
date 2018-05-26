@@ -1,12 +1,13 @@
 from kset import *
 
 from enum import Enum, auto
+from typing import List, Set
 from anytree import Anynode, RenderTree
 
 # This file contains the basis of mathematics
 
 class MathObject(NodeMixin):
-    '''
+    """
     This class is the base for all mathematical objects, that's why it doesn't do anything
     Most math objects are recursive, that's why they should be trees.
 
@@ -14,8 +15,11 @@ class MathObject(NodeMixin):
     they must be checked by a validating routine.
 
     The "content" of a Math Object can be described by either a single 'value'
-    attribute (then we call it 'atomic'), or by many MathObject as children
-    (then we call it 'composite'). Each child node has its role.
+    attribute (then we call the object 'atomic'), or by many MathObject as children
+    (then we call it 'composite'). Each child node has its role. All leaves are atomic,
+    and all atoms are leaves.
+
+    All data are represented by the value attribute of some leaves.
 
     In this knowledge model, everything is a possibility, that's why all values must be
     a KSET. This is consistent with the paragraph above since knowledge sets can only
@@ -27,21 +31,22 @@ class MathObject(NodeMixin):
     A Math Object is 'nailed' either when its value contains only a single item, or when all
     of its children are nailed. (that was super made up!)
 
-    Mental note: only none-tree (non-math) attributes can be accessed with the dot notation
-    (the only exception is 'parent', because it cannot be a subtree)
+    The queue is for new knowledge. All children share the same queue with the root. Items
+    in the queues are formatted as tuples with the node on the left and the parent on the right.
 
-    Mental note: We can override __attach later if needed.
-
-    Mental note: value is the only attribute that can affect the state of the tree
-    '''
+    Mental note: 'type' can be reduced to just a value: an object has type A if its children
+    with role 'type' has value A. Simplistic is the goal here.
+    """
     separator = '.'
 
-    def __init__(self, role: str=None, value=None, parent=None):
+    def __init__(self, role: str=None, value: Set=None, parent=None, queue: List=None):
+        self.role = role
+        self.value = value
         self.parent = parent  # The only tree attribute we need
+        self.queue = queue
 
     def __eq__(self, other):
         """
-        Overrides the default implementation
         Compare the attributes of the object rather than the IDs
         """
         if isinstance(self, other.__class__):
@@ -51,79 +56,58 @@ class MathObject(NodeMixin):
     def __repr__(self):
         return self.text
 
+    def _pre_attach(self, parent):
+        assert(parent.value == None), 'You cannot attach to a composite object.'
+
     # Real code:
-    def get(self, role):
-        list = [n for n in self.children if n.role == 'role']
+    def get(self, role: str):
+        """Get an attribute of a math object."""
+        list = [n for n in self.children if n.role == role]
         assert(len(list) <= 1),\
             'Many nodes with the same role detected for {}'.format(role)
 
         if list: return list[0]
         else: return None
 
-    def add_knowledge(self, kset_):
-        '''
-        For atomic objects only.
+    def kattach(self, p):
+        """
+        Wrapper method for attaching node (don't call the one in the API directly!),
+        with role collision handling, knowledge unification, change propagation, and queue inheritance.
+        """
+        same = p.get(self.role)
+        if same:
+            unified = unify(self.value, same.value)
+            if unified != same.value:  # Did we learn something new?
+                same.value = unified
+                propagate_change(same, p)
+        else:
+            # Do things normally here:
+            self.queue = p.queue  # queue inheritance
+            self.attach(p)
+            propagate_change(self, p)
 
-        Every change in the system must go through the method _post_attach,
-        which is why we want to detach and re-attach the node if it changes
-        '''
-        assert(self.value is not None), 'Cannot add knowledge to a composite object!'
-        old_value = self.value
-        self.value = unify(self.value, kset_)
-
-        if self.value != old_value:
-            old_parent = self.parent
-            self.parent = None
-            self.parent = old_parent  # Tada! Same parent!
-
-    'Overridden because I need same-role handling'
-    @parent.setter
-    def parent(self, p):
-        if p is not None and not isinstance(p, NodeMixin):
-            msg = "Parent node %r is not of type 'NodeMixin'." % (p)
-            raise TreeError(msg)
-        try:
-            parent = self.__parent
-        except AttributeError:
-            parent = None
-        # BOOKMARKED! I WAS HERE!
-        # if parent is not p:  # Condition removed
-        self.__check_loop(p)
-        self.__detach(parent)
-        self.__attach(p)
-
-
-    def _post_attach(self, parent):
-        """Method call after attaching to `parent`."""
-        queue = []
-
-        role = self.role
+    @staticmethod
+    def propagate_change(child, p):
+        """
+        Method called by the leaf after attaching to a parent, this is the heart of the machine.
+        This will populate the tree queue with (node, parent) tuples.
+        """
+        role = child.role
+        val = child.value
         if role == 'type':
-            if self.value == kset({MathType.PL_FORMULA}):
-                if not parent.get('cons'):
-                    MathObject(role='cons', value=kset(), parent=parent)
-                parent.get('cons').add_knowledge( kset(list(PlCons)) )
+            if val == kset({MathType.PL_FORMULA}):
+                child.queue += [(MathObject(role='cons', value=kset(kset(list(PlCons))), parent=None), p)]
+
         elif role == 'cons':
-            if self.value == kset({PlCons.ATOM}):
+            if child.value == kset({PlCons.ATOM}):
                 # Atoms have texts
-                if not parent.get('text'):
-                    MathObject(role='text', value=kset(), parent=parent)
-            elif self.value == kset({PlCons.NEGATION}):
+                child.queue += [(MathObject(role='text', value=kset(), parent=None), p)]
+
+            elif child.value == kset({PlCons.NEGATION}):
                 # Negations have bodies typed formula
-                if not parent.get('body'):
-                    MathObject(role='body', value=kset(), parent=parent)
-
-                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('body'))
-            elif self.value == kset({PlCons.CONJUNCTION}):
-                # Conjunctions have left and right typed formula
-                if not parent.get('left'):
-                    MathObject(role='left', value=kset(), parent=parent)
-                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('left'))
-
-                if not parent.get('right'):
-                    MathObject(role='right', value=kset(), parent=parent)
-                MathObject(role='type', value=kset({PL_FORMULA}), parent=parent.get('right'))
-
+                child.queue += [(MathObject(role='body', parent=None), p)]
+                child.queue += [(MathObject(role='type', value=kset(MathType.PL_FORMULA),\
+                        parent=None), p.get('body'))]
 
 
 
@@ -133,10 +117,10 @@ class AutoName(Enum):
         return name
 
 class MathType(AutoName):
-    '''
+    """
     All MathObject should have a type belonging to this enum
     But, since we're inventing, sometimes you can just use strings
-    '''
+    """
     PL_FORMULA = auto()
     PL_RULE_ANNOTATION = auto()
     PL_PROOF_LINE = auto()
