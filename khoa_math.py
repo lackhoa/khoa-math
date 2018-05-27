@@ -1,5 +1,4 @@
 from kset import *
-from prep import *
 
 from enum import Enum, auto
 from typing import List, Set
@@ -26,7 +25,7 @@ class MathObj(NodeMixin):
     a KSET. This is consistent with the paragraph above since knowledge sets can only
     contain data.
 
-    A Math Object is 'grounded' either when its value is explicit, or when all of its children
+    A Math Object is 'grounded' either when its value is exclusive, or when all of its children
     are grounded.
 
     A Math Object is 'nailed' either when its value contains only a single item, or when all
@@ -77,7 +76,7 @@ class MathObj(NodeMixin):
         if p is not None:
             assert(type(p) == MathObj), 'You can only kattach to Math Objects!'
             same = p.get(self.role)
-            if same:
+            if same:  # If a node with the same role is present
                 unified = unify(self.value, same.value)
                 if unified != same.value:  # Did we learn something new?
                     same.value = unified
