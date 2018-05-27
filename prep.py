@@ -22,25 +22,22 @@ def prep_propagate(child, p):
 
     if role == 'type':
         if val == {MathType.PL_FORMULA}:
-            child.queue += [( MathObj(role='cons', value=pl_cons_set, parent=None), p )]
+            child.queue += [( MathObj(role='cons', value=pl_cons_set), p )]
 
     elif role == 'cons':
-        if child.value == {PlCons.ATOM}:
+        if val == {PlCons.ATOM}:
             # Atoms have texts
-            child.queue += [( MathObj( role='text', value={None}, parent=None), p )]
+            child.queue += [( MathObj( role='text', value={None}), p )]
 
-        elif child.value == {PlCons.NEGATION}:
+        elif val == {PlCons.NEGATION}:
             # Negations have bodies typed formula
-            child.queue += [( MathObj(role='body', parent=None), p )]
+            child.queue += [( MathObj(role='body'), p )]
             child.queue += [( MathObj(role='type', value={MathType.PL_FORMULA},\
                     parent=None), p.get('body') )]
 
-    elif role == 'text':
-        
 
 
 
-
-# Utility function
+# Other things:
 def ass_pl(form):
     return form.type == MathType.PL_FORMULA
