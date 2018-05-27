@@ -31,19 +31,24 @@ class MathObj(NodeMixin):
     A Math Object is 'nailed' either when its value contains only a single item, or when all
     of its children are nailed. (that was super made up!)
 
-    The queue is for new knowledge. All children share the same queue with the root. Items
+    The queue is for new knowledge. All children inherit the queue from the root. Items
     in the queues are formatted as tuples with the node on the left and the parent on the right.
+
+    The queue is populated using propagation rules, which are also shared by the root.
+
+    Note that the tree NEVER adds new nodes on its own. The user controls everything.
 
     Mental note: 'type' can be reduced to just a value: an object has type A if its children
     with role 'type' has value A. Simplistic is the goal here.
     """
     separator = '.'
 
-    def __init__(self, role: str=None, value: Set=None, parent=None, queue: List=None):
+    def __init__(self, role: str, value: Set={None}, parent=None, queue: List=None, propa_rules: List=[]):
         self.role = role
         self.value = value
         self.parent = parent  # The only tree attribute we need
         self.queue = queue
+        self.propa_rules = propa_rules
 
     def __eq__(self, other):
         """
@@ -69,6 +74,11 @@ class MathObj(NodeMixin):
         if list: return list[0]
         else: return None
 
+    def add_rule(self, rule):
+        """Add a propagation rule (root node exclusive)"""
+        assert(self.parent is None), 'Please don\'t add rules to non-root!'
+        self.propa_rules += [rule]
+
     def kattach(self, p=None):
         """
         This is the gateway to changing the tree: by attaching nodes.
@@ -84,6 +94,7 @@ class MathObj(NodeMixin):
             else:
                 # Do things normally here:
                 self.queue = p.queue  # queue inheritance
+                self.propa_rules = p.propa_rules  # propagation rules inheritance
                 self.parent = p
                 MathObj._propagate_change(self, p)
 
@@ -92,27 +103,8 @@ class MathObj(NodeMixin):
         Method called by the leaf after attaching to a parent, this is the heart of the machine.
         This will populate the tree queue with (node, parent) tuples.
         """
-        role = child.role
-        val = child.value
-        pl_cons_set = kset(list(PlCons))
-        math_type_formula_set = kset({MathType.PL_FORMULA})
-
-        if role == 'type':
-            if val == {MathType.PL_FORMULA}:
-                child.queue += [( MathObj(role='cons', value=pl_cons_set, parent=None), p )]
-
-        elif role == 'cons':
-            if child.value == {PlCons.ATOM}:
-                # Atoms have texts
-                child.queue += [( MathObj( role='text', value=kset(), parent=None), p )]
-
-            elif child.value == {PlCons.NEGATION}:
-                # Negations have bodies typed formula
-                child.queue += [( MathObj(role='body', parent=None), p )]
-                child.queue += [( MathObj(role='type', value=math_type_formula_set,\
-                        parent=None), p.get('body') )]
-
-
+        for func in self.propa_rules:
+            func(child, p)
 
 # Awesome class to name Enums
 class AutoName(Enum):
