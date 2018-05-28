@@ -1,9 +1,10 @@
 from khoa_math import *
-from typing import Dict
+from typing import Dict, Iterable
+from itertools import product
 
 # This file contains definitions of constructs in Prepositional Logic
 
-class PlCons(Enum):
+class PlCons(AutoName):
     ATOM = auto()
     NEGATION = auto()
     CONJUNCTION = auto()
@@ -11,80 +12,32 @@ class PlCons(Enum):
     CONDITIONAL = auto()
     BICONDITIONAL = auto()
 
+def prep_propagate(child, p):
+    """
+    Default propagation rules for well-formed formulas.
+    """
+    role = child.role
+    val = child.value
+    pl_cons_set = set(list(PlCons))
+
+    if role == 'type':
+        if val == {MathType.PL_FORMULA}:
+            child.queue += [( MathObj(role='cons', value=pl_cons_set), p )]
+
+    elif role == 'cons':
+        if val == {PlCons.ATOM}:
+            # Atoms have texts
+            child.queue += [( MathObj( role='text', value={None}), p )]
+
+        elif val == {PlCons.NEGATION}:
+            # Negations have bodies typed formula
+            child.queue += [( MathObj(role='body'), p )]
+            child.queue += [( MathObj(role='type', value={MathType.PL_FORMULA},\
+                    parent=None), p.get('body') )]
+
+
+
+
+# Other things:
 def ass_pl(form):
-    assert(form.type == MathType.PL_FORMULA)
-
-def atom(text=''):
-    '''
-    Create an atomic pl formula
-    :param text: (optional) English description of what the formula says
-    '''
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.ATOM
-    p.text = text
-    return p
-
-def neg(form):
-    '''
-    Create a negattion of a formula
-    '''
-    ass_pl(form)
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.NEGATION
-    p.form = form
-    p.text = '(~{})'.format(form.text)
-    return p
-
-def conj(left, right):
-    '''
-    Create a conjunction
-    '''
-    ass_pl(left)
-    ass_pl(right)
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.CONJUNCTION
-    p.left = left
-    p.right = right
-    p.text = '({} /\ {})'.format(left.text, right.text)
-    return p
-
-def disj(left, right):
-    '''
-    Create a disjunction
-    '''
-    ass_pl(left)
-    ass_pl(right)
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.DISJUNCTION
-    p.left = left
-    p.right = right
-    p.text = '({} \/ {})'.format(left.text, right.text)
-    return p
-
-def cond(ante, conse):
-    '''
-    Create a conditional
-    '''
-    ass_pl(ante)
-    ass_pl(conse)
-
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.CONDITIONAL
-    p.ante = ante
-    p.conse = conse
-    p.text = '({} -> {})'.format(ante.text, conse.text)
-    return p
-
-def bicond(left, right):
-    '''
-    Create a biconditional
-    '''
-    ass_pl(left)
-    ass_pl(right)
-
-    p = MathObject(MathType.PL_FORMULA)
-    p.cons = PlCons.BICONDITIONAL
-    p.left = left
-    p.right = right
-    p.text = '({} <-> {})'.format(left.text, right.text)
-    return p
+    return form.type == MathType.PL_FORMULA
