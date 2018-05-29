@@ -24,12 +24,16 @@ for dep in range(4):
     # Then we do two jobs for each root
     for root in roots:
         # Job 1: Attach nodes from the queue:
+        index_to_delete = []
         for i in range(len(root.queue)):
             queue_item = root.queue[i]
             child, parent = queue_item
             if parent and parent.depth <= dep:  # must attach level-by-level, for safety
                 MathObj.kattach(child, parent)
-                root.queue.pop(i)
+                index_to_delete += [i]
+
+        for j in index_to_delete:
+            root.queue.pop(j)
 
         # Job 2: Explore the possibilities of the current level:
         levels = [lvl for lvl in LevelOrderGroupIter(root)]
@@ -47,15 +51,15 @@ for dep in range(4):
                     possibility = MathObj(role=node.role, value={v})
                     MathObj.kattach(possibility, root_clone)
 
-                # Clean up the value from the original tree (this is quite dangerous)
+                # Clean up the value from the original tree
                 node.clear_val()
 
 # Printing out the resulting lists:
 rt = lambda t: print(RenderTree(t))
 print('This is roots:')
 for r in roots: rt(r)
-print('This is discarded:')
+print('\nThis is discarded:')
 for r in discarded: rt(r)
-print('This is completed:')
+print('\nThis is completed:')
 for r in completed: rt(r)
 

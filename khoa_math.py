@@ -108,10 +108,10 @@ class MathObj(NodeMixin):
         for child, parent in self.queue:
             if parent == self: res.queue += [(child.clone(), res)]
 
-        # Clone all children and attach to this
+        # Clone all children and nattach to this
         for child in self.children:
             child_clone = child.clone()
-            child_clone.parent = res
+            MathObj.nattach(child_clone, res)
             # Don't forget the queue items to attach to the cloned children!
             for c, p in self.queue:
                 if p == child: queue_clone += [(c.clone(), child_clone)]
@@ -119,10 +119,27 @@ class MathObj(NodeMixin):
         return res
 
     @staticmethod
+    def nattach(child, parent=None):
+        """
+        'Normal attach':This is the gateway to changing the tree: by attaching nodes.
+        Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
+        """
+        if parent is not None:
+            assert(type(child) == MathObj), 'You can only nattach Math Objects!'
+            assert(type(parent) == MathObj), 'You can only nattach to Math Objects!'
+
+            same = parent.get(child.role)
+            if same:  # If a node with the same role is present
+                unified = unify(child.value, same.value)
+                same.__value = unified
+            else:
+                # Do things normally here:
+                child.parent = parent
+                child.__root = parent.root
+
+    @staticmethod
     def kattach(child, parent=None):
-        """
-        This is the gateway to changing the tree: by attaching nodes.
-        """
+        """Like `nattach`, but adds new knowledge to the queue"""
         if parent is not None:
             assert(type(child) == MathObj), 'You can only kattach Math Objects!'
             assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'

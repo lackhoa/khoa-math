@@ -31,8 +31,8 @@ def wff_rules(child, p):
         elif val == {PlCons.NEGATION}:
             # Negations have bodies typed formula
             child.queue += [( MathObj(role='body'), p )]
-            child.queue += [( MathObj(role='type', value={MathType.PL_FORMULA},\
-                    parent=None), p.get('body') )]
+            child.queue += [( MathObj(role='type', value={MathType.PL_FORMULA},)
+                , p.get('body') )]
 
 
 
