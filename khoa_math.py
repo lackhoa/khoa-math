@@ -104,17 +104,17 @@ class MathObj(NodeMixin):
         res = MathObj(role=self.role, value=self.value)
 
         # About the queue (Yikes!):
-        # First take care of queue items with this node as the parent
-        for child, parent in self.queue:
-            if parent == self: res.queue += [(child.clone(), res)]
+        # First take care of queue items with this node as the reference
+        for node, ref, path in self.queue:
+            if ref == self: res.queue += [(node.clone(), res, path)]
 
         # Clone all children and nattach to this
         for child in self.children:
             child_clone = child.clone()
             MathObj.nattach(child_clone, res)
-            # Don't forget the queue items to attach to the cloned children!
-            for c, p in self.queue:
-                if p == child: queue_clone += [(c.clone(), child_clone)]
+            # Don't forget the queue items that references the children!
+            for node, ref, path in self.queue:
+                if ref == child: queue_clone += [(node.clone(), res, path)]
 
         return res
 

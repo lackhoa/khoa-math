@@ -2,6 +2,7 @@ from khoa_math import *
 from wff import *
 
 from anytree import LevelOrderGroupIter
+from copy import deepcopy, copy
 
 # Set up the environment
 counter = 1  # How we get new ids
@@ -22,8 +23,8 @@ for dep in range(6):
             discarded += [root]
 
     # Then we do two jobs for each root
-    roots_extend = []  # This variable is here for modifying roots after the loop
-    for root in roots:
+    roots_frozen = copy(roots)  # This variable since we modify `roots` in the loop
+    for root in roots_frozen:
         # Job 1: Attach nodes from the queue:
         index_to_delete = []
         for i in range(len(root.queue)):
@@ -56,7 +57,7 @@ for dep in range(6):
                     # Create an identical tree, change the id
                     root_clone = root.clone()
                     root_clone.id = '#{}'.format(counter)
-                    roots_extend.append(root_clone)
+                    roots.append(root_clone)
                     counter += 1
                     # Narrow down the possibility of the value to just v
                     possibility = MathObj(role=node.role, value={v})
@@ -65,7 +66,10 @@ for dep in range(6):
                 # Clean up the value from the original tree
                 node.clear_val()
 
-    roots.extend(roots_extend)
+
+
+
+
 
 # Printing out the resulting lists:
 rt = lambda t: print(RenderTree(t))
