@@ -14,7 +14,7 @@ type_ = MathObj(role='type', value={MathType.PL_FORMULA})
 MathObj.kattach(type_, form0)  # Attach the type to the form0
 
 # We iterate level-by-level, indicated by 'dep'
-for dep in range(4):
+for dep in range(6):
     # Clean-up routine
     for root in roots:
         if root.is_inconsistent():
@@ -22,18 +22,29 @@ for dep in range(4):
             discarded += [root]
 
     # Then we do two jobs for each root
+    roots_extend = []  # This variable is here for modifying roots after the loop
     for root in roots:
         # Job 1: Attach nodes from the queue:
         index_to_delete = []
         for i in range(len(root.queue)):
-            queue_item = root.queue[i]
-            child, parent = queue_item
+            node, ref, path = root.queue[i]
+
+            # Path processing:
+            path = path.split('/')
+            parent = ref
+            # Go down each level one by one UNIX style:
+            for n in path:
+                if n == '': continue
+                else:
+                    parent = parent.get(n)
+                    if not parent: break
+
             if parent and parent.depth <= dep:  # must attach level-by-level, for safety
-                MathObj.kattach(child, parent)
+                MathObj.kattach(node, parent)
                 index_to_delete += [i]
 
-        for j in index_to_delete:
-            root.queue.pop(j)
+        for j in sorted(index_to_delete, reverse=True):  # Yeah, gotta reverse the list
+            root.queue.pop(j)  # We're done with it, so we pop it!
 
         # Job 2: Explore the possibilities of the current level:
         levels = [lvl for lvl in LevelOrderGroupIter(root)]
@@ -45,7 +56,7 @@ for dep in range(4):
                     # Create an identical tree, change the id
                     root_clone = root.clone()
                     root_clone.id = '#{}'.format(counter)
-                    roots.append(root_clone)
+                    roots_extend.append(root_clone)
                     counter += 1
                     # Narrow down the possibility of the value to just v
                     possibility = MathObj(role=node.role, value={v})
@@ -54,12 +65,14 @@ for dep in range(4):
                 # Clean up the value from the original tree
                 node.clear_val()
 
+    roots.extend(roots_extend)
+
 # Printing out the resulting lists:
 rt = lambda t: print(RenderTree(t))
-print('This is roots:')
+print('These are the active roots:')
 for r in roots: rt(r)
-print('\nThis is discarded:')
+print('\nThese are the discarded:')
 for r in discarded: rt(r)
-print('\nThis is completed:')
+print('\nThese are the completed:')
 for r in completed: rt(r)
 

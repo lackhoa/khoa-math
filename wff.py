@@ -14,6 +14,8 @@ class PlCons(AutoName):
 def wff_rules(child, p):
     """
     Default propagation rules for well-formed formulas.
+    Just so you know, the queue element is written in the form (<node>, <refrence point>, <path>)
+    The path is written in UNIX style
     """
     role = child.role
     val = child.value
@@ -21,18 +23,18 @@ def wff_rules(child, p):
 
     if role == 'type':
         if val == {MathType.PL_FORMULA}:
-            child.queue += [( MathObj(role='cons', value=pl_cons_set), p )]
+            child.queue += [(MathObj(role='cons', value=pl_cons_set), p, '')]
 
     elif role == 'cons':
         if val == {PlCons.ATOM}:
             # Atoms have texts
-            child.queue += [( MathObj( role='text', value={None}), p )]
+            child.queue += [( MathObj( role='text', value={None}), p, '')]
 
         elif val == {PlCons.NEGATION}:
             # Negations have bodies typed formula
-            child.queue += [( MathObj(role='body'), p )]
-            child.queue += [( MathObj(role='type', value={MathType.PL_FORMULA},)
-                , p.get('body') )]
+            child.queue += [(MathObj(role='body'), p, '')]
+            child.queue += [(MathObj(role='type', value={MathType.PL_FORMULA},)
+                , p, 'body')]
 
 
 

@@ -130,8 +130,9 @@ class MathObj(NodeMixin):
 
             same = parent.get(child.role)
             if same:  # If a node with the same role is present
-                unified = unify(child.value, same.value)
-                same.__value = unified
+                if same.value:  # Only do work when the value is present
+                    unified = unify(child.value, same.value)
+                    same.__value = unified
             else:
                 # Do things normally here:
                 child.parent = parent
@@ -146,10 +147,11 @@ class MathObj(NodeMixin):
 
             same = parent.get(child.role)
             if same:  # If a node with the same role is present
-                unified = unify(child.value, same.value)
-                if unified != same.value:  # Did we learn something new?
-                    same.__value = unified
-                    MathObj._propagate_change(same, parent)
+                if same.value:  # Only do work when the value is present
+                    unified = unify(child.value, same.value)
+                    if unified != same.value:  # Did we learn something new?
+                        same.__value = unified
+                        MathObj._propagate_change(same, parent)
             else:
                 # Do things normally here:
                 child.parent = parent
