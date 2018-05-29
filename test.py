@@ -15,17 +15,18 @@ type_ = MathObj(role='type', value={MathType.PL_FORMULA})
 MathObj.kattach(type_, form0)  # Attach the type to the form0
 
 # We iterate level-by-level, indicated by 'dep'
-for dep in range(6):
+for dep in range(4):
     # Clean-up routine
-    for root in roots:
+    roots_frozen = copy(roots)  # This variable since we modify `roots` in the loop
+    for root in roots_frozen:
         if root.is_inconsistent():
             roots.remove(root)
             discarded += [root]
 
     # Then we do two jobs for each root
+    # Job 1: Attach nodes from the queue:
     roots_frozen = copy(roots)  # This variable since we modify `roots` in the loop
     for root in roots_frozen:
-        # Job 1: Attach nodes from the queue:
         index_to_delete = []
         for i in range(len(root.queue)):
             node, ref, path = root.queue[i]
@@ -49,22 +50,23 @@ for dep in range(6):
 
         # Job 2: Explore the possibilities of the current level:
         levels = [lvl for lvl in LevelOrderGroupIter(root)]
-        if len(levels) <= dep: continue  # Not enough levels in this tree
+        levels = levels[:dep+1]  # Gotta respect the dep, otherwise it'll loop forever
 
-        for node in levels[dep]:
-            if node.value and len(node.value) > 1:  # If there are many values
-                for v in (node.value - {KSet.UNKNOWN}):  # Explore possibility v
-                    # Create an identical tree, change the id
-                    root_clone = root.clone()
-                    root_clone.id = '#{}'.format(counter)
-                    roots.append(root_clone)
-                    counter += 1
-                    # Narrow down the possibility of the value to just v
-                    possibility = MathObj(role=node.role, value={v})
-                    MathObj.kattach(possibility, root_clone)
+        for level in levels:
+            for node in level:
+                if node.value and len(node.value) > 1:  # If there are multiple possible values
+                    for v in (node.value - {KSet.UNKNOWN}):  # Explore possibility v
+                        # Create an identical tree, change the id
+                        root_clone = root.clone()
+                        root_clone.id = '#{}'.format(counter)
+                        roots.append(root_clone)
+                        counter += 1
+                        # Narrow down the possibility of the value to just v
+                        possibility = MathObj(role=node.role, value={v})
+                        MathObj.kattach(possibility, root_clone)
 
-                # Clean up the value from the original tree
-                node.clear_val()
+                    # Clean up the value from the original tree
+                    node.clear_val()
 
 
 
@@ -72,7 +74,7 @@ for dep in range(6):
 
 
 # Printing out the resulting lists:
-rt = lambda t: print(RenderTree(t))
+rt = lambda t: print(str(RenderTree(t)) + '\n')
 print('These are the active roots:')
 for r in roots: rt(r)
 print('\nThese are the discarded:')

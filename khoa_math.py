@@ -2,7 +2,7 @@ from kset import *
 
 from enum import Enum, auto
 from typing import List, Set, Callable
-from anytree import NodeMixin, RenderTree, find_by_attr
+from anytree import NodeMixin, RenderTree, find_by_attr, find
 
 # This file contains the basis of mathematics
 
@@ -96,7 +96,10 @@ class MathObj(NodeMixin):
 
     def is_inconsistent(self) -> bool:
         # Simply search for any node that have empty value
-        return bool( find_by_attr(node=self, name='value', value=set()) )
+        if self.value: return self.value == set()
+        for child in self.children:
+            if child.is_inconsistent(): return True
+        return False
 
     def clone(self):
         """Return a deep copy of this object."""
