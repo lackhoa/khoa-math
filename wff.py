@@ -1,8 +1,7 @@
 from khoa_math import *
 from typing import Dict, Iterable
-from itertools import product
 
-# This file contains definitions of constructs in Prepositional Logic
+# This file contains definitions of constructs of Well Formed Formulas
 
 class PlCons(AutoName):
     ATOM = auto()
@@ -12,7 +11,7 @@ class PlCons(AutoName):
     CONDITIONAL = auto()
     BICONDITIONAL = auto()
 
-def prep_propagate(child, p):
+def wff_rules(child, p):
     """
     Default propagation rules for well-formed formulas.
     """
