@@ -4,18 +4,41 @@ from wff import *
 from anytree import LevelOrderGroupIter, PreOrderIter
 from copy import deepcopy, copy
 
+
+def custom_rules(child, parent):
+    """
+    Some new rules for this program.
+    """
+    new_nodes = []
+    role = child.role
+    val = child.value
+
+    if role == 'cons':
+        if val == {PlCons.ATOM}:
+            # Atoms have texts, and that text should be 'P'
+            new_nodes += [( MathObj( role='text', value={'P'}), '')]
+
+    return new_nodes
+
+
 # Set up the environment
 counter = 1  # How we get new ids
-form0 = MathObj(id_ = '#0')  # The starting unknown
-MathObj.propa_rules += [wff_rules]
-roots = [form0]  # All the possible roots
-discarded = []  # All the inconsistent objects
-completed = []  # All the completed objects
+form0 = MathObj(id_ = '#0')  # The starting unknown formula
+MathObj.propa_rules += [wff_rules, custom_rules]  # These are the rules we're using today
+roots = [form0]  # Store the active roots
+inconsistent = []  # Store the inconsistent objects
+completed = []  # Store the completed objects
+
 type_ = MathObj(role='type', value={MathType.PL_FORMULA})
 MathObj.kattach(type_, form0)  # Attach the type to the form0
 
-# We iterate level-by-level, indicated by 'dep'
-for dep in range(7):
+
+# We proceed level-by-level, as indexed by 'dep'
+LEVEL_CAP = 6
+REPEAT = 3
+# Each level is repeated a few times before incremented
+for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
+
     print('\n\nWorking up to level {}'.format(dep+1))
 
     # Then we do two jobs for each root
@@ -30,9 +53,12 @@ for dep in range(7):
             # Process the path UNIX style:
             for n in path:
                 if n == '': continue
+                elif n == '..':
+                    if not parent: raise Exception('Rule cannot be applied!')
+                    else: parent = parent.parent
                 else:
-                    parent = parent.get(n)
-                    if not parent: break
+                    if not parent: raise Exception('Rule cannot be applied!')
+                    else: parent = parent.get(n)
 
             if parent and parent.depth <= dep:  # must attach level-by-level, for safety
                 MathObj.kattach(node, parent)
@@ -65,7 +91,7 @@ for dep in range(7):
         # Find inconsistent trees
         if root.is_inconsistent():
             roots.remove(root)
-            discarded += [root]
+            inconsistent += [root]
 
         # Find completed trees
         elif root.is_complete():
@@ -75,12 +101,12 @@ for dep in range(7):
 
 
 
-    # Printing out the resulting lists:
-    rt = lambda t: print(str(RenderTree(t)) + '\n')
-    print('These are the active roots:')
-    for r in roots: rt(r)
-print('\nThese are the discarded:')
-for r in discarded: rt(r)
+# Printing out the resulting lists:
+rt = lambda t: print(str(RenderTree(t)) + '\n')
+print('These are the active roots:')
+for r in roots: rt(r)
+print('\nThese are the inconsistent:')
+for r in inconsistent: rt(r)
 print('\nThese are the completed:')
 for r in completed: rt(r)
 

@@ -15,8 +15,6 @@ class PlCons(MyEnum):
 def wff_rules(child, parent):
     """
     Default propagation rules for well-formed formulas.
-    Just so you know, the queue element is written in the form (<node>, <refrence point>, <path>)
-    The path is written in UNIX style
     """
     new_nodes = []
     role = child.role
@@ -25,18 +23,24 @@ def wff_rules(child, parent):
 
     if role == 'type':
         if val == {MathType.PL_FORMULA}:
-            new_nodes += [(MathObj(role='cons', value=pl_cons_set), parent, '')]
+            new_nodes += [(MathObj( role='cons', value=pl_cons_set ), '')]
 
     elif role == 'cons':
         if val == {PlCons.ATOM}:
             # Atoms have texts
-            new_nodes += [( MathObj( role='text', value={KSet.UNKNOWN}), parent, '')]
+            new_nodes += [( MathObj( role='text', value={KSet.UNKNOWN} ), '')]
 
         elif val == {PlCons.NEGATION}:
             # Negations have bodies typed formula
-            new_nodes += [(MathObj(role='body'), parent, '')]
-            new_nodes += [(MathObj(role='type', value={MathType.PL_FORMULA},)
-                , parent, 'body')]
+            new_nodes += [(MathObj( role='body' ), '')]
+            new_nodes += [(MathObj( role='type', value={MathType.PL_FORMULA} ), 'body')]
+    elif role == 'text':
+        if len(val) == 1 and type(list(val)[0]) is str:
+            grandpa = parent.parent
+            the_text = list(val)[0]
+            if grandpa:
+                if grandpa.get('cons').value == {PlCons.NEGATION}:
+                    new_nodes += [(MathObj( role='text', value={'(~{})'.format(the_text)} ), '..')]
 
     return new_nodes
 

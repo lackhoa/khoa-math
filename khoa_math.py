@@ -25,14 +25,17 @@ class MathObj(NodeMixin):
     a KSET. This is consistent with the paragraph above since knowledge sets can only
     contain data.
 
-    A Math Object is 'inconsistent' either when its value is empty, or when one of its
-    children is inconsistent.
-
     Note that the tree NEVER adds new nodes on its own. The user controls everything.
+
+    About propa_rules: these are functions that takes a (child, parent) tuple
+    (which signifies their attachment) and return a list of queue items,
+    minus the reference point, since it is defaulted to be the parent of the attachment.
 
     Mental note: 'type' can be reduced to just a value: an object has type A if its children
     with role 'type' has value A. If we can replace two concepts with one, do it.
     """
+
+
     # Class variables
     separator = '.'
     propa_rules = []
@@ -41,8 +44,10 @@ class MathObj(NodeMixin):
     def __init__(self, id_='', role: str='root', value: Set=None,
             parent=None):
         """
-        :param queue: The queue is for new knowledge. All children inherit the queue from the root. Items
-        in the queues are formatted as tuples with the node on the left and the parent on the right.
+        :param queue: The queue is for new knowledge. Queue elements are written
+        in the form (<node>, <reference point>, <path>) The path is written in UNIX style.
+        The intended action is attaching the node to the parent indicated by
+        'path' from 'reference point'
 
         :param id: How you want to call this node in your program (mainly for roots).
         """
@@ -99,6 +104,11 @@ class MathObj(NodeMixin):
         else: return None
 
     def is_inconsistent(self) -> bool:
+        """
+        A Math Object is 'inconsistent' either when its value is empty,
+        or when one of its children is inconsistent.
+        """
+
         # Simply search for any node that have empty value
         if self.value is not None: return self.value == set()
         else:
@@ -108,9 +118,11 @@ class MathObj(NodeMixin):
 
 
     def is_complete(self) -> bool:
-        # An object is complete if:
-        # 1) its queue is empty, and
-        # 2) its value is a singleton or all of is children are complete.
+        """
+        An object is complete when:
+        1) its queue is empty, and
+        2) its value is a singleton or all of is children are complete.
+        """
         res = False
         if not self.queue:
             if self.value: res = (len(self.value) == 1)
@@ -188,10 +200,13 @@ class MathObj(NodeMixin):
     def _propagate_change(child, parent):
         """
         Method called after attaching child to parent, this is the heart of the machine.
-        This will populate the tree queue with (node, parent) tuples.
+        This method will populate the root's queue. If you want to change this method, add
+        items to the class variable `propa_rules`
         """
         for func in MathObj.propa_rules:  # Note that we use the class variable
-            child.queue += func(child, parent)
+            returned = func(child, parent)
+            queue_items = [(r[0], parent, r[1]) for r in returned]
+            child.queue += queue_items
 
 
 class MathType(MyEnum):
