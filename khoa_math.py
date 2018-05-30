@@ -76,7 +76,7 @@ class MathObj(NodeMixin):
 
     def __repr__(self):
         txt = self.get('text') if self.get('text') else ''
-        val = self.value if self.value else ''
+        val = str(self.value) if self.value else ''
         return '{}|{}|{}|{}'.format(self.role, txt, val, self.id)
 
     def _pre_attach(self, parent):
@@ -96,10 +96,11 @@ class MathObj(NodeMixin):
 
     def is_inconsistent(self) -> bool:
         # Simply search for any node that have empty value
-        if self.value: return self.value == set()
-        for child in self.children:
-            if child.is_inconsistent(): return True
-        return False
+        if self.value is not None: return self.value == set()
+        else:
+            for child in self.children:
+                if child.is_inconsistent(): return True
+            return False
 
     def clone(self):
         """Return a deep copy of this object."""
