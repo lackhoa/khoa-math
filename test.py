@@ -15,7 +15,7 @@ type_ = MathObj(role='type', value={MathType.PL_FORMULA})
 MathObj.kattach(type_, form0)  # Attach the type to the form0
 
 # We iterate level-by-level, indicated by 'dep'
-for dep in range(2):
+for dep in range(7):
     print('\n\nWorking up to level {}'.format(dep+1))
 
     # Then we do two jobs for each root
@@ -27,7 +27,7 @@ for dep in range(2):
             # Path processing:
             path = path.split('/')
             parent = ref
-            # Go down each level one by one UNIX style:
+            # Process the path UNIX style:
             for n in path:
                 if n == '': continue
                 else:
@@ -40,6 +40,7 @@ for dep in range(2):
 
         # Job 2 (Expanding): expand the possible values:
         all_nodes = [node for node in PreOrderIter(root)]
+        node_index = 0  # This value will be "preserved" when cloning
         for node in all_nodes:
             if node.value and len(node.value) > 1:  # If there are multiple possible values
                 for v in (node.value - {KSet.UNKNOWN}):  # Expand them all
@@ -50,18 +51,26 @@ for dep in range(2):
                     counter += 1
 
                     # This tree has value 'v':
-                    possibility = MathObj(role=node.role, value={v})
-                    MathObj.kattach(possibility, root_clone)
+                    new_node = MathObj(role=node.role, value={v})
+                    all_nodes_clone = [node_clone for node_clone in PreOrderIter(root_clone)]
+                    node_clone = all_nodes_clone[node_index]
+                    MathObj.kattach(new_node, node_clone.parent)
 
                 # Clean up the value from the original tree
                 node.clear_val()
+            node_index += 1
 
     # Clean-up routine afterwards
     for root in copy(roots):
+        # Find inconsistent trees
         if root.is_inconsistent():
             roots.remove(root)
             discarded += [root]
 
+        # Find completed trees
+        elif root.is_complete():
+            roots.remove(root)
+            completed += [root]
 
 
 
@@ -70,8 +79,8 @@ for dep in range(2):
     rt = lambda t: print(str(RenderTree(t)) + '\n')
     print('These are the active roots:')
     for r in roots: rt(r)
-    # print('\nThese are the discarded:')
-    # for r in discarded: rt(r)
-    # print('\nThese are the completed:')
-    # for r in completed: rt(r)
+print('\nThese are the discarded:')
+for r in discarded: rt(r)
+print('\nThese are the completed:')
+for r in completed: rt(r)
 

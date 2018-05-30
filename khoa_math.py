@@ -37,6 +37,7 @@ class MathObj(NodeMixin):
     separator = '.'
     propa_rules = []
 
+
     def __init__(self, id_='', role: str='root', value: Set=None,
             parent=None):
         """
@@ -46,38 +47,41 @@ class MathObj(NodeMixin):
         :param id: How you want to call this node in your program (mainly for roots).
         """
         self.id = id_
-        self.__role = role
-        self.__value = value
+        self._role = role
+        self._value = value
         self.parent = None  # We don't attach nodes willy-nilly, see 'kattach' for more
-        self.__queue = []
-        self.__root = self
+        self._queue = []
+
 
     @property
     def role(self):
-        return self.__role
+        return self._role
+
 
     @property
     def value(self):
-        return self.__value
+        return self._value
     def clear_val(self):
         """Clear all values in the node except for UNKNOWN"""
-        self.__value = {KSet.UNKNOWN} if KSet.UNKNOWN in self.value else set()
+        self._value = {KSet.UNKNOWN} if KSet.UNKNOWN in self.value else set()
+
 
     @property
     def root(self):
-        return self.__root
+        if self.parent == None: return self
+        else: return self.parent.root
+
 
     @property
     def queue(self):
-        return self.root.__queue  # The root manages the queue
+        return self.root._queue  # The root manages the queue
     @queue.setter
     def queue(self, item):
-        self.root.__queue = item
+        self.root._queue = item
 
     def __repr__(self):
-        txt = self.get('text') if self.get('text') else ''
         val = str(self.value) if self.value else ''
-        return '{}|{}|{}|{}'.format(self.role, txt, val, self.id)
+        return '{}{}|{}'.format(self.role, self.id, val)
 
     def _pre_attach(self, parent):
         assert(parent.value == None), 'You cannot attach to a composite object.'
@@ -102,6 +106,21 @@ class MathObj(NodeMixin):
                 if child.is_inconsistent(): return True
             return False
 
+
+    def is_complete(self) -> bool:
+        # An object is complete if:
+        # 1) its queue is empty, and
+        # 2) its value is a singleton or all of is children are complete.
+        res = False
+        if not self.queue:
+            if self.value: res = (len(self.value) == 1)
+            else:
+                for child in self.children:
+                    if not child.is_complete(): break
+                else: res = True  # For-Else clause usage here
+
+        return res
+
     def clone(self):
         """Return a deep copy of this object."""
         # Make a new math object
@@ -110,7 +129,8 @@ class MathObj(NodeMixin):
         # About the queue (Yikes!):
         # First take care of queue items with this node as the reference
         for node, ref, path in self.queue:
-            if ref == self: res.queue += [(node.clone(), res, path)]
+            if ref == self:
+                res.queue += [(node.clone(), res, path)]
 
         # Clone all children and nattach to this
         for child in self.children:
@@ -118,9 +138,11 @@ class MathObj(NodeMixin):
             MathObj.nattach(child_clone, res)
             # Don't forget the queue items that references the children!
             for node, ref, path in self.queue:
-                if ref == child: queue_clone += [(node.clone(), res, path)]
+                if ref == child:
+                    queue_clone += [(node.clone(), child_clone, path)]
 
         return res
+
 
     @staticmethod
     def nattach(child, parent=None):
@@ -136,11 +158,11 @@ class MathObj(NodeMixin):
             if same:  # If a node with the same role is present
                 if same.value:  # Only do work when the value is present
                     unified = unify(child.value, same.value)
-                    same.__value = unified
+                    same._value = unified
             else:
                 # Do things normally here:
                 child.parent = parent
-                child.__root = parent.root
+
 
     @staticmethod
     def kattach(child, parent=None):
@@ -154,13 +176,13 @@ class MathObj(NodeMixin):
                 if same.value:  # Only do work when the value is present
                     unified = unify(child.value, same.value)
                     if unified != same.value:  # Did we learn something new?
-                        same.__value = unified
+                        same._value = unified
                         MathObj._propagate_change(same, parent)
             else:
                 # Do things normally here:
                 child.parent = parent
-                child.__root = parent.root
                 MathObj._propagate_change(child, parent)
+
 
     @staticmethod
     def _propagate_change(child, parent):
@@ -169,9 +191,10 @@ class MathObj(NodeMixin):
         This will populate the tree queue with (node, parent) tuples.
         """
         for func in MathObj.propa_rules:  # Note that we use the class variable
-            func(child, parent)
+            child.queue += func(child, parent)
 
-class MathType(AutoName):
+
+class MathType(MyEnum):
     """
     All MathObj should have a type belonging to this enum
     But, since we're inventing, sometimes you can just use strings
@@ -183,5 +206,3 @@ class MathType(AutoName):
     PL_PROOF = auto()
     PL_THEOREM = auto()
     PL_TRUTH = auto()
-    KSET = auto()
-    UNKNOWN = auto()

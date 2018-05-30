@@ -11,7 +11,7 @@ from typing import Iterable
 
 # There are two types of sets: exclusive and inclusive. Exclusive sets CONTAINS all the possibilities, while inclusive sets EXPAND the possibilities. To denote inclusive sets, we add the enum member KSet.UNKNOWN. UNKNOWN signifies the element of unknkown, an somewhat arbitrary but neat concept that we will incorporate in the code.
 
-class KSet(AutoName):
+class KSet(MyEnum):
     UNKNOWN = auto()
 
 # Helper functions defined on kset:
