@@ -3,6 +3,7 @@ from wff import *
 
 from anytree import LevelOrderGroupIter, PreOrderIter
 from copy import deepcopy, copy
+import itertools
 
 
 def custom_rules(child, parent):
@@ -25,7 +26,7 @@ def custom_rules(child, parent):
 counter = 1  # How we get new ids
 form0 = MathObj(id_ = '#0')  # The starting unknown formula
 MathObj.propa_rules += [wff_rules, custom_rules]  # These are the rules we're using today
-roots = [form0]  # Store the active roots
+active_roots = [form0]  # Store the active roots
 inconsistent = []  # Store the inconsistent objects
 completed = []  # Store the completed objects
 # Attach the type to the form0
@@ -33,25 +34,23 @@ MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 
 # We proceed level-by-level, as indexed by 'dep'
-LEVEL_CAP = 6
-REPEAT = 3
-# Each level is repeated a few times before incremented
-for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
-
-    print('\n\nWorking up to level {}'.format(dep+1))
+# We loop the last level until there is no more active roots remaining
+LEVEL_CAP = 5
+while True:
+    # Exit if there is any active root:
+    if not active_roots: break
 
     # Then we do two jobs for each root
     # Job 1 (Exploring): Attach nodes from the queue:
-    for root in copy(roots):
-        for queue_item in copy(root.queue):
-            role_, val_, ref, path = queue_item['role'], queue_item['value'],\
-                queue_item['ref'], queue_item['path']
+    for root in copy(active_roots):
+        for q in copy(root.queue):
             # Path resolving:
-            parent = MathObj.path_resolve(ref, path)
+            parent = MathObj.path_resolve(q['ref'], q['path'])
 
-            if parent and parent.depth <= dep:  # must attach level-by-level, for safety
-                MathObj.kattach(dict(role=role_, value=val_), parent)
-                root.queue.remove(queue_item)  # This is fine since we're iterating on a copy
+            if parent.depth <= LEVEL_CAP - 1:
+                MathObj.kattach(dict(role=q['role'], value=q['value']), parent)
+            root.queue.remove(q)  # Remove regardless of parent's depth
+
 
         # Job 2 (Expanding): expand the possible values:
         all_nodes = [node for node in PreOrderIter(root)]
@@ -62,7 +61,7 @@ for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
                     # Create an identical tree, change the id
                     root_clone = root.clone()
                     root_clone.id = '#{}'.format(counter)
-                    roots.append(root_clone)
+                    active_roots.append(root_clone)
                     counter += 1
 
                     # The new node has value 'v':
@@ -76,16 +75,17 @@ for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
                 node.clear_val()
             node_index += 1
 
+
     # Clean-up routine afterwards
-    for root in copy(roots):
+    for root in copy(active_roots):
         # Find inconsistent trees
         if root.is_inconsistent():
-            roots.remove(root)
+            active_roots.remove(root)
             inconsistent += [root]
 
         # Find completed trees
         elif root.is_complete():
-            roots.remove(root)
+            active_roots.remove(root)
             completed += [root]
 
 
@@ -94,9 +94,9 @@ for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
 # Printing out the resulting lists:
 rt = lambda t: print(str(RenderTree(t)) + '\n')
 print('These are the active roots:')
-for r in roots: rt(r)
-print('\nThese are the inconsistent:')
-for r in inconsistent: rt(r)
-print('\nThese are the completed:')
+for r in active_roots: rt(r)
+# print('\nThese are the inconsistent:')
+# for r in inconsistent: rt(r)
+print('\nThese are the completed roots:')
 for r in completed: rt(r)
 

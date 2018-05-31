@@ -158,10 +158,12 @@ class MathObj(NodeMixin):
 
 
     @staticmethod
-    def nattach(child, parent=None, overwrite=True):
+    def nattach(child, parent, overwrite=True):
         """
         'Normal attach': attaching nodes, in a straightforward way that cares about roles.
         Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
+
+        Unlike `kattach`, this method attaches a `MathObj` to parent
 
         :param overwrite: If set to True, if there is already another node with the same role,
         delete that node and attach the argument instead. If set to False, don't do anything.
@@ -183,7 +185,7 @@ class MathObj(NodeMixin):
 
 
     @staticmethod
-    def kattach(child: Dict, parent=None):
+    def kattach(child: Dict, parent):
         """
         Like `nattach`, but adds new knowledge to the queue,
         and intended for single node only.
@@ -191,28 +193,27 @@ class MathObj(NodeMixin):
         :param child: A dictionary with role and value (like in a node).
         Why is it not a MathObj? Because MathObj can have child.
         """
-        if parent is not None:
-            assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'
+        assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'
 
-            same = parent.get(child['role'])
-            if same:  # If a node with the same role is present
-                if same.value:  # Only do work when it is a leaf
-                    unified = unify(child['value'], same.value)
-                    if unified != same.value:  # Did we learn something new?
-                        same._value = unified
-                        # Propagate the change:
-                        for func in MathObj.propa_rules:
-                            parent.queue += [dict(role = r['role'], value = r['value'],
-                                ref = parent, path = r['path']) for r in func(child, parent)]
-            else:
-                # Convert child to MathObj representation, and add it to parent
-                child_obj = MathObj(role=child['role'], value=child['value'])
-                child_obj.parent = parent
+        same = parent.get(child['role'])
+        if same:  # If a node with the same role is present
+            if same.value:  # Only do work when it is a leaf
+                unified = unify(child['value'], same.value)
+                if unified != same.value:  # Did we learn something new?
+                    same._value = unified
+                    # Propagate the change:
+                    for func in MathObj.propa_rules:
+                        parent.queue += [dict(role = r['role'], value = r['value'],
+                            ref = parent, path = r['path']) for r in func(child, parent)]
+        else:
+            # Convert child to MathObj representation, and add it to parent
+            child_obj = MathObj(role=child['role'], value=child['value'])
+            child_obj.parent = parent
 
-                # Propagate the change:
-                for func in MathObj.propa_rules:
-                    parent.queue += [dict(role = r['role'], value = r['value'],
-                        ref = parent, path = r['path']) for r in func(child, parent)]
+            # Propagate the change:
+            for func in MathObj.propa_rules:
+                parent.queue += [dict(role = r['role'], value = r['value'],
+                    ref = parent, path = r['path']) for r in func(child, parent)]
 
 
     @staticmethod
@@ -232,6 +233,7 @@ class MathObj(NodeMixin):
                 if not res: raise Exception('Path cannot be resolved')
                 else: res = res.get(n)
 
+        assert(res is not None), 'Path lead to None'
         return res
 
 
