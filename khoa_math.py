@@ -47,11 +47,11 @@ class MathObj(NodeMixin):
     propa_rules = []
 
 
-    def __init__(self, id_='', role: str='root', value: Set=None):
+    def __init__(self, role: str='root', value: Set=None, name=''):
         """
-        :param id: How you want to call this node (unimportant,mainly for roots).
+        :param name: How you want to call this node (unimportant,mainly for roots).
         """
-        self.id = id_
+        self.name = name
         self._role = role
         self._value = value
         self.parent = None  # We don't attach nodes willy-nilly, see 'kattach' for more
@@ -91,13 +91,12 @@ class MathObj(NodeMixin):
 
     def __repr__(self):
         val = str(self.value) if self.value else ''
-        return '{}{}|{}'.format(self.role, self.id, val)
+        return '{}{}|{}'.format(self.role, self.name, val)
 
     def _pre_attach(self, parent):
         assert(parent.value == None), 'You cannot attach to a composite object.'
 
 
-    # 'Real' code:
     def get(self, role: str):
         """Get an attribute of a math object."""
         list = [n for n in self.children if n.role == role]
@@ -108,35 +107,56 @@ class MathObj(NodeMixin):
         if list: return list[0]
         else: return None
 
+
+    def _recursive_test(self, func: Callable[..., bool], conj = True) -> bool:
+        """
+        Template for recursive tests on trees, written in conjunctive normal form.
+        :param func: function to test on all nodes.
+        :param conj: works as follow
+        - set to True:  res = p1 & p2 & ... & pn
+        - set to False: res = p1 v p2 v ... v pn
+        """
+        res = True if conj else False
+
+        if self.value is not None: return func(self)
+        else:
+            for child in self.children:
+                if conj:
+                    if not func(self): res = False; break
+                else:
+                    if func(self): res = True; break
+
+        return res
+
+
     def is_inconsistent(self) -> bool:
         """
         A Math Object is 'inconsistent' either when its value is empty,
         or when one of its children is inconsistent.
         """
-
-        # Simply search for any node that have empty value
-        if self.value is not None: return self.value == set()
-        else:
-            for child in self.children:
-                if child.is_inconsistent(): return True
-            return False
+        func = lambda n: n.value == set()
+        return self._recursive_test(func, False)
 
 
     def is_complete(self) -> bool:
         """
         An object is complete when:
         1) its queue is empty, and
-        2) its value is a singleton or all of is children are complete.
+        2) its value is a singleton or all of its children are complete.
         """
-        res = False
-        if not self.queue:
-            if self.value: res = (len(self.value) == 1)
-            else:
-                for child in self.children:
-                    if not child.is_complete(): break
-                else: res = True  # For-Else clause usage here
+        func = lambda n: len(n.value) == 1
+        return self._recursive_test(func, True)
 
-        return res
+
+    def is_grounded(self) -> bool:
+        """
+        Likewise, an object is grounded when:
+        1) its queue is empty, and
+        2) its value is a singleton (but not {UNKNOWN}) or all of its children are grounded.
+        """
+        func = lambda n: (len(n.value) == 1) and (n.value != {KSet.UNKNOWN})
+        return self._recursive_test(func, True)
+
 
     def clone(self):
         """Return a deep copy of this object."""

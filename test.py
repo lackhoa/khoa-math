@@ -15,28 +15,36 @@ def custom_rules(child, parent):
     role = child['role']
     val = child['value']
 
+    if role == 'type':
+        if val == {MathType.PL_FORMULA}:
+            # Limit wff constructors:
+            new_nodes += [dict(role='cons',
+                            value={PlCons.ATOM, PlCons.NEGATION, PlCons.CONJUNCTION},
+                            path='')]
+
     if role == 'cons':
         if val == {PlCons.ATOM}:
-            # Atoms have texts, and that text should be 'P'
-            new_nodes += [dict(role='text', value={'P'}, path='')]
+            # Limit atoms' text
+            new_nodes += [dict(role='text', value={'P', 'Q'}, path='')]
 
     return new_nodes
 
 
 # Set up the environment
-counter = 1  # How we get new ids
-form0 = MathObj(id_ = '#0')  # The starting unknown formula
+counter = 1  # How we get new names
+form0 = MathObj(name = '#0', value = None)  # The starting unknown formula
 MathObj.propa_rules += [wff_rules, custom_rules]  # These are the rules we're using today
 active_roots = [form0]  # Store the active roots
-inconsistent = []  # Store the inconsistent objects
-completed = []  # Store the completed objects
+inconsistent = []  # Store the inconsistent roots
+completed = []  # Store the completed roots
+grounded = []  # Store the grounded roots
 # Attach the type to the form0
 MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 
 # We proceed level-by-level, as indexed by 'dep'
 # We loop the last level until there is no more active roots remaining
-LEVEL_CAP = 5
+LEVEL_CAP = 3
 while True:
     # Exit if there is any active root:
     if not active_roots: break
@@ -48,6 +56,8 @@ while True:
             # Path resolving:
             parent = MathObj.path_resolve(q['ref'], q['path'])
 
+            # Beware: the next line assumes that `parent` already exists,
+            # from the way we append and iterate the queue
             if parent.depth <= LEVEL_CAP - 1:
                 MathObj.kattach(dict(role=q['role'], value=q['value']), parent)
             # Remove queue item regardless of parent's depth
@@ -61,9 +71,9 @@ while True:
         for node in all_nodes:
             if node.value and len(node.value) > 1:  # If there are multiple possible values
                 for v in (node.value - {KSet.UNKNOWN}):  # Loop through each
-                    # Create an identical tree, change the id
+                    # Create an identical tree, change the name
                     root_clone = root.clone()
-                    root_clone.id = '#{}'.format(counter)
+                    root_clone.name = '#{}'.format(counter)
                     active_roots.append(root_clone)
                     counter += 1
 
@@ -86,6 +96,11 @@ while True:
             active_roots.remove(root)
             inconsistent += [root]
 
+        # Find grounded trees
+        elif root.is_grounded():
+            active_roots.remove(root)
+            grounded += [root]
+
         # Find completed trees
         elif root.is_complete():
             active_roots.remove(root)
@@ -96,10 +111,11 @@ while True:
 
 # Printing out the resulting lists:
 rt = lambda t, s: print(str(RenderTree(t, style=s)) + '\n')
-print('These are the active roots:')
-for r in active_roots: rt(r)
+# print('These are the active roots:')
+# for r in active_roots: rt(r)
 # print('\nThese are the inconsistent:')
 # for r in inconsistent: rt(r)
-print('\nThese are the completed roots:')
-for r in completed: rt(r, anytree.DoubleStyle)
-
+# print('\nThese are the completed roots:')
+# for r in completed: rt(r, anytree.DoubleStyle)
+print('\nThese are the grounded roots:')
+for r in grounded: rt(r, anytree.DoubleStyle)
