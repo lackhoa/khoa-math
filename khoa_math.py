@@ -57,6 +57,11 @@ class MathObj(NodeMixin):
         self.parent = None  # We don't attach nodes willy-nilly, see 'kattach' for more
         self._queue = []
 
+        # Some initial mandatory children for composite objects:
+        if self.value is None:
+            MathObj.nattach(MathObj(role='type', value={KSet.UNKNOWN}), self)
+            MathObj.nattach(MathObj(role='text', value={KSet.UNKNOWN}), self)
+
 
     @property
     def role(self):
@@ -163,7 +168,9 @@ class MathObj(NodeMixin):
         'Normal attach': attaching nodes, in a straightforward way that cares about roles.
         Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
 
-        Unlike `kattach`, this method attaches a `MathObj` to parent
+        Unlike `kattach`, this method attaches a `MathObj` to parent.
+
+        Note that the child's queue is propagated back to the root.
 
         :param overwrite: If set to True, if there is already another node with the same role,
         delete that node and attach the argument instead. If set to False, don't do anything.

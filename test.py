@@ -1,6 +1,7 @@
 from khoa_math import *
 from wff import *
 
+import anytree
 from anytree import LevelOrderGroupIter, PreOrderIter
 from copy import deepcopy, copy
 import itertools
@@ -49,15 +50,17 @@ while True:
 
             if parent.depth <= LEVEL_CAP - 1:
                 MathObj.kattach(dict(role=q['role'], value=q['value']), parent)
-            root.queue.remove(q)  # Remove regardless of parent's depth
-
+            # Remove queue item regardless of parent's depth
+            # So that oversized trees can become 'complete' in a sense that there's
+            # nothing else to expand on it
+            root.queue.remove(q)
 
         # Job 2 (Expanding): expand the possible values:
         all_nodes = [node for node in PreOrderIter(root)]
         node_index = 0  # This value will be "preserved" when cloning
         for node in all_nodes:
             if node.value and len(node.value) > 1:  # If there are multiple possible values
-                for v in (node.value - {KSet.UNKNOWN}):  # Expand them all
+                for v in (node.value - {KSet.UNKNOWN}):  # Loop through each
                     # Create an identical tree, change the id
                     root_clone = root.clone()
                     root_clone.id = '#{}'.format(counter)
@@ -92,11 +95,11 @@ while True:
 
 
 # Printing out the resulting lists:
-rt = lambda t: print(str(RenderTree(t)) + '\n')
+rt = lambda t, s: print(str(RenderTree(t, style=s)) + '\n')
 print('These are the active roots:')
 for r in active_roots: rt(r)
 # print('\nThese are the inconsistent:')
 # for r in inconsistent: rt(r)
 print('\nThese are the completed roots:')
-for r in completed: rt(r)
+for r in completed: rt(r, anytree.DoubleStyle)
 
