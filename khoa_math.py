@@ -1,7 +1,7 @@
 from kset import *
 
 from enum import Enum, auto
-from typing import List, Set, Callable
+from typing import List, Set, Callable, Dict
 from anytree import NodeMixin, RenderTree, find_by_attr, find
 
 # This file contains the basis of mathematics
@@ -26,10 +26,16 @@ class MathObj(NodeMixin):
     contain data.
 
     Note that the tree NEVER adds new nodes on its own. The user controls everything.
+    The only way to changing the object is via `nattach` or `kattach`.
 
     About propa_rules: these are functions that takes a (child, parent) tuple
-    (which signifies their attachment) and return a list of queue items,
+    (child is a (role, value) Dict and parent is a MathObj) and return a list of queue items,
     minus the reference point, since it is defaulted to be the parent of the attachment.
+
+    About the queue: The queue is for new knowledge. Queue item are dictionaries
+    containing <role>, <value> <reference point>, and <path> (in UNIX style).
+    The intended action is attaching the node to the parent indicated by
+    'path' from 'reference point'
 
     Mental note: 'type' can be reduced to just a value: an object has type A if its children
     with role 'type' has value A. If we can replace two concepts with one, do it.
@@ -41,15 +47,9 @@ class MathObj(NodeMixin):
     propa_rules = []
 
 
-    def __init__(self, id_='', role: str='root', value: Set=None,
-            parent=None):
+    def __init__(self, id_='', role: str='root', value: Set=None):
         """
-        :param queue: The queue is for new knowledge. Queue elements are written
-        in the form (<node>, <reference point>, <path>) The path is written in UNIX style.
-        The intended action is attaching the node to the parent indicated by
-        'path' from 'reference point'
-
-        :param id: How you want to call this node in your program (mainly for roots).
+        :param id: How you want to call this node (unimportant,mainly for roots).
         """
         self.id = id_
         self._role = role
@@ -139,74 +139,100 @@ class MathObj(NodeMixin):
         res = MathObj(role=self.role, value=self.value)
 
         # About the queue (Yikes!):
-        # First take care of queue items with this node as the reference
-        for node, ref, path in self.queue:
-            if ref == self:
-                res.queue += [(node.clone(), res, path)]
+        # Take care of queue items with this node as the reference
+        for q in self.queue:
+            if q['ref'] == self:
+                res.queue += [dict(role=q['role'],
+                    value=q['value'],
+                    ref=res,
+                    path=q['path'])]
 
-        # Clone all children and nattach to this
+        # Clone all children and nattach to the result
+        # Note that the queue items that reference the children
+        # are already handled by `nattach`
         for child in self.children:
             child_clone = child.clone()
             MathObj.nattach(child_clone, res)
-            # Don't forget the queue items that references the children!
-            for node, ref, path in self.queue:
-                if ref == child:
-                    queue_clone += [(node.clone(), child_clone, path)]
 
         return res
 
 
     @staticmethod
-    def nattach(child, parent=None):
+    def nattach(child, parent=None, overwrite=True):
         """
-        'Normal attach':This is the gateway to changing the tree: by attaching nodes.
+        'Normal attach': attaching nodes, in a straightforward way that cares about roles.
         Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
+
+        :param overwrite: If set to True, if there is already another node with the same role,
+        delete that node and attach the argument instead. If set to False, don't do anything.
         """
         if parent is not None:
             assert(type(child) == MathObj), 'You can only nattach Math Objects!'
             assert(type(parent) == MathObj), 'You can only nattach to Math Objects!'
 
             same = parent.get(child.role)
-            if same:  # If a node with the same role is present
-                if same.value:  # Only do work when the value is present
-                    unified = unify(child.value, same.value)
-                    same._value = unified
+            if same:
+                if overwrite:  # If a node with the same role is present
+                    parent.queue.extend(child.queue)  # Preserve child's queue items
+                    same.parent = None  # Remove the same-role node
+                    child.parent = parent  # Attach the new node
             else:
                 # Do things normally here:
+                parent.queue.extend(child.queue)  # Preserve child's queue items
                 child.parent = parent
 
 
     @staticmethod
-    def kattach(child, parent=None):
-        """Like `nattach`, but adds new knowledge to the queue"""
+    def kattach(child: Dict, parent=None):
+        """
+        Like `nattach`, but adds new knowledge to the queue,
+        and intended for single node only.
+
+        :param child: A dictionary with role and value (like in a node).
+        Why is it not a MathObj? Because MathObj can have child.
+        """
         if parent is not None:
-            assert(type(child) == MathObj), 'You can only kattach Math Objects!'
             assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'
 
-            same = parent.get(child.role)
+            same = parent.get(child['role'])
             if same:  # If a node with the same role is present
-                if same.value:  # Only do work when the value is present
-                    unified = unify(child.value, same.value)
+                if same.value:  # Only do work when it is a leaf
+                    unified = unify(child['value'], same.value)
                     if unified != same.value:  # Did we learn something new?
                         same._value = unified
-                        MathObj._propagate_change(same, parent)
+                        # Propagate the change:
+                        for func in MathObj.propa_rules:
+                            parent.queue += [dict(role = r['role'], value = r['value'],
+                                ref = parent, path = r['path']) for r in func(child, parent)]
             else:
-                # Do things normally here:
-                child.parent = parent
-                MathObj._propagate_change(child, parent)
+                # Convert child to MathObj representation, and add it to parent
+                child_obj = MathObj(role=child['role'], value=child['value'])
+                child_obj.parent = parent
+
+                # Propagate the change:
+                for func in MathObj.propa_rules:
+                    parent.queue += [dict(role = r['role'], value = r['value'],
+                        ref = parent, path = r['path']) for r in func(child, parent)]
 
 
     @staticmethod
-    def _propagate_change(child, parent):
-        """
-        Method called after attaching child to parent, this is the heart of the machine.
-        This method will populate the root's queue. If you want to change this method, add
-        items to the class variable `propa_rules`
-        """
-        for func in MathObj.propa_rules:  # Note that we use the class variable
-            returned = func(child, parent)
-            queue_items = [(r[0], parent, r[1]) for r in returned]
-            child.queue += queue_items
+    def path_resolve(ref, path: str):
+        """Return the node by the path from the reference."""
+        assert(type(ref) == MathObj), 'Reference must be MathObj!'
+        path = path.split('/')
+        res = ref
+
+        # Process the path UNIX style:
+        for n in path:
+            if n == '': continue
+            elif n == '..':
+                if not res: raise Exception('Path cannot be resolved')
+                else: res = res.parent
+            else:
+                if not res: raise Exception('Path cannot be resolved')
+                else: res = res.get(n)
+
+        return res
 
 
 class MathType(MyEnum):

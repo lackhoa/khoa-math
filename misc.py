@@ -8,4 +8,3 @@ class MyEnum(Enum):
     def __repr__(self):
         """Return a more subtle representation"""
         return str(self)
-

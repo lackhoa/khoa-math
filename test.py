@@ -10,13 +10,13 @@ def custom_rules(child, parent):
     Some new rules for this program.
     """
     new_nodes = []
-    role = child.role
-    val = child.value
+    role = child['role']
+    val = child['value']
 
     if role == 'cons':
         if val == {PlCons.ATOM}:
             # Atoms have texts, and that text should be 'P'
-            new_nodes += [( MathObj( role='text', value={'P'}), '')]
+            new_nodes += [dict(role='text', value={'P'}, path='')]
 
     return new_nodes
 
@@ -28,9 +28,8 @@ MathObj.propa_rules += [wff_rules, custom_rules]  # These are the rules we're us
 roots = [form0]  # Store the active roots
 inconsistent = []  # Store the inconsistent objects
 completed = []  # Store the completed objects
-
-type_ = MathObj(role='type', value={MathType.PL_FORMULA})
-MathObj.kattach(type_, form0)  # Attach the type to the form0
+# Attach the type to the form0
+MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 
 # We proceed level-by-level, as indexed by 'dep'
@@ -45,23 +44,13 @@ for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
     # Job 1 (Exploring): Attach nodes from the queue:
     for root in copy(roots):
         for queue_item in copy(root.queue):
-            node, ref, path = queue_item
-
-            # Path processing:
-            path = path.split('/')
-            parent = ref
-            # Process the path UNIX style:
-            for n in path:
-                if n == '': continue
-                elif n == '..':
-                    if not parent: raise Exception('Rule cannot be applied!')
-                    else: parent = parent.parent
-                else:
-                    if not parent: raise Exception('Rule cannot be applied!')
-                    else: parent = parent.get(n)
+            role_, val_, ref, path = queue_item['role'], queue_item['value'],\
+                queue_item['ref'], queue_item['path']
+            # Path resolving:
+            parent = MathObj.path_resolve(ref, path)
 
             if parent and parent.depth <= dep:  # must attach level-by-level, for safety
-                MathObj.kattach(node, parent)
+                MathObj.kattach(dict(role=role_, value=val_), parent)
                 root.queue.remove(queue_item)  # This is fine since we're iterating on a copy
 
         # Job 2 (Expanding): expand the possible values:
@@ -76,8 +65,9 @@ for dep in [x for x in range(LEVEL_CAP) for _ in range (REPEAT)]:
                     roots.append(root_clone)
                     counter += 1
 
-                    # This tree has value 'v':
-                    new_node = MathObj(role=node.role, value={v})
+                    # The new node has value 'v':
+                    new_node = dict(role=node.role, value={v})
+                    # Iterate over the cloned tree to get the corresponding parent's location:
                     all_nodes_clone = [node_clone for node_clone in PreOrderIter(root_clone)]
                     node_clone = all_nodes_clone[node_index]
                     MathObj.kattach(new_node, node_clone.parent)
