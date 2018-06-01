@@ -122,4 +122,5 @@ rt = lambda t, s=anytree.ContStyle:\
 # for r in constant: rt(r, anytree.ContRoundStyle)
 
 print('\nThese are the complete roots:')
-for r in complete: rt(r, anytree.DoubleStyle)
+# for r in complete: rt(r, anytree.DoubleStyle)
+for r in complete: print(str(r))

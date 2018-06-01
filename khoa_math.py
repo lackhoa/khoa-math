@@ -99,6 +99,24 @@ class MathObj(NodeMixin):
         return '{}{}|{}'.format(self.role, self.name, val)
 
 
+    def __str__(self):
+        """Provide a nice mathematical view of COMPLETE objects."""
+        res = ''
+
+        if self.get('type') == MathType.PL_FORMULA:
+            cons = self.get('cons')
+            if cons == {PlCons.ATOM}:
+                res = self.get('text')
+            elif cons == {PlCons.NEGATION}:
+                res = '(~{})'.format( str(self.get('body')) )
+            elif cons == {PlCons.CONJUNCTION}:
+                res = '({}&{})'.format( str(self.get('left')), str(self.get('right')) )
+            elif cons == {PlCons.CONDITIONAL}:
+                res = '({}->{})'.format( str(self.get('ante')), str(self.get('conse')) )
+
+        return res
+
+
     def _pre_attach(self, parent):
         assert(parent.value == None), 'You cannot attach to a composite object.'
 

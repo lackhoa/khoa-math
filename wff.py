@@ -29,39 +29,9 @@ def wff_rules(child, parent):
     pl_cons_set = set(list(PlCons))
 
     if role == 'type':
-        # This clause takes care of listing constructors for types:
+        # This clause lists all constructors for each type
         if val == {MathType.PL_FORMULA}:
             new_nodes += [dict(value=pl_cons_set, path='cons')]
-
-    elif role == 'text':
-        # This clause takes care of all the text
-        if extract(val):
-            text1 = extract(val)
-            if parent.parent:
-                grandpa = parent.parent
-                if grandpa.get('cons').value == {PlCons.NEGATION}:
-                    # Text of negation
-                    new_nodes += [dict(value={'(~{})'.format(text1)}, path='../text')]
-
-                elif grandpa.get('cons').value == {PlCons.CONJUNCTION}:
-                    # Text of conjunction
-                    switch = (parent.role == 'left')
-                    other_role = 'right' if switch else 'left'
-                    if extract( grandpa.get('{}/text'.format(other_role) ).value ):
-                        text2 = extract( grandpa.get('{}/text'.format(other_role) ).value )
-                        left_txt, right_txt = (text1, text2) if switch else (text2, text1)
-                        new_nodes += [
-                            dict(value={r'({}&{})'.format(left_txt, right_txt)}, path='../text')]
-
-                elif grandpa.get('cons').value == {PlCons.CONDITIONAL}:
-                    # Text of conditional
-                    switch = (parent.role == 'ante')
-                    other_role = 'conse' if switch else 'ante'
-                    if extract( grandpa.get('{}/text'.format(other_role) ).value ):
-                        text2 = extract( grandpa.get('{}/text'.format(other_role) ).value )
-                        ante_txt, conse_txt = (text1, text2) if switch else (text2, text1)
-                        new_nodes += [
-                            dict(value={r'({}->{})'.format(ante_txt, conse_txt)}, path='../text')]
 
     elif role == 'cons':
         # This clause provides constructors
