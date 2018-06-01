@@ -23,16 +23,18 @@ def inference_rules(child, parent):
             new_nodes += [dict(value=set(list(ProofCons)), path='cons')]
             new_nodes += [dict(value={KSet.UNKNOWN}, path='form')]
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='form/type')]
+            # And-intro can only prove conjunction (isn't it nice?)
+            new_nodes += [dict(value={PlCons.CONJUNCTION}, path='form/cons')]
             new_nodes += [dict(value={KSet.UNKNOWN}, path='dep')]
 
     elif role == 'cons':
         # This clause provides proof constructors
         if val == {ProofCons.AND_INTRO}:
             # and intro has left and right proof
-            new_nodes += [dict(value=None, path='left')]
-            new_nodes += [dict(value=None, path='right')]
-            new_nodes += [dict(value={MathType.PL_PROOF}, path='left/type')]
-            new_nodes += [dict(value={MathType.PL_PROOF}, path='right/type')]
+            new_nodes += [dict(value=None, path='left_p')]
+            new_nodes += [dict(value=None, path='right_p')]
+            new_nodes += [dict(value={MathType.PL_PROOF}, path='left_p/type')]
+            new_nodes += [dict(value={MathType.PL_PROOF}, path='right_p/type')]
+            new_nodes += [dict(value=parent.get('form/left_f').value, path='left_p/form')]
 
     return new_nodes
-

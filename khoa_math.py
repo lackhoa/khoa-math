@@ -122,20 +122,19 @@ class MathObj(NodeMixin):
                         if child.role == n:
                             res = child; break
                     else: raise PathDownError(self, path)  # For-Else
-
         return res
 
 
     def path(self, origin) -> str:
-        """Return the path which takes origin root to this node."""
+        """Return the path which takes origin to this node."""
         res = ''
         node = self
 
         while node != origin:
             res = '/{}'.format(node.role) + res
             node = node.parent
-            assert(node is not None), 'You\'re asking for a path from a node of a different tree.'
-
+            assert(node is not None),
+            'You\'re probably asking for a path from a node of a different tree.'
         if res: res = res[1:]   # Get rid of the first slash if it's there
 
         return res
@@ -159,14 +158,14 @@ class MathObj(NodeMixin):
                     if not MathObj._recur_test(child, func, conj): res = False; break
                 else:
                     if MathObj._recur_test(child, func, conj): res = True; break
-
         return res
 
 
     def __eq__(self, other) -> bool:
         # This function corresponding nodes from both sides:
-        def func(n):
-            try: return n.value == other.get(n.path(self))  # The right side can be trouble
+        def func(n)
+            # The right side can be trouble:
+            try: return n.value == other.get(n.path(self)).value
             except PathDownError: return False
 
         return _recur_test(self, func, True)
@@ -232,9 +231,8 @@ class MathObj(NodeMixin):
         'Normal attach': attaching nodes, in a straightforward way that cares about roles.
         Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
 
-        Unlike `kattach`, this method attaches a `MathObj` to parent.
-
-        Note that the child's queue is propagated back to the root.
+        Unlike `kattach`, this method attaches a `MathObj` to parent. The child's queue is
+        propagated back to the root.
 
         :param overwrite: If set to True, if there is already another node with the same role,
         delete that node and attach the argument instead. If set to False, don't do anything.
@@ -288,8 +286,6 @@ class MathObj(NodeMixin):
                     ref = parent, path=r['path']) for r in func(child, parent)]
 
 
-
-
 class MathType(MyEnum):
     """
     All MathObj should have a type belonging to this enum
@@ -297,7 +293,6 @@ class MathType(MyEnum):
     """
     PL_FORMULA = auto()
     PL_PROOF = auto()
-    PL_SET = auto()
 
 
 class Error(Exception):

@@ -34,16 +34,16 @@ def wff_str(obj):
             res = '(~{})'.format( wff_str(obj.get('body')) )
 
         elif cons == {PlCons.CONJUNCTION}:
-            res = '({}&{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+            res = '({}&{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
 
         elif cons == {PlCons.CONDITIONAL}:
             res = '({}->{})'.format( wff_str(obj.get('ante')), wff_str(obj.get('conse')) )
 
         elif cons == {PlCons.DISJUNCTION}:
-            res = '({}v{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+            res = '({}v{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
 
         elif cons == {PlCons.BICONDITIONAL}:
-            res = '({}<->{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+            res = '({}<->{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
 
     return res
 
@@ -73,24 +73,24 @@ def wff_rules(child, parent):
 
         elif val == {PlCons.CONJUNCTION}:
             # Conjunction has left and right formulas
-            new_nodes += [dict(value=None, path='left')]
-            new_nodes += [dict(value=None, path='right')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
+            new_nodes += [dict(value=None, path='left_f')]
+            new_nodes += [dict(value=None, path='right_f')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
 
         elif val == {PlCons.DISJUNCTION}:
             # Disjunction has left and right formulas
-            new_nodes += [dict(value=None, path='left')]
-            new_nodes += [dict(value=None, path='right')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
+            new_nodes += [dict(value=None, path='left_f')]
+            new_nodes += [dict(value=None, path='right_f')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
 
         elif val == {PlCons.BICONDITIONAL}:
             # Biconditional has left and right formulas
-            new_nodes += [dict(value=None, path='left')]
-            new_nodes += [dict(value=None, path='right')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
+            new_nodes += [dict(value=None, path='left_f')]
+            new_nodes += [dict(value=None, path='right_f')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
 
         elif val == {PlCons.CONDITIONAL}:
             # Conditional has antecedent and consequent
