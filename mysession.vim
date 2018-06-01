@@ -45,15 +45,18 @@ unlet s:cpo_save
 set autoindent
 set background=dark
 set backspace=indent,eol,start
+set clipboard=unnamedplus
 set expandtab
 set fileencodings=ucs-bom,utf-8,default,latin1
 set gdefault
 set helplang=en
 set hlsearch
+set iminsert=0
+set imsearch=0
 set laststatus=2
 set listchars=trail:·,space:·,nbsp:~,tab:|\ 
 set makeprg=sage\ -b\ &&\ sage\ -t\ %
-set operatorfunc=<SNR>14_go
+set operatorfunc=<SNR>13_opfunc
 set printoptions=paper:a4
 set ruler
 set runtimepath=~/.vim,~/.vim/bundle/Vundle.vim,~/.vim/bundle/vim-surround,~/.vim/bundle/vim-commentary,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim74,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after,~/.vim/bundle/Vundle.vim,~/.vim/bundle/Vundle.vim/after,~/.vim/bundle/vim-surround/after,~/.vim/bundle/vim-commentary/after
@@ -62,6 +65,7 @@ set softtabstop=4
 set suffixes=.bak,~,.swp,.o,.info,.aux,.log,.dvi,.bbl,.blg,.brf,.cb,.ind,.idx,.ilg,.inx,.out,.toc
 set tabstop=4
 set wildignore=*.pyc
+set window=28
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -75,13 +79,14 @@ badd +1 kset.py
 badd +1 misc.py
 badd +1 test.py
 badd +1 wff.py
+badd +0 proof.py
 argglobal
 silent! argdel *
 argadd khoa_math.py
-argadd wff.py
-argadd test.py
-argadd misc.py
 argadd kset.py
+argadd misc.py
+argadd test.py
+argadd wff.py
 set stal=2
 edit khoa_math.py
 set splitbelow splitright
@@ -94,6 +99,7 @@ setlocal keymap=
 setlocal noarabic
 setlocal autoindent
 setlocal backupcopy=
+setlocal balloonexpr=
 setlocal nobinary
 setlocal nobreakindent
 setlocal breakindentopt=
@@ -200,36 +206,20 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-10
+11
 normal! zo
-51
+130
 normal! zo
-101
+168
 normal! zo
-112
+169
 normal! zo
-123
-normal! zo
-124
-normal! zo
-162
-normal! zo
-187
-normal! zo
-199
-normal! zo
-216
-normal! zo
-237
-normal! zo
-248
-normal! zo
-let s:l = 126 - ((15 * winheight(0) + 13) / 27)
+let s:l = 169 - ((14 * winheight(0) + 13) / 26)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-126
-normal! 021|
+169
+normal! 091|
 tabedit wff.py
 set splitbelow splitright
 set nosplitbelow
@@ -238,11 +228,11 @@ wincmd t
 set winheight=1 winwidth=1
 argglobal
 5argu
-edit wff.py
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
 setlocal backupcopy=
+setlocal balloonexpr=
 setlocal nobinary
 setlocal nobreakindent
 setlocal breakindentopt=
@@ -348,38 +338,176 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-17
+19
 normal! zo
-23
+25
 normal! zo
-38
+29
 normal! zo
-39
+31
 normal! zo
-41
+42
 normal! zo
-46
+52
 normal! zo
-48
-normal! zo
-50
-normal! zo
-51
-normal! zo
-53
-normal! zo
-54
-normal! zo
-58
+61
 normal! zo
 66
 normal! zo
-let s:l = 54 - ((22 * winheight(0) + 13) / 27)
+97
+normal! zo
+let s:l = 61 - ((0 * winheight(0) + 13) / 26)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-54
-normal! 069|
+61
+normal! 0
+tabedit proof.py
+set splitbelow splitright
+set nosplitbelow
+set nosplitright
+wincmd t
+set winheight=1 winwidth=1
+argglobal
+edit proof.py
+setlocal keymap=
+setlocal noarabic
+setlocal autoindent
+setlocal backupcopy=
+setlocal balloonexpr=
+setlocal nobinary
+setlocal nobreakindent
+setlocal breakindentopt=
+setlocal bufhidden=
+setlocal buflisted
+setlocal buftype=
+setlocal nocindent
+setlocal cinkeys=0{,0},0),:,!^F,o,O,e
+setlocal cinoptions=
+setlocal cinwords=if,else,while,do,for,switch
+setlocal colorcolumn=
+setlocal comments=b:#,fb:-
+setlocal commentstring=#\ %s
+setlocal complete=.,w,b,u,t,i
+setlocal concealcursor=
+setlocal conceallevel=0
+setlocal completefunc=
+setlocal nocopyindent
+setlocal cryptmethod=
+setlocal nocursorbind
+setlocal nocursorcolumn
+setlocal nocursorline
+setlocal define=
+setlocal dictionary=
+setlocal nodiff
+setlocal equalprg=
+setlocal errorformat=
+setlocal expandtab
+if &filetype != 'python'
+setlocal filetype=python
+endif
+setlocal fixendofline
+setlocal foldcolumn=0
+setlocal foldenable
+setlocal foldexpr=0
+setlocal foldignore=#
+setlocal foldlevel=0
+setlocal foldmarker={{{,}}}
+set foldmethod=indent
+setlocal foldmethod=indent
+setlocal foldminlines=1
+setlocal foldnestmax=20
+setlocal foldtext=foldtext()
+setlocal formatexpr=
+setlocal formatoptions=tcq
+setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
+setlocal grepprg=
+setlocal iminsert=0
+setlocal imsearch=0
+setlocal include=^\\s*\\(from\\|import\\)
+setlocal includeexpr=substitute(v:fname,'\\.','/','g')
+setlocal indentexpr=GetPythonIndent(v:lnum)
+setlocal indentkeys=0{,0},:,!^F,o,O,e,<:>,=elif,=except
+setlocal noinfercase
+setlocal iskeyword=@,48-57,_,192-255
+setlocal keywordprg=pydoc
+setlocal nolinebreak
+setlocal nolisp
+setlocal lispwords=
+set list
+setlocal list
+setlocal makeprg=
+setlocal matchpairs=(:),{:},[:]
+setlocal modeline
+setlocal modifiable
+setlocal nrformats=bin,octal,hex
+set number
+setlocal number
+setlocal numberwidth=4
+setlocal omnifunc=pythoncomplete#Complete
+setlocal path=
+setlocal nopreserveindent
+setlocal nopreviewwindow
+setlocal quoteescape=\\
+setlocal noreadonly
+setlocal norelativenumber
+setlocal norightleft
+setlocal rightleftcmd=search
+setlocal noscrollbind
+setlocal shiftwidth=4
+setlocal noshortname
+setlocal nosmartindent
+setlocal softtabstop=4
+setlocal nospell
+setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
+setlocal spellfile=
+setlocal spelllang=en
+setlocal statusline=
+setlocal suffixesadd=.py
+setlocal swapfile
+setlocal synmaxcol=3000
+if &syntax != 'python'
+setlocal syntax=python
+endif
+setlocal tabstop=4
+setlocal tagcase=
+setlocal tags=
+setlocal textwidth=0
+setlocal thesaurus=
+setlocal noundofile
+setlocal undolevels=-123456
+setlocal nowinfixheight
+setlocal nowinfixwidth
+setlocal wrap
+setlocal wrapmargin=0
+10
+normal! zo
+14
+normal! zo
+19
+normal! zo
+21
+normal! zo
+23
+normal! zo
+30
+normal! zo
+30
+normal! zo
+32
+normal! zo
+32
+normal! zo
+32
+normal! zo
+37
+normal! zo
+let s:l = 26 - ((14 * winheight(0) + 14) / 28)
+if s:l < 1 | let s:l = 1 | endif
+exe s:l
+normal! zt
+26
+normal! 038|
 tabedit test.py
 set splitbelow splitright
 set nosplitbelow
@@ -392,6 +520,7 @@ setlocal keymap=
 setlocal noarabic
 setlocal autoindent
 setlocal backupcopy=
+setlocal balloonexpr=
 setlocal nobinary
 setlocal nobreakindent
 setlocal breakindentopt=
@@ -499,38 +628,36 @@ setlocal wrap
 setlocal wrapmargin=0
 11
 normal! zo
-21
+19
 normal! zo
 21
 normal! zo
 22
 normal! zo
-22
+29
 normal! zo
-22
+49
 normal! zo
-22
-normal! zo
-26
-normal! zo
-50
-normal! zo
-55
-normal! zo
-57
+52
 normal! zo
 72
 normal! zo
-73
+80
 normal! zo
-95
+81
 normal! zo
-let s:l = 38 - ((9 * winheight(0) + 13) / 27)
+99
+normal! zo
+100
+normal! zo
+118
+normal! zo
+let s:l = 31 - ((27 * winheight(0) + 14) / 28)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-38
-normal! 049|
+31
+normal! 027|
 tabnext 1
 set stal=1
 if exists('s:wipebuf')

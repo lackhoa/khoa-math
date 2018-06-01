@@ -1,8 +1,10 @@
-from khoa_math import *
-from kset import *
+from khoa_math import MathType
+from misc import MyEnum
+
+from enum import auto
 from typing import Dict, Iterable
 
-# This file contains definitions of constructs of Well Formed Formulas
+# This file contains the definitions Well Formed Formulas
 
 class PlCons(MyEnum):
     ATOM = auto()
@@ -53,12 +55,11 @@ def wff_rules(child, parent):
     new_nodes = []
     role = child['role']
     val = child['value']
-    pl_cons_set = set(list(PlCons))
 
     if role == 'type':
-        # This clause lists all constructors for each type
+        # This clause lists all constructors for wff
         if val == {MathType.PL_FORMULA}:
-            new_nodes += [dict(value=pl_cons_set, path='cons')]
+            new_nodes += [dict(value=set(list(PlCons)), path='cons')]
 
     elif role == 'cons':
         # This clause provides constructors

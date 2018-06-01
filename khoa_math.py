@@ -1,4 +1,5 @@
-from kset import *
+from misc import MyEnum
+from kset import unify, KSet
 
 from enum import Enum, auto
 from typing import List, Set, Callable, Dict
@@ -125,6 +126,21 @@ class MathObj(NodeMixin):
         return res
 
 
+    def path(self, origin) -> str:
+        """Return the path which takes origin root to this node."""
+        res = ''
+        node = self
+
+        while node != origin:
+            res = '/{}'.format(node.role) + res
+            node = node.parent
+            assert(node is not None), 'You\'re asking for a path from a node of a different tree.'
+
+        if res: res = res[1:]   # Get rid of the first slash if it's there
+
+        return res
+
+
     @staticmethod
     def _recur_test(node, func: Callable[..., bool], conj = True) -> bool:
         """
@@ -145,6 +161,15 @@ class MathObj(NodeMixin):
                     if MathObj._recur_test(child, func, conj): res = True; break
 
         return res
+
+
+    def __eq__(self, other) -> bool:
+        # This function corresponding nodes from both sides:
+        def func(n):
+            try: return n.value == other.get(n.path(self))  # The right side can be trouble
+            except PathDownError: return False
+
+        return _recur_test(self, func, True)
 
 
     def is_inconsistent(self) -> bool:
@@ -271,12 +296,8 @@ class MathType(MyEnum):
     But, since we're inventing, sometimes you can just use strings
     """
     PL_FORMULA = auto()
-    PL_RULE_ANNOTATION = auto()
-    PL_PROOF_LINE = auto()
-    PL_CONNECTION = auto()
     PL_PROOF = auto()
-    PL_THEOREM = auto()
-    PL_TRUTH = auto()
+    PL_SET = auto()
 
 
 class Error(Exception):
