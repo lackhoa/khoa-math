@@ -19,6 +19,27 @@ def extract(val):
     else: return None
 
 
+def wff_str(obj):
+    """Print out well-formed-formulas"""
+    res = ''
+
+    if obj.get('type').value == {MathType.PL_FORMULA}:
+        cons = obj.get('cons').value
+        if cons == {PlCons.ATOM}:
+            res = list(obj.get('text').value)[0]
+
+        elif cons == {PlCons.NEGATION}:
+            res = '(~{})'.format( wff_str(obj.get('body')) )
+
+        elif cons == {PlCons.CONJUNCTION}:
+            res = '({}&{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+
+        elif cons == {PlCons.CONDITIONAL}:
+            res = '({}->{})'.format( wff_str(obj.get('ante')), wff_str(obj.get('conse')) )
+
+    return res
+
+
 def wff_rules(child, parent):
     """
     Default propagation rules for well-formed formulas.

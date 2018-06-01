@@ -19,7 +19,11 @@ def custom_rules(child, parent):
         if val == {MathType.PL_FORMULA}:
             # Limit wff constructors:
             new_nodes += [
-                dict( value={PlCons. ATOM, PlCons.CONDITIONAL}, path='cons')]
+                dict(
+                    value={PlCons. ATOM, PlCons.CONDITIONAL, PlCons.NEGATION, PlCons.CONJUNCTION},
+                    path='cons'
+                    )
+                ]
 
     if role == 'cons':
         if val == {PlCons.ATOM}:
@@ -123,4 +127,4 @@ rt = lambda t, s=anytree.ContStyle:\
 
 print('\nThese are the complete roots:')
 # for r in complete: rt(r, anytree.DoubleStyle)
-for r in complete: print(str(r))
+for r in complete: print(wff_str(r))
