@@ -36,15 +36,15 @@ form0 = MathObj(name = '#0', value = None)  # The starting unknown formula
 MathObj.propa_rules += [wff_rules, custom_rules]  # These are the rules we're using today
 active_roots = [form0]  # Store the active roots
 inconsistent = []  # Store the inconsistent roots
-completed = []  # Store the completed roots
-grounded = []  # Store the grounded roots
+constant = []  # Store constant roots
+complete = []  # Store complete roots
 # Attach the type to the form0
 MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 
 # We proceed level-by-level, as indexed by 'dep'
 # We loop the last level until there is no more active roots remaining
-LEVEL_CAP = 3
+LEVEL_CAP = 2
 while True:
     # Exit if there is any active root:
     if not active_roots: break
@@ -96,15 +96,15 @@ while True:
             active_roots.remove(root)
             inconsistent += [root]
 
-        # Find grounded trees
-        elif root.is_grounded():
-            active_roots.remove(root)
-            grounded += [root]
-
-        # Find completed trees
+        # Find complete trees
         elif root.is_complete():
             active_roots.remove(root)
-            completed += [root]
+            complete += [root]
+
+        # Find constant trees
+        elif root.is_constant():
+            active_roots.remove(root)
+            constant += [root]
 
 
 
@@ -113,14 +113,14 @@ while True:
 rt = lambda t, s=anytree.ContStyle:\
         print(str(RenderTree(t, style=s)) + '\n')
 
-# print('These are the active roots:')
-# for r in active_roots: rt(r)
+print('These are the active roots:')
+for r in active_roots: rt(r)
 
-# print('\nThese are the inconsistent:')
-# for r in inconsistent: rt(r)
+print('\nThese are the inconsistent:')
+for r in inconsistent: rt(r, anytree.AsciiStyle)
 
-# print('\nThese are the completed roots:')
-# for r in completed: rt(r, anytree.DoubleStyle)
+print('\nThese are the constant roots:')
+for r in constant: rt(r, anytree.ContRoundStyle)
 
-print('\nThese are the grounded roots:')
-for r in grounded: rt(r, anytree.DoubleStyle)
+print('\nThese are the complete roots:')
+for r in complete: rt(r, anytree.DoubleStyle)

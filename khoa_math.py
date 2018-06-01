@@ -56,7 +56,6 @@ class MathObj(NodeMixin):
         self._value = value
         self.parent = None  # We don't attach nodes willy-nilly, see 'kattach' for more
         self._queue = []
-        self.tag =[]
 
         # Some initial mandatory children for composite objects:
         if self.value is None:
@@ -72,18 +71,6 @@ class MathObj(NodeMixin):
     @property
     def value(self):
         return self._value
-
-
-    @value.setter
-    def value(self, val):
-        self._value = val
-
-        if val == set():
-            if self.tag self.tag += ['inconsistent']
-        if len(self.value) != 1:
-            self.tag += ['nonconstant', 'incomplete']
-        if self.value == {KSet.UNKNOWN}:
-            self.tag += ['incomplete']
 
 
     def clear_val(self):
@@ -105,19 +92,6 @@ class MathObj(NodeMixin):
     @queue.setter
     def queue(self, q):
         self.root._queue = q
-
-        if q != []:
-            if self.tag
-
-
-    @property
-    def tag(self):
-        return self.root._tag
-
-
-    @tag.setter
-    def tag(self, val):
-        self.root._tag = val
 
 
     def __repr__(self):
@@ -182,11 +156,12 @@ class MathObj(NodeMixin):
             func = lambda n: len(n.value) == 1
             return MathObj._recur_test(self, func, True)
 
-    def is_grounded(self) -> bool:
+
+    def is_complete(self) -> bool:
         """
-        Likewise, an object is grounded when:
+        Likewise, an object is complete when:
         1) its queue is empty, and
-        2) its value is a singleton (but not {UNKNOWN}) or all of its children are grounded.
+        2) its value is a singleton (but not {UNKNOWN}) or all of its children are complete.
         """
         if self.queue: return False
         else:
@@ -281,23 +256,27 @@ class MathObj(NodeMixin):
 
     @staticmethod
     def path_resolve(ref, path: str):
-        """Return the node by the path from the reference."""
+        """
+        Return the node by the path from the reference.
+        Paths are ultimately a series of movements, separated by forward slashes
+        """
         assert(type(ref) == MathObj), 'Reference must be MathObj!'
-        path = path.split('/')
         res = ref
 
         # Process the path UNIX style:
-        for n in path:
-            if n == '': continue
-            elif n == '..':
-                if not res: raise Exception('Path cannot be resolved')
-                else: res = res.parent
-            else:
-                if not res: raise Exception('Path cannot be resolved')
-                else: res = res.get(n)
+        if path:
+            for n in path.split('/'):
+                if n == '..':
+                    if not res: raise PathError(ref, path)
+                    else: res = res.parent
+                else:
+                    if not res: raise PathError(ref, path)
+                    else: res = res.get(n)
 
-        assert(res is not None), 'Path lead to None'
+        if res is None: raise PathLeadsToNoneError(ref, path)
         return res
+
+
 
 
 class MathType(MyEnum):
@@ -312,3 +291,22 @@ class MathType(MyEnum):
     PL_PROOF = auto()
     PL_THEOREM = auto()
     PL_TRUTH = auto()
+
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class PathError(Error):
+    def __init__(self, ref, path, message='Path cannot be resolved.'):
+        self.message = message
+        self.ref = ref
+        self.path = path
+
+
+class PathLeadsToNoneError(Error):
+    def __init__(self, ref, path, message='Path leads to None'):
+        self.message = message
+        self.ref = ref
+        self.path = path
