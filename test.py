@@ -20,7 +20,7 @@ def custom_rules(child, parent):
             # Limit wff constructors:
             new_nodes += [
                 dict(
-                    value={PlCons. ATOM, PlCons.CONDITIONAL, PlCons.NEGATION, PlCons.CONJUNCTION},
+                    value=set(list(PlCons)),
                     path='cons'
                     )
                 ]
@@ -45,11 +45,33 @@ complete = []  # Store complete roots
 MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 
+def cleanup_rountine():
+    global active_roots, inconsistent, constant, complete
+    for root in copy(active_roots):
+        # Find inconsistent trees
+        if root.is_inconsistent():
+            active_roots.remove(root)
+            inconsistent += [root]
+
+        # Find complete trees
+        elif root.is_complete():
+            active_roots.remove(root)
+            complete += [root]
+
+        # Find constant trees
+        elif root.is_constant():
+            active_roots.remove(root)
+            constant += [root]
+
+
 # We proceed level-by-level, as indexed by 'dep'
 # We loop the last level until there is no more active roots remaining
-LEVEL_CAP = 3
+LEVEL_CAP = 2
+loop_count = 0
 while True:
+    loop_count += 1
     # Exit if there is any active root:
+    print(len(active_roots))
     if not active_roots: break
 
     # Then we do two jobs for each root
@@ -93,23 +115,8 @@ while True:
                 node.clear_val()
             node_index += 1
 
-
-    # Clean-up routine afterwards
-    for root in copy(active_roots):
-        # Find inconsistent trees
-        if root.is_inconsistent():
-            active_roots.remove(root)
-            inconsistent += [root]
-
-        # Find complete trees
-        elif root.is_complete():
-            active_roots.remove(root)
-            complete += [root]
-
-        # Find constant trees
-        elif root.is_constant():
-            active_roots.remove(root)
-            constant += [root]
+    if loop_count % 2 == 0:
+        cleanup_rountine()
 
 
 # Printing out the resulting lists:
@@ -125,6 +132,6 @@ rt = lambda t, s=anytree.ContStyle:\
 # print('\nThese are the constant roots:')
 # for r in constant: rt(r, anytree.ContRoundStyle)
 
-print('\nThese are the complete roots:')
+print('\nThese are the complete roots ({}):'.format(len(complete)))
 # for r in complete: rt(r, anytree.DoubleStyle)
 for r in complete: print(wff_str(r))

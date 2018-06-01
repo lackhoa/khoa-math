@@ -37,6 +37,12 @@ def wff_str(obj):
         elif cons == {PlCons.CONDITIONAL}:
             res = '({}->{})'.format( wff_str(obj.get('ante')), wff_str(obj.get('conse')) )
 
+        elif cons == {PlCons.DISJUNCTION}:
+            res = '({}v{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+
+        elif cons == {PlCons.BICONDITIONAL}:
+            res = '({}<->{})'.format( wff_str(obj.get('left')), wff_str(obj.get('right')) )
+
     return res
 
 
@@ -71,11 +77,27 @@ def wff_rules(child, parent):
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
 
+        elif val == {PlCons.DISJUNCTION}:
+            # Disjunction has left and right formulas
+            new_nodes += [dict(value=None, path='left')]
+            new_nodes += [dict(value=None, path='right')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
+
+        elif val == {PlCons.BICONDITIONAL}:
+            # Biconditional has left and right formulas
+            new_nodes += [dict(value=None, path='left')]
+            new_nodes += [dict(value=None, path='right')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
+
         elif val == {PlCons.CONDITIONAL}:
             # Conditional has antecedent and consequent
             new_nodes += [dict(value=None, path='ante')]
             new_nodes += [dict(value=None, path='conse')]
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='ante/type')]
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='conse/type')]
+
+
 
     return new_nodes
