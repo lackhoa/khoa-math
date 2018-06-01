@@ -44,7 +44,7 @@ MathObj.kattach(dict(role= 'type', value={MathType.PL_FORMULA}), form0)
 
 # We proceed level-by-level, as indexed by 'dep'
 # We loop the last level until there is no more active roots remaining
-LEVEL_CAP = 2
+LEVEL_CAP = 3
 while True:
     # Exit if there is any active root:
     if not active_roots: break
@@ -53,11 +53,10 @@ while True:
     # Job 1 (Exploring): Attach nodes from the queue:
     for root in copy(active_roots):
         for q in copy(root.queue):
-            # Path resolving:
-            parent = MathObj.path_resolve(q['ref'], q['path'])
-
             # Beware: the next line assumes that `parent` already exists,
             # from the way we append and iterate the queue
+            parent = q['ref'].get(q['path'])
+
             if parent.depth <= LEVEL_CAP - 1:
                 MathObj.kattach(dict(role=q['role'], value=q['value']), parent)
             # Remove queue item regardless of parent's depth
@@ -105,8 +104,6 @@ while True:
         elif root.is_constant():
             active_roots.remove(root)
             constant += [root]
-
-
 
 
 # Printing out the resulting lists:

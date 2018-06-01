@@ -103,15 +103,27 @@ class MathObj(NodeMixin):
         assert(parent.value == None), 'You cannot attach to a composite object.'
 
 
-    def get(self, role: str):
-        """Get an attribute of a math object."""
-        list = [n for n in self.children if n.role == role]
+    def get(self, path=''):
+        """
+        Get a descendant of a this object, referenced by path.
+        Paths are ultimately a series of movements, separated by forward slashes
+        (in UNIX fashion, but instead of names, we use roles)
+        """
+        res = self
 
-        assert(len(list) <= 1),\
-            'Many nodes with the same role detected for {}'.format(role)
+        # Walk down the path:
+        if path:
+            for n in path.split('/'):
+                if n == '..':
+                    if not res.parent: raise PathUpError(self, path)
+                    else: res = res.parent
+                else:
+                    for child in res.children:
+                        if child.role == n:
+                            res = child; break
+                    else: raise PathDownError(self, path)  # For-Else
 
-        if list: return list[0]
-        else: return None
+        return res
 
 
     @staticmethod
@@ -210,13 +222,14 @@ class MathObj(NodeMixin):
             assert(type(child) == MathObj), 'You can only nattach Math Objects!'
             assert(type(parent) == MathObj), 'You can only nattach to Math Objects!'
 
-            same = parent.get(child.role)
-            if same:
+            try:
+                same = parent.get(child.role)
                 if overwrite:  # If a node with the same role is present
                     parent.queue.extend(child.queue)  # Preserve child's queue items
                     same.parent = None  # Remove the same-role node
                     child.parent = parent  # Attach the new node
-            else:
+
+            except PathDownError:
                 # Do things normally here:
                 parent.queue.extend(child.queue)  # Preserve child's queue items
                 child.parent = parent
@@ -233,8 +246,8 @@ class MathObj(NodeMixin):
         """
         assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'
 
-        same = parent.get(child['role'])
-        if same:  # If a node with the same role is present
+        try:
+            same = parent.get(child['role'])  # If a node with the same role is present
             if same.value:  # Only do work when it is a leaf
                 unified = unify(child['value'], same.value)
                 if unified != same.value:  # Did we learn something new?
@@ -243,7 +256,7 @@ class MathObj(NodeMixin):
                     for func in MathObj.propa_rules:
                         parent.queue += [dict(role = r['role'], value = r['value'],
                             ref = parent, path = r['path']) for r in func(child, parent)]
-        else:
+        except PathDownError:
             # Convert child to MathObj representation, and add it to parent
             child_obj = MathObj(role=child['role'], value=child['value'])
             child_obj.parent = parent
@@ -252,29 +265,6 @@ class MathObj(NodeMixin):
             for func in MathObj.propa_rules:
                 parent.queue += [dict(role = r['role'], value = r['value'],
                     ref = parent, path = r['path']) for r in func(child, parent)]
-
-
-    @staticmethod
-    def path_resolve(ref, path: str):
-        """
-        Return the node by the path from the reference.
-        Paths are ultimately a series of movements, separated by forward slashes
-        """
-        assert(type(ref) == MathObj), 'Reference must be MathObj!'
-        res = ref
-
-        # Process the path UNIX style:
-        if path:
-            for n in path.split('/'):
-                if n == '..':
-                    if not res: raise PathError(ref, path)
-                    else: res = res.parent
-                else:
-                    if not res: raise PathError(ref, path)
-                    else: res = res.get(n)
-
-        if res is None: raise PathLeadsToNoneError(ref, path)
-        return res
 
 
 
@@ -298,15 +288,15 @@ class Error(Exception):
     pass
 
 
-class PathError(Error):
-    def __init__(self, ref, path, message='Path cannot be resolved.'):
+class PathUpError(Error):
+    def __init__(self, ref, path, message='Error while traversing up path.'):
         self.message = message
         self.ref = ref
         self.path = path
 
 
-class PathLeadsToNoneError(Error):
-    def __init__(self, ref, path, message='Path leads to None'):
+class PathDownError(Error):
+    def __init__(self, ref, path, message='Error while traversing down path.'):
         self.message = message
         self.ref = ref
         self.path = path
