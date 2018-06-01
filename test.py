@@ -18,14 +18,13 @@ def custom_rules(child, parent):
     if role == 'type':
         if val == {MathType.PL_FORMULA}:
             # Limit wff constructors:
-            new_nodes += [dict(role='cons',
-                            value={PlCons.ATOM, PlCons.NEGATION, PlCons.CONJUNCTION},
-                            path='')]
+            new_nodes += [
+                dict( value={PlCons.ATOM, PlCons.NEGATION, PlCons.CONJUNCTION}, path='cons')]
 
     if role == 'cons':
         if val == {PlCons.ATOM}:
             # Limit atoms' text
-            new_nodes += [dict(role='text', value={'P', 'Q'}, path='')]
+            new_nodes += [dict(value={'P', 'Q'}, path='text')]
 
     return new_nodes
 
@@ -53,14 +52,17 @@ while True:
     # Job 1 (Exploring): Attach nodes from the queue:
     for root in copy(active_roots):
         for q in copy(root.queue):
-            # Beware: the next line assumes that `parent` already exists,
+            split_path = q['path'].split('/')
+            path_to_parent, role_ = '/'.join(split_path[:-1]), split_path[-1]
+
+            # Beware: the next lines assumes that `parent` already exists,
             # from the way we append and iterate the queue
-            parent = q['ref'].get(q['path'])
+            parent = q['ref'].get(path_to_parent)
 
             if parent.depth <= LEVEL_CAP - 1:
-                MathObj.kattach(dict(role=q['role'], value=q['value']), parent)
+                MathObj.kattach(dict(role=role_, value=q['value']), parent)
             # Remove queue item regardless of parent's depth
-            # So that oversized trees can become 'complete' in a sense that there's
+            # So that oversized trees can become 'constant' in a sense that there's
             # nothing else to expand on it
             root.queue.remove(q)
 

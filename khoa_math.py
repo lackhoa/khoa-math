@@ -33,7 +33,7 @@ class MathObj(NodeMixin):
     minus the reference point, since it is defaulted to be the parent of the attachment.
 
     About the queue: The queue is for new knowledge. Queue item are dictionaries
-    containing <role>, <value> <reference point>, and <path> (in UNIX style).
+    containing <value> <reference point>, and <path> (in UNIX style).
     The intended action is attaching the node to the parent indicated by
     'path' from 'reference point'
 
@@ -190,10 +190,7 @@ class MathObj(NodeMixin):
         # Take care of queue items with this node as the reference
         for q in self.queue:
             if q['ref'] == self:
-                res.queue += [dict(role=q['role'],
-                    value=q['value'],
-                    ref=res,
-                    path=q['path'])]
+                res.queue += [dict(value=q['value'], ref=res, path=q['path'])]
 
         # Clone all children and nattach to the result
         # Note that the queue items that reference the children
@@ -254,8 +251,8 @@ class MathObj(NodeMixin):
                     same._value = unified
                     # Propagate the change:
                     for func in MathObj.propa_rules:
-                        parent.queue += [dict(role = r['role'], value = r['value'],
-                            ref = parent, path = r['path']) for r in func(child, parent)]
+                        parent.queue += [dict(value = r['value'],
+                            ref = parent, path=r['path']) for r in func(child, parent)]
         except PathDownError:
             # Convert child to MathObj representation, and add it to parent
             child_obj = MathObj(role=child['role'], value=child['value'])
@@ -263,8 +260,8 @@ class MathObj(NodeMixin):
 
             # Propagate the change:
             for func in MathObj.propa_rules:
-                parent.queue += [dict(role = r['role'], value = r['value'],
-                    ref = parent, path = r['path']) for r in func(child, parent)]
+                parent.queue += [dict(value = r['value'],
+                    ref = parent, path=r['path']) for r in func(child, parent)]
 
 
 
