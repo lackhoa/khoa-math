@@ -19,7 +19,7 @@ def custom_rules(child, parent):
         if val == {MathType.PL_FORMULA}:
             # Limit wff constructors:
             new_nodes += [
-                dict( value={PlCons.ATOM, PlCons.NEGATION, PlCons.CONJUNCTION}, path='cons')]
+                dict( value={PlCons. ATOM, PlCons.CONDITIONAL}, path='cons')]
 
     if role == 'cons':
         if val == {PlCons.ATOM}:
@@ -112,14 +112,14 @@ while True:
 rt = lambda t, s=anytree.ContStyle:\
         print(str(RenderTree(t, style=s)) + '\n')
 
-print('These are the active roots:')
-for r in active_roots: rt(r)
+# print('These are the active roots:')
+# for r in active_roots: rt(r)
 
-print('\nThese are the inconsistent:')
-for r in inconsistent: rt(r, anytree.AsciiStyle)
+# print('\nThese are the inconsistent:')
+# for r in inconsistent: rt(r, anytree.AsciiStyle)
 
-print('\nThese are the constant roots:')
-for r in constant: rt(r, anytree.ContRoundStyle)
+# print('\nThese are the constant roots:')
+# for r in constant: rt(r, anytree.ContRoundStyle)
 
 print('\nThese are the complete roots:')
 for r in complete: rt(r, anytree.DoubleStyle)

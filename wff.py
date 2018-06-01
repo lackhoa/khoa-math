@@ -40,18 +40,28 @@ def wff_rules(child, parent):
             if parent.parent:
                 grandpa = parent.parent
                 if grandpa.get('cons').value == {PlCons.NEGATION}:
+                    # Text of negation
                     new_nodes += [dict(value={'(~{})'.format(text1)}, path='../text')]
 
                 elif grandpa.get('cons').value == {PlCons.CONJUNCTION}:
-                    other_role = 'right' if (parent.role == 'left') else 'left'
+                    # Text of conjunction
+                    switch = (parent.role == 'left')
+                    other_role = 'right' if switch else 'left'
                     if extract( grandpa.get('{}/text'.format(other_role) ).value ):
                         text2 = extract( grandpa.get('{}/text'.format(other_role) ).value )
-                        if other_role == 'right':
-                            new_nodes += [
-                                dict(value={r'({}&{})'.format(text1, text2)}, path='../text')]
-                        else:
-                            new_nodes += [
-                                dict(value={r'({}&{})'.format(text2, text1)}, path='../text')]
+                        left_txt, right_txt = (text1, text2) if switch else (text2, text1)
+                        new_nodes += [
+                            dict(value={r'({}&{})'.format(left_txt, right_txt)}, path='../text')]
+
+                elif grandpa.get('cons').value == {PlCons.CONDITIONAL}:
+                    # Text of conditional
+                    switch = (parent.role == 'ante')
+                    other_role = 'conse' if switch else 'ante'
+                    if extract( grandpa.get('{}/text'.format(other_role) ).value ):
+                        text2 = extract( grandpa.get('{}/text'.format(other_role) ).value )
+                        ante_txt, conse_txt = (text1, text2) if switch else (text2, text1)
+                        new_nodes += [
+                            dict(value={r'({}->{})'.format(ante_txt, conse_txt)}, path='../text')]
 
     elif role == 'cons':
         # This clause provides constructors
@@ -70,10 +80,11 @@ def wff_rules(child, parent):
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='left/type')]
             new_nodes += [dict(value={MathType.PL_FORMULA}, path='right/type')]
 
+        elif val == {PlCons.CONDITIONAL}:
+            # Conditional has antecedent and consequent
+            new_nodes += [dict(value=None, path='ante')]
+            new_nodes += [dict(value=None, path='conse')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='ante/type')]
+            new_nodes += [dict(value={MathType.PL_FORMULA}, path='conse/type')]
+
     return new_nodes
-
-
-
-# Other things:
-def ass_pl(form):
-    return form.type == MathType.PL_FORMULA
