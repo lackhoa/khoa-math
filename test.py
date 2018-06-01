@@ -110,12 +110,17 @@ while True:
 
 
 # Printing out the resulting lists:
-rt = lambda t, s: print(str(RenderTree(t, style=s)) + '\n')
+rt = lambda t, s=anytree.ContStyle:\
+        print(str(RenderTree(t, style=s)) + '\n')
+
 # print('These are the active roots:')
 # for r in active_roots: rt(r)
+
 # print('\nThese are the inconsistent:')
 # for r in inconsistent: rt(r)
+
 # print('\nThese are the completed roots:')
 # for r in completed: rt(r, anytree.DoubleStyle)
+
 print('\nThese are the grounded roots:')
 for r in grounded: rt(r, anytree.DoubleStyle)

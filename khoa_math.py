@@ -56,6 +56,7 @@ class MathObj(NodeMixin):
         self._value = value
         self.parent = None  # We don't attach nodes willy-nilly, see 'kattach' for more
         self._queue = []
+        self.tag =[]
 
         # Some initial mandatory children for composite objects:
         if self.value is None:
@@ -71,6 +72,20 @@ class MathObj(NodeMixin):
     @property
     def value(self):
         return self._value
+
+
+    @value.setter
+    def value(self, val):
+        self._value = val
+
+        if val == set():
+            if self.tag self.tag += ['inconsistent']
+        if len(self.value) != 1:
+            self.tag += ['nonconstant', 'incomplete']
+        if self.value == {KSet.UNKNOWN}:
+            self.tag += ['incomplete']
+
+
     def clear_val(self):
         """Clear all values in the node except for UNKNOWN"""
         self._value = {KSet.UNKNOWN} if KSet.UNKNOWN in self.value else set()
@@ -85,13 +100,30 @@ class MathObj(NodeMixin):
     @property
     def queue(self):
         return self.root._queue  # The root manages the queue
+
+
     @queue.setter
-    def queue(self, item):
-        self.root._queue = item
+    def queue(self, q):
+        self.root._queue = q
+
+        if q != []:
+            if self.tag
+
+
+    @property
+    def tag(self):
+        return self.root._tag
+
+
+    @tag.setter
+    def tag(self, val):
+        self.root._tag = val
+
 
     def __repr__(self):
         val = str(self.value) if self.value else ''
         return '{}{}|{}'.format(self.role, self.name, val)
+
 
     def _pre_attach(self, parent):
         assert(parent.value == None), 'You cannot attach to a composite object.'
@@ -108,7 +140,8 @@ class MathObj(NodeMixin):
         else: return None
 
 
-    def _recursive_test(self, func: Callable[..., bool], conj = True) -> bool:
+    @staticmethod
+    def _recur_test(node, func: Callable[..., bool], conj = True) -> bool:
         """
         Template for recursive tests on trees, written in conjunctive normal form.
         :param func: function to test on all nodes.
@@ -118,13 +151,13 @@ class MathObj(NodeMixin):
         """
         res = True if conj else False
 
-        if self.value is not None: return func(self)
+        if node.value is not None: return func(node)
         else:
-            for child in self.children:
+            for child in node.children:
                 if conj:
-                    if not func(self): res = False; break
+                    if not MathObj._recur_test(child, func, conj): res = False; break
                 else:
-                    if func(self): res = True; break
+                    if MathObj._recur_test(child, func, conj): res = True; break
 
         return res
 
@@ -135,18 +168,19 @@ class MathObj(NodeMixin):
         or when one of its children is inconsistent.
         """
         func = lambda n: n.value == set()
-        return self._recursive_test(func, False)
+        return MathObj._recur_test(self, func, False)
 
 
-    def is_complete(self) -> bool:
+    def is_constant(self) -> bool:
         """
-        An object is complete when:
+        An object is constant when:
         1) its queue is empty, and
-        2) its value is a singleton or all of its children are complete.
+        2) its value is a singleton or all of its children are constant.
         """
-        func = lambda n: len(n.value) == 1
-        return self._recursive_test(func, True)
-
+        if self.queue: return False
+        else:
+            func = lambda n: len(n.value) == 1
+            return MathObj._recur_test(self, func, True)
 
     def is_grounded(self) -> bool:
         """
@@ -154,8 +188,10 @@ class MathObj(NodeMixin):
         1) its queue is empty, and
         2) its value is a singleton (but not {UNKNOWN}) or all of its children are grounded.
         """
-        func = lambda n: (len(n.value) == 1) and (n.value != {KSet.UNKNOWN})
-        return self._recursive_test(func, True)
+        if self.queue: return False
+        else:
+            func = lambda n: (len(n.value) == 1) and (n.value != {KSet.UNKNOWN})
+            return MathObj._recur_test(self, func, True)
 
 
     def clone(self):
