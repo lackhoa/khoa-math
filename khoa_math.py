@@ -20,8 +20,7 @@ class MathObj(ABC):
                     else: res = res.parent
                 else:
                     for child in res.children:
-                        if child.role == n:
-                            res = child; break
+                        if child.role == n: res = child; break
                     else: raise PathDownError(self, path)
         return res
 
@@ -109,12 +108,6 @@ class Molecule(MathObj):
         # Make a new math object
         res = MathObj(role=self.role, values=self.values)
 
-        # About the queue (Yikes!):
-        # Take care of queue items with this node as the reference
-        for q in self.queue:
-            if q['ref'] == self:
-                res.queue += [dict(values=q['values'], ref=res, path=q['path'])]
-
         # Clone all children and nattach to the result
         # Note that the queue items that reference the children
         # are already handled by `nattach`
@@ -126,84 +119,36 @@ class Molecule(MathObj):
 
 
     @staticmethod
-    def nattach(child, parent, overwrite=True):
-        """
-        'Normal attach': attaching nodes, in a straightforward way that cares about roles.
-        Please don't invoke the API's normal way to attach nodes. Use either this or `kattach`
-
-        Unlike `kattach`, this method attaches a `MathObj` to parent. The child's queue is
-        propagated back to the root.
-
-        :param overwrite: If set to True, if there is already another node with the same role,
-        delete that node and attach the argument instead. If set to False, don't do anything.
-        """
+    def kattach(child, parent, overwrite=True):
         if parent is not None:
-            assert(type(child) == MathObj), 'You can only nattach Math Objects!'
-            assert(type(parent) == MathObj), 'You can only nattach to Math Objects!'
-
+            assert(type(child) == MathObj),
+                'You can only kattach Math Objects!'
+            assert(type(parent) == Molecule),
+                'You can only kattach to Molecules!'
             try:
                 same = parent.get(child.role)
-                if overwrite:  # If a node with the same role is present
-                    parent.queue.extend(child.queue)  # Preserve child's queue items
-                    same.parent = None  # Remove the same-role node
-                    child.parent = parent  # Attach the new node
-
+                if overwrite:
+                    same.parent = None
+                    child.parent = parent
             except PathDownError:
-                # Do things normally here:
-                parent.queue.extend(child.queue)  # Preserve child's queue items
                 child.parent = parent
-
-
-    @staticmethod
-    def kattach(child: Dict, parent):
-        """
-        Like `nattach`, but adds new knowledge to the queue,
-        and intended for single node only.
-
-        :param child: A dictionary with role and values (like in a node).
-        Why is it not a MathObj? Because MathObj can have child.
-        """
-        assert(type(parent) == MathObj), 'You can only kattach to Math Objects!'
-
-        try:
-            same = parent.get(child['role'])  # If a node with the same role is present
-            if same.values:  # Only do work when it is a leaf
-                unified = unify(child['values'], same.values)
-                if unified != same.values:  # Did we learn something new?
-                    same._values = unified
-                    # Propagate the change:
-                    for func in MathObj.propa_rules:
-                        parent.queue += [dict(values = r['values'],
-                            ref = parent, path=r['path']) for r in func(child, parent)]
-        except PathDownError:
-            # Convert child to MathObj representation, and add it to parent
-            child_obj = MathObj(role=child['role'], values=child['values'])
-            child_obj.parent = parent
-
-            # Propagate the change:
-            for func in MathObj.propa_rules:
-                parent.queue += [dict(values = r['values'],
-                    ref = parent, path=r['path']) for r in func(child, parent)]
 
 
 class MathType(MyEnum):
     PL_FORMULA = auto()
     PL_PROOF = auto()
 
-
-class Error(Exception):
+class MathError(Exception):
     """Base class for exceptions in this module."""
     pass
 
-
-class PathUpError(Error):
+class PathUpError(MathError):
     def __init__(self, ref, path, message='There is no way up.'):
         self.message = message
         self.ref = ref
         self.path = path
 
-
-class PathDownError(Error):
+class PathDownError(MathError):
     def __init__(self, ref, path, message='There is no way down.'):
         self.message = message
         self.ref = ref

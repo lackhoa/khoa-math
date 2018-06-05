@@ -1,28 +1,49 @@
-# About `kset.py`:
+# File `kset.py`:
 This file contains the structure for atoms' values attribute.
 
 ## KSet
-This is the stuff that atoms' values are made of. ksets are ultimately
-iterable, but contains more stuff like length (optional), and
-some special elements like KElem.UNKNOWN.
+This is the stuff that atoms' values are made of. ksets are usually
+(and preferably) iterables, but contains more auxiliary stuff.
 
-KElem.UNKNOWN is an enum element representing unknown values.
-Technically, there is no such thing as unknown values.
+There are three levels of clarity information a kset can have, expressed in `content`:
+1. explicit: `content` is an iterable,
+2. known: `content` is not an iterable, but a predicate to test membership, and finally
+3. unknown: `content` equals to KSet.UNKNOWN.
+
+`user_len` is a user-defined integer on the object, mainly
+used for heuristic problem solving, not to reflect the actual length of
+its content.
+
+More on `KConst.UNKNOWN`: Technically speaking, there is no such thing as "unknown values".
 However, there are cases when there is no incentive to iterate
-through all the possible values, since it is so huge. Also, In a few cases,
-there might be no way to enumerate the values (e.g. real numbers).
+through all the possible values, since it is so huge. Also, In a few cases
+(e.g. real numbers), there might be no way to enumerate all the values.
 
-An empty iterable stands for a surely "impossibile" value, meaning that
-there is a logical inconsistency.
+A KSet whose content has no element (whose boolean value is False) stands
+for a surely "impossibile" value, meaning that there is a logical inconsistency.
 
-# About `khoa_math.py`:
+### Methods:
+#### `__len__(self)`
+If `user_len` is present, returns that. Otherwise returns the content's built-in
+length if it's supported. If neither are present, raise LengthNotSupportedError.
+
+#### `unify(s1, s2)`
+Binary operation unify the content of two ksets. With the slogan:
+"You can never learn less, you can only learn more". The function tries
+to gather as much knowledge as it can.
+
+The result can be any of the 3 possible clarity levels, explicit results are favored.
+
+I cannot decide what to do with the resulting len() at the moment, let us see.
+
+# File `khoa_math.py`:
 This file contains the basic constructs of mathematics.
 
 All "Math Objects" stored as tree. Atoms are leaves, and
 molecules are branches.
 
-## Math Objects (abbr. `MathObj`) (Inherits `NodeMixin`)
-The abstract base class for atoms and molecules
+## Class `MathObj` (Inherits `NodeMixin`)
+Stands for Math Objects, the abstract base class for atoms and molecules
 
 A math object consists of: a role. Roles are means of indexing
 and traversing through the trees.
@@ -48,7 +69,7 @@ Template for recursive tests on trees, written in normal form.
 
 :param `conj`: True for conjunctive test, False for disjunctive test.
 
-## Atoms (Inherits Math Objects)
+## Class `Atom` (Inherits `MathObj`)
 An atom consists of: "a" values, which is a kset, and a web.
 
 There is a difference between *values the attribute* and what we
@@ -62,15 +83,16 @@ The web is a list of paths referencing other atoms. Each other atom referenced
 is dependent on this atom, and so they can potentially be updated when this atom
 is updated.
 
-Note that atoms' values are the only data in the tree.
+### Remarks
+Atoms' values are the only data in the tree.
 
-Note on `parent`: While this attribute could be None, it's very rare to see
-since it means that this atom is the only in its tree.
+While the `parent` attribute of an atom could be None, it's rare to see
+because it means that this atom is the only in its tree.
 
-## Molecules (Inherits Math Objects)
+## Class `Molecule` (Inherits `MathObj`)
 A molecule consists of: a type, a constructor, children, and a name.
 
-Type & Constructor: these are obvious. These are mandatory attributes.
+Type & Constructor: These are mandatory attributes for molecules.
 Types must be elements of the MathType enum, while constructors should be
 enum specified in the module specifying the type.
 
@@ -78,3 +100,11 @@ Children: can be atoms or other molecules. In program context, they're exactly
 like children node of the molecule.
 
 Name: optional, mainly for referencing roots
+
+### Methods
+#### `kattach(child, parent, overwrite)`:
+This static method attaches child to parent, potentially overwriting other nodes.
+
+`:param overwrite:` If set to `True`, if there is already another node
+with the same role, delete that node and attach the child instead.
+If set to False, don't do anything.

@@ -1,32 +1,68 @@
-from misc import *
+from misc import AutoName
 from khoa_math import *
-from typing import Iterable
+from typing import Iterable, Union
+
+from itertools import takewhile
+from enum import auto
 
 
-# Sets represent knowledge, containing every possibility that could be. And it is how
-# we represent data in this system.
-
-# A kset NEVER contains other math objects, it only serves as a collection
-# of literal values.
-
-# There are two types of sets: exclusive and inclusive. Exclusive sets CONTAINS all the possibilities, while inclusive sets EXPAND the possibilities. To denote inclusive sets, we add the enum member KSet.UNKNOWN. UNKNOWN signifies the element of unknkown, an somewhat arbitrary but neat concept that we will incorporate in the code.
-
-class KSet(MyEnum):
+class KConst(AutoName):
     UNKNOWN = auto()
 
-# Helper functions defined on kset:
-def is_exclusive(kset_):
-    if KSet.UNKNOWN in kset_: return False
-    else: return True
 
-def unify(s1, s2):
-    """
-    Binary operation unifying two sets of knowledge
-    You can never learn less, you can only learn more
-    """
-    if is_exclusive(s1) and is_exclusive(s2): res = s1 & s2  # Both exclusive
-    elif is_exclusive(s1): res = s1
-    elif is_exclusive(s2): res = s2
-    else: res = s1 | s2  # Both inclusive, note that res is also inclusive (it contains 'None')
+class KSet:
+    def __init__(self,
+                 content: Union[Iterable, Callable[..., bool], KConst],
+                 user_len=None: Union[int, NoneType]):
+        self.content = content
+        if user_len is not None: self.user_len = user_len
 
-    return res
+    def __len__(self) -> int:
+        if has_attr(self, 'user_len'):
+            return self.user_len
+        elif has_attr(self.content, '__len__'):
+            return len(self.content)
+        else: raise LengthUnsupportedError
+
+    def is_known(self): return (self.content != KConst.UKNOWN)
+
+    def is_explicit(self):
+        try: iter(self); return True
+        except TypeError: return False
+
+    @staticmethod
+    def unify(kset1: KSet, kset2: KSet):
+        res = KSet(content = KConst.UNKNOWN)
+        k1, k2, e1, e2 = kset1.is_known(), kset2.is_known(), kset1.is_explicit(), kset2.is_explicit()
+        if e1:
+            res = e1
+            if e2:
+                in_kset2 = lambda x: x in kset2
+                res = KSet(content = takewhile(in_kset2, kset1))
+            elif k2:
+                in_kset2 = lambda x: kset2.content(x)
+                res = KSet(content = takewhile(in_kset2, kset1))
+        elif e2:
+            res = e2
+            if k1:
+                in_kset1 = lambda x: kset1.content(x)
+                res = KSet(content = takewhile(in_kset1, kset2))
+        elif k1:
+            res = k1
+            if k2:
+                res = KSet(lambda x: k1.content(x) and k2.content(x))
+        elif k2: res = k2
+        return res
+
+class KSetError(Exception):
+    pass
+
+class LengthUnsupportedError(KSetError):
+    def __init__(self, ks: KSet, msg='Length cannot be calculated.': str):
+        self.ks = ks
+        self.message = msg
+
+class ContentNotIterableError(KSetError):
+    def __init__(self, ks: KSet, msg='Content cannot be iterated.': str):
+        self.ks = ks
+        self.message = msg
