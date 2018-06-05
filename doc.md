@@ -108,21 +108,30 @@ like children node of the molecule.
 
 Name: optional, mainly for referencing roots
 
-# File `wff.py`
-This class specifies the structure of well-formed-formulas, and how to print them.
+# Type Modules Concepts
+Type modules are modules that consists of:
 
-## Enum `WFFCons`
-This enum lists all the constructors of well-formed-formulas.
+1. A "constructor enum" (called `Cons`) listing all constructors for the type, and
 
-## Dictionary `wff_components`
-This receives a key of type WFFCons and return a list (which should technically be
-a tuple, but lists are easier to see) of AtomTups (abbr. for "atom tuple")
-and/or MoleTups (abbr. for "molecule tuple").
+2. An "expansion dictionary" (called `exp_dic`) mapping constructors to
+corresponding lists of AtomTups and MoleTups, which can be thought of as
+"template" for actual atoms and molecules, but much more simplistic.
+
+3. A to-string function (`to_str(mol)`) representing Molecules in usual
+mathematical notatoin.
 
 Every time you want to expand a molecule representing a well-formed-formula of
-some constructor, consult this dictionary, construct the nodes according to
+this type, consult the expansion dictionary, construct the nodes according to
 the values returned, and attach those to the molecule in question.
 
+# Type Module Index
+How do we know which type belong to which module? There is a file called `type_index.py`
+containing dictionaries mapping types to their corresponding constructor enums,
+expansion dictionaries, and to-string functions.
+
+# File `wff.py`
+This file is a type module specifying the structure of well-formed-formulas
+and how to print them. The constructor enum is named `WffCons`, and the expansion
+dictionary is named `wff_components`.
+
 ## Function `wff_str(form)`
-This functions takes a molecule representing a wff and returns its string
-in usual mathematical notatoin.

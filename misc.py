@@ -8,3 +8,7 @@ class MyEnum(Enum):
     def __repr__(self):
         """Return a more subtle representation"""
         return self.value
+
+
+AtomTup = namedtuple('AtomTuple', ['path', 'value'])
+MoleTup = namedtuple('MoleculeTuple', ['path', 'type_'])

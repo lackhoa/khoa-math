@@ -1,6 +1,6 @@
 from khoa_math import MathType
 from kset import KSet, KConst
-from misc import MyEnum
+from misc import MyEnum, AutomTup, MoleTup
 
 from enum import auto
 from typing import Dict, Iterable
@@ -15,9 +15,6 @@ class WffCons(MyEnum):
     CONDITIONAL = auto()
     BICONDITIONAL = auto()
 
-
-AtomTup = namedtuple('AtomTuple', ['path', 'value'])
-MoleTup = namedtuple('MoleculeTuple', ['path', 'type_'])
 
 left_right_forms = [MoleTup(path='left_f', type_=MathType.WFF),
                     MoleTup(path='right_f', type_=MathType.WFF)]
