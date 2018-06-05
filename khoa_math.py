@@ -1,5 +1,5 @@
 from misc import MyEnum
-from kset import unify, KSet
+from kset import KSet, unify, LengthUnsupportedError
 
 from abc import ABC
 from enum import Enum, auto
@@ -30,8 +30,8 @@ class MathObj(ABC):
         while node != origin:
             res = '/{}'.format(node.role) + res
             node = node.parent
-            assert(node is not None),
-            'You\'re probably asking for a path from a node of a different tree.'
+            assert(node is not None),\
+                'You\'re probably asking for a path from a node of a different tree.'
         if res: res = res[1:]   # Get rid of the first slash if it's there
         return res
 
@@ -48,12 +48,11 @@ class MathObj(ABC):
                 except PathDownError: res = False; break
         return res
 
-    @staticmethod
-    def _recur_test(node, func: Callable[..., bool], conj = True) -> bool:
+    def _recur_test(func: Callable[..., bool], conj = True) -> bool:
         res = True if conj else False
-        if type(node) == Atom: return func(node)
+        if type(self) == Atom: return func(self)
         else:
-            for child in node.children:
+            for child in self.children:
                 if conj:
                     if not MathObj._recur_test(child, func, conj): res = False; break
                 else:
@@ -61,36 +60,39 @@ class MathObj(ABC):
         return res
 
     def is_inconsistent(self) -> bool:
-        func = lambda n: n.values == []
-        return MathObj._recur_test(self, func, False)
-
-    def is_constant(self) -> bool:
-        if self.queue: return False
-        else:
-            func = lambda n: len(n.values) == 1
-            return MathObj._recur_test(self, func, True)
+        func = lambda a: a.values.is_empty()
+        return self._recur_test(func, False)
 
     def is_complete(self) -> bool:
-        if self.queue: return False
-        else:
-            func = lambda n: (len(n.values) == 1) and (n.values != {KSet.UNKNOWN})
-            return MathObj._recur_test(self, func, True)
+        func = lambda a: a.values.is_singleton()
+        return self._recur_test(func, True)
+
+    def clone(self):
+        """Return a deep copy of this object."""
+        res = None
+        if type(self) == Atom:
+            res = Atom(role=self.role, values=self.values, web=self.web)
+        elif type(self) == Molecule:
+            for child in self.children:
+                child_clone = child.clone()
+                child_clone.parent = res
+        return res
 
 class Atom(MathObj):
-    def __init__(self, role: str, values={KSet.UNKNOWN}, web=[]):
+    def __init__(self, role: str, values: KSet, web=[]):
         super().__init__(role)
         self.values = values
         self.web = web
 
     def _pre_attach(self, parent):
-        assert(type(parent) != Atom), 'You cannot attach to an atom!'
+        assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
 
 class Molecule(MathObj):
     separator = '.'
     propa_rules = []
 
-    def __init__(self, role: str, type_, cons, name=''):
+    def __init__(self, role: str, type_: MathType, cons, name=''):
         super().__init__(role)
         self.type = type_
         self.cons = cons
@@ -100,43 +102,13 @@ class Molecule(MathObj):
         val = str(self.values) if self.values else ''
         return '{}:{}|{}:{}'.format(self.role, self.name, self.type, self.cons)
 
-    def _pre_attach(self, parent):
-        assert(type(parent) != Atom), 'You cannot attach to an atom!'
-
-    def clone(self):
-        """Return a deep copy of this object."""
-        # Make a new math object
-        res = MathObj(role=self.role, values=self.values)
-
-        # Clone all children and nattach to the result
-        # Note that the queue items that reference the children
-        # are already handled by `nattach`
-        for child in self.children:
-            child_clone = child.clone()
-            MathObj.nattach(child_clone, res)
-
-        return res
-
-
-    @staticmethod
-    def kattach(child, parent, overwrite=True):
-        if parent is not None:
-            assert(type(child) == MathObj),
-                'You can only kattach Math Objects!'
-            assert(type(parent) == Molecule),
-                'You can only kattach to Molecules!'
-            try:
-                same = parent.get(child.role)
-                if overwrite:
-                    same.parent = None
-                    child.parent = parent
-            except PathDownError:
-                child.parent = parent
+    def _pre_attach(self, parent: Molecules):
+        assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
 
 class MathType(MyEnum):
-    PL_FORMULA = auto()
-    PL_PROOF = auto()
+    WFF = auto()
+    PROOF = auto()
 
 class MathError(Exception):
     """Base class for exceptions in this module."""

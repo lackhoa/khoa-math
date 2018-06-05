@@ -1,3 +1,9 @@
+# Information About This Document
+This document contains the meaning of every module in the project. I must emphasize
+that this is NOT a docstring, but an extensive "comment" of the code. It says what
+the code does not say, like specifying the structure of classes, what the methods are for,
+what sentinel values mean, etc.
+
 # File `kset.py`:
 This file contains the structure for atoms' values attribute.
 
@@ -19,14 +25,14 @@ However, there are cases when there is no incentive to iterate
 through all the possible values, since it is so huge. Also, In a few cases
 (e.g. real numbers), there might be no way to enumerate all the values.
 
-A KSet whose content has no element (whose boolean value is False) stands
-for a surely "impossibile" value, meaning that there is a logical inconsistency.
+A KSet whose content is an empty iterator represents a surely "impossibile" value,
+meaning that there is a logical inconsistency. Note that even though the False predicate
+means essentially the same thing, there is no way we can check for that.
+
+Another special case is when the iterator only has one element, then we can deduce
+other useful facts. This state is checked by the method `is_singleton(self)`
 
 ### Methods:
-#### `__len__(self)`
-If `user_len` is present, returns that. Otherwise returns the content's built-in
-length if it's supported. If neither are present, raise LengthNotSupportedError.
-
 #### `unify(s1, s2)`
 Binary operation unify the content of two ksets. With the slogan:
 "You can never learn less, you can only learn more". The function tries
@@ -49,10 +55,6 @@ A math object consists of: a role. Roles are means of indexing
 and traversing through the trees.
 
 ### Methods
-#### `__eq__(self, other)`
-This function compares the values of the two nodes if they're atoms
-, or all of their children if they're molecules.
-
 #### `get(self, path)`: Navigate around
 Get a descendant of a this object, referenced by `path`.
 
@@ -70,7 +72,7 @@ Template for recursive tests on trees, written in normal form.
 :param `conj`: True for conjunctive test, False for disjunctive test.
 
 ## Class `Atom` (Inherits `MathObj`)
-An atom consists of: "a" values, which is a kset, and a web.
+An atom consists of: "a" values, which is a kset, and an iterable web.
 
 There is a difference between *values the attribute* and what we
 casually refer to as the value of the atom.
@@ -79,7 +81,7 @@ but it's possible that even though there are infinitely many "possible"
 values, we will not find any. However, if the atom exists and it has a value,
 then the value must be an element of the value attribute.
 
-The web is a list of paths referencing other atoms. Each other atom referenced
+The web is collection of paths referencing other atoms. Each other atom referenced
 is dependent on this atom, and so they can potentially be updated when this atom
 is updated.
 
@@ -101,10 +103,17 @@ like children node of the molecule.
 
 Name: optional, mainly for referencing roots
 
-### Methods
-#### `kattach(child, parent, overwrite)`:
-This static method attaches child to parent, potentially overwriting other nodes.
+# File `wff.py`
+This class specifies the structure of well-formed-formulas, and how to print them.
 
-`:param overwrite:` If set to `True`, if there is already another node
-with the same role, delete that node and attach the child instead.
-If set to False, don't do anything.
+## Enum `WFFCons`
+This enum lists all the constructors of well-formed-formulas.
+
+## Dictionary `wff_components`
+This receives a key of type WFFCons and return a list (which should technically be
+a tuple, but lists are easier to see) of AtomTups (abbr. for "atom tuple")
+and MoleTup (abbr. for "molecule tuple").
+
+Every time you want to expand a molecule representing a well-formed-formula of
+some constructor, consult this dictionary, construct the nodes according to
+the values returned, and attach those to the molecule in question.

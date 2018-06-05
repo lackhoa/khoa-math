@@ -1,4 +1,4 @@
-from misc import AutoName
+from misc import MyEnum
 from khoa_math import *
 from typing import Iterable, Union
 
@@ -6,7 +6,7 @@ from itertools import takewhile
 from enum import auto
 
 
-class KConst(AutoName):
+class KConst(MyEnum):
     UNKNOWN = auto()
 
 
@@ -22,6 +22,8 @@ class KSet:
             return self.user_len
         elif has_attr(self.content, '__len__'):
             return len(self.content)
+        elif self.is_explicit():
+            return sum(1 for _ in self.content)
         else: raise LengthUnsupportedError
 
     def is_known(self): return (self.content != KConst.UKNOWN)
@@ -29,6 +31,14 @@ class KSet:
     def is_explicit(self):
         try: iter(self); return True
         except TypeError: return False
+
+    def is_empty(self):
+        try: return (len(self) == 0)
+        except LengthUnsupportedError: return False
+
+    def is_singleton(self):
+        try: return (len(self) == 1)
+        except LengthUnsupportedError: return False
 
     @staticmethod
     def unify(kset1: KSet, kset2: KSet):

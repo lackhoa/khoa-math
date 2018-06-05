@@ -1,12 +1,12 @@
 from khoa_math import MathType
+from kset import KSet, KConst
 from misc import MyEnum
 
 from enum import auto
 from typing import Dict, Iterable
 
-# This file contains the definitions Well Formed Formulas
 
-class PlCons(MyEnum):
+class WffCons(MyEnum):
     ATOM = auto()
     NEGATION = auto()
     CONJUNCTION = auto()
@@ -15,16 +15,25 @@ class PlCons(MyEnum):
     BICONDITIONAL = auto()
 
 
-def extract(val):
-    if len(val) == 1 and val != {KSet.UNKNOWN}:
-        return list(val)[0]
-    else: return None
+AtomTup = namedtuple('AtomTuple', ['path', 'value'])
+MoleTup = namedtuple('MoleculeTuple', ['path', 'type_'])
+
+left_right_forms = [MoleTup(path='left_f', type_=MathType.WFF),
+                    MoleTup(path='right_f', type_=MathType.WFF)]
+
+wff_components = {}
+wff_components[PlCons.ATOM] = [AtomTup(path='text', value=KConst.UNKNOWN)]
+wff_components[PlCons.NEGATION] = [MoleTup(path='body_f', type_=MathType.WFF)]
+wff_components[PlCons.CONJUNCTION] = left_right_forms
+wff_components[PlCons.DISJUNCTION] = left_right_forms
+wff_components[PlCons.BICONDITIONAL] = left_right_forms
+wff_components[PlCons.CONDITIONAL] = [MoleTup(path='ante', type_=MathType.WFF),
+                                      MoleTup(path='conse', type_=MathType.WFF)]
 
 
 def wff_str(obj):
     """Print out well-formed-formulas"""
     res = ''
-
     if obj.get('type').value == {MathType.PL_FORMULA}:
         cons = obj.get('cons').value
         if cons == {PlCons.ATOM}:
@@ -47,58 +56,3 @@ def wff_str(obj):
 
     return res
 
-
-def wff_rules(child, parent):
-    """
-    Default propagation rules for well-formed formulas.
-    """
-    new_nodes = []
-    role = child['role']
-    val = child['value']
-
-    if role == 'type':
-        # This clause lists all constructors for wff
-        if val == {MathType.PL_FORMULA}:
-            new_nodes += [dict(value=set(list(PlCons)), path='cons')]
-
-    elif role == 'cons':
-        # This clause provides constructors
-        if val == {PlCons.ATOM}:
-            pass  # Atoms have nothing
-
-        elif val == {PlCons.NEGATION}:
-            # Negations have bodies typed formula
-            new_nodes += [dict(value=None, path='body')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='body/type')]
-
-        elif val == {PlCons.CONJUNCTION}:
-            # Conjunction has left and right formulas
-            new_nodes += [dict(value=None, path='left_f')]
-            new_nodes += [dict(value=None, path='right_f')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
-
-        elif val == {PlCons.DISJUNCTION}:
-            # Disjunction has left and right formulas
-            new_nodes += [dict(value=None, path='left_f')]
-            new_nodes += [dict(value=None, path='right_f')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
-
-        elif val == {PlCons.BICONDITIONAL}:
-            # Biconditional has left and right formulas
-            new_nodes += [dict(value=None, path='left_f')]
-            new_nodes += [dict(value=None, path='right_f')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='left_f/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='right_f/type')]
-
-        elif val == {PlCons.CONDITIONAL}:
-            # Conditional has antecedent and consequent
-            new_nodes += [dict(value=None, path='ante')]
-            new_nodes += [dict(value=None, path='conse')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='ante/type')]
-            new_nodes += [dict(value={MathType.PL_FORMULA}, path='conse/type')]
-
-
-
-    return new_nodes
