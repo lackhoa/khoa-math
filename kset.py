@@ -26,6 +26,11 @@ class KSet:
             return sum(1 for _ in self.content)
         else: raise LengthUnsupportedError
 
+    def __getitem__(self, index: str):
+        assert(is_explicit(self)), 'You can\'t subscript an implicit kset!'
+        for i, v in enumerate(self.content):
+            if i == index: return v
+
     def is_known(self): return (self.content != KConst.UKNOWN)
 
     def is_explicit(self):

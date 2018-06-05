@@ -30,9 +30,14 @@ meaning that there is a logical inconsistency. Note that even though the False p
 means essentially the same thing, there is no way we can check for that.
 
 Another special case is when the iterator only has one element, then we can deduce
-other useful facts. This state is checked by the method `is_singleton(self)`
+other useful facts. This state is checked by the method `is_singleton(self)`.
+
 
 ### Methods:
+#### `__len__(self)`
+A prerequisite for this method is that `self` must be explicit. However, users can
+still mess this up since `user_len` is consulted first.
+
 #### `unify(s1, s2)`
 Binary operation unify the content of two ksets. With the slogan:
 "You can never learn less, you can only learn more". The function tries
@@ -112,8 +117,12 @@ This enum lists all the constructors of well-formed-formulas.
 ## Dictionary `wff_components`
 This receives a key of type WFFCons and return a list (which should technically be
 a tuple, but lists are easier to see) of AtomTups (abbr. for "atom tuple")
-and MoleTup (abbr. for "molecule tuple").
+and/or MoleTups (abbr. for "molecule tuple").
 
 Every time you want to expand a molecule representing a well-formed-formula of
 some constructor, consult this dictionary, construct the nodes according to
 the values returned, and attach those to the molecule in question.
+
+## Function `wff_str(form)`
+This functions takes a molecule representing a wff and returns its string
+in usual mathematical notatoin.

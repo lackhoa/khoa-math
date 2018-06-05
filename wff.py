@@ -4,6 +4,7 @@ from misc import MyEnum
 
 from enum import auto
 from typing import Dict, Iterable
+from collections import namedtuple
 
 
 class WffCons(MyEnum):
@@ -31,28 +32,22 @@ wff_components[PlCons.CONDITIONAL] = [MoleTup(path='ante', type_=MathType.WFF),
                                       MoleTup(path='conse', type_=MathType.WFF)]
 
 
-def wff_str(obj):
-    """Print out well-formed-formulas"""
-    res = ''
-    if obj.get('type').value == {MathType.PL_FORMULA}:
-        cons = obj.get('cons').value
-        if cons == {PlCons.ATOM}:
-            res = list(obj.get('text').value)[0]
+def wff_str(form: Molecule) -> str:
+    assert(form.type == MathType.WFF), 'Cannot be printed since this object is not a wff'
+    assert(form.is_complete()), 'Cannot be printed since this object is not complete'
 
-        elif cons == {PlCons.NEGATION}:
-            res = '(~{})'.format( wff_str(obj.get('body')) )
-
-        elif cons == {PlCons.CONJUNCTION}:
-            res = '({}&{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
-
-        elif cons == {PlCons.CONDITIONAL}:
-            res = '({}->{})'.format( wff_str(obj.get('ante')), wff_str(obj.get('conse')) )
-
-        elif cons == {PlCons.DISJUNCTION}:
-            res = '({}v{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
-
-        elif cons == {PlCons.BICONDITIONAL}:
-            res = '({}<->{})'.format( wff_str(obj.get('left_f')), wff_str(obj.get('right_f')) )
-
+    res: str
+    if form.cons == PlCons.ATOM:
+        res = form.get('text').value[0]
+    elif cons == PlCons.NEGATION:
+        res = '(~{})'.format(wff_str(form.get('body')))
+    elif cons == {PlCons.CONJUNCTION}:
+        res = '({}&{})'.format(wff_str(form.get('left_f')), wff_str(form.get('right_f')))
+    elif cons == {PlCons.DISJUNCTION}:
+        res = '({}v{})'.format(wff_str(form.get('left_f')), wff_str(form.get('right_f')))
+    elif cons == {PlCons.BICONDITIONAL}:
+        res = '({}<->{})'.format(wff_str(form.get('left_f')), wff_str(form.get('right_f')))
+    elif cons == {PlCons.CONDITIONAL}:
+        res = '({}->{})'.format(wff_str(form.get('ante')), wff_str(form.get('conse')))
     return res
 
