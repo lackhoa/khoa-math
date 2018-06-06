@@ -57,10 +57,14 @@ class KSet:
         if e1:
             res = self
             if e2:
-                in_other = lambda x: x in other
-                unified_len = min(len(self), len(other))
-                res = KSet(content = takewhile(in_other, self),
-                           user_len = unified_len)
+                if type(self.content) == type(other.content) == set:
+                    # Special treatment for embedded sets
+                    res = KSet(content = self.content & other.content)
+                else:
+                    in_other = lambda x: x in other
+                    unified_len = min(len(self), len(other))
+                    res = KSet(content = takewhile(in_other, self),
+                               user_len = unified_len)
             elif k2:
                 in_other = lambda x: other.content(x)
                 unified_len = min(len(self), len(other)) if other.has_len() else len(self)
