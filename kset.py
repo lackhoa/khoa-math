@@ -26,10 +26,16 @@ class KSet:
             return sum(1 for _ in self.content)
         else: raise LengthUnsupportedError
 
+    def has_len(self) -> bool:
+        try len(self): return True
+        except LengthUnsupportedError: return False
+
     def __getitem__(self, index: str):
-        assert(is_explicit(self)), 'You can\'t subscript an implicit kset!'
         for i, v in enumerate(self.content):
             if i == index: return v
+
+    def __iter__(self):
+        return iter(self.content)
 
     def is_known(self): return (self.content != KConst.UKNOWN)
 
@@ -45,28 +51,36 @@ class KSet:
         try: return (len(self) == 1)
         except LengthUnsupportedError: return False
 
-    @staticmethod
-    def unify(kset1: KSet, kset2: KSet):
+    def __and__(self, other: KSet):
         res = KSet(content = KConst.UNKNOWN)
-        k1, k2, e1, e2 = kset1.is_known(), kset2.is_known(), kset1.is_explicit(), kset2.is_explicit()
+        k1, k2, e1, e2 = self.is_known(), other.is_known(), self.is_explicit(), other.is_explicit()
         if e1:
-            res = e1
+            res = self
             if e2:
-                in_kset2 = lambda x: x in kset2
-                res = KSet(content = takewhile(in_kset2, kset1))
+                in_other = lambda x: x in other
+                unified_len = min(len(self), len(other))
+                res = KSet(content = takewhile(in_other, self),
+                           user_len = unified_len)
             elif k2:
-                in_kset2 = lambda x: kset2.content(x)
-                res = KSet(content = takewhile(in_kset2, kset1))
+                in_other = lambda x: other.content(x)
+                unified_len = min(len(self), len(other)) if other.has_len() else len(self)
+                res = KSet(content = takewhile(in_other, self),
+                           user_len = unified_len)
         elif e2:
-            res = e2
+            res = other
             if k1:
-                in_kset1 = lambda x: kset1.content(x)
-                res = KSet(content = takewhile(in_kset1, kset2))
+                in_self = lambda x: self.content(x)
+                unified_len = min(len(self), len(other)) if self.has_len() else len(other)
+                res = KSet(content = takewhile(in_self, other),
+                           user_len = unified_len)
         elif k1:
-            res = k1
+            res = self
+            unified_len = min(len(self), len(other)) if self.has_len()\
+                          and other.has_len() else None
             if k2:
-                res = KSet(lambda x: k1.content(x) and k2.content(x))
-        elif k2: res = k2
+                res = KSet(content = lambda x: k1.content(x) and k2.content(x),
+                           user_len = unified_len)
+        elif k2: res = other
         return res
 
 class KSetError(Exception):
@@ -74,10 +88,5 @@ class KSetError(Exception):
 
 class LengthUnsupportedError(KSetError):
     def __init__(self, ks: KSet, msg='Length cannot be calculated.': str):
-        self.ks = ks
-        self.message = msg
-
-class ContentNotIterableError(KSetError):
-    def __init__(self, ks: KSet, msg='Content cannot be iterated.': str):
         self.ks = ks
         self.message = msg

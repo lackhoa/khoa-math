@@ -16,9 +16,11 @@ There are three levels of clarity information a kset can have, expressed in `con
 2. known: `content` is not an iterable, but a predicate to test membership, and finally
 3. unknown: `content` equals to KSet.UNKNOWN.
 
-`user_len` is a user-defined integer on the object, mainly
-used for heuristic problem solving, not to reflect the actual length of
-its content.
+`user_len` is a user-defined length of the object, mainly used for heuristic
+problem solving and does not necessarily reflect the actual length of its
+content. This attribute has another usage when the content is explicit and we
+know exactly how many items will be generated, but the len() method is not
+supported. We usually want to assign the upper-bound value for length.
 
 More on `KConst.UNKNOWN`: Technically speaking, there is no such thing as
 "unknown values".  However, there are cases when there is no incentive to
@@ -35,17 +37,22 @@ other useful facts. This state is checked by the method `is_singleton(self)`.
 
 ### Methods:
 #### `__len__(self)`
-A prerequisite for this method is that `self` must be explicit. However, users can
-still mess this up since `user_len` is consulted first.
+A prerequisite for this method is that `self` must be explicit, otherwise it
+throws a LengthUnsupportedError. However, users can still mess this up since
+`user_len` is consulted first.
 
-#### `unify(s1, s2)`
-Binary operation unify the content of two ksets. With the slogan:
-"You can never learn less, you can only learn more". The function tries
-to gather as much knowledge as it can.
+#### `__and__(self, other)`
+This operation is called "unification", a symmetric binary operation that
+unifies the content of two ksets. With the slogan: "You can never learn less,
+you can only learn more". The function tries to gather as much knowledge as it
+can.
 
-The result can be any of the 3 possible clarity levels, explicit results are favored.
+The result can be any of the three possible clarity levels, explicit results
+are favored. Specifically, unifying an explicit kset with anything returns an
+explicit kset, and only by unifying two unknown ksets can we get back an
+unknown kset.
 
-I cannot decide what to do with the resulting len() at the moment, let us see.
+The `user_len` of the result is maximized among the two ksets.
 
 # File `khoa_math.py`:
 This file contains the basic constructs of mathematics.
