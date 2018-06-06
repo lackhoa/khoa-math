@@ -3,8 +3,8 @@ from kset import KSet, unify, LengthUnsupportedError
 
 from abc import ABC
 from enum import Enum, auto
-from typing import List, Set, Callable, Dict
-from anytree import NodeMixin, RenderTree, find_by_attr, find
+from typing import List, Set, Callable, Dict, Union
+from anytree import NodeMixin
 
 
 class MathObj(ABC):
@@ -92,17 +92,18 @@ class Molecule(MathObj):
     separator = '.'
     propa_rules = []
 
-    def __init__(self, role: str, type_: MathType, cons, name=''):
+    def __init__(self, role: str, type_: MathType, name=''):
         super().__init__(role)
         self.type = type_
-        self.cons = cons
         self.name = name
+        self.children.append(Atom(role='cons', values=KElem.UNKNOWN))
 
     def __repr__(self):
         val = str(self.values) if self.values else ''
-        return '{}:{}|{}:{}'.format(self.role, self.name, self.type, self.cons)
+        return '{}:{}|{}:{}'.format(self.role, self.name, self.type,
+                self.get('cons').values)
 
-    def _pre_attach(self, parent: Molecules):
+    def _pre_attach(self, parent: Molecule):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
 
@@ -110,17 +111,17 @@ class MathType(MyEnum):
     WFF = auto()
     PROOF = auto()
 
-class MathError(Exception):
+class PathError(Exception):
     """Base class for exceptions in this module."""
     pass
 
-class PathUpError(MathError):
+class PathUpError(PathError):
     def __init__(self, ref, path, message='There is no way up.'):
         self.message = message
         self.ref = ref
         self.path = path
 
-class PathDownError(MathError):
+class PathDownError(PathError):
     def __init__(self, ref, path, message='There is no way down.'):
         self.message = message
         self.ref = ref

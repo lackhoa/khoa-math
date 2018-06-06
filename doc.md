@@ -97,18 +97,34 @@ While the `parent` attribute of an atom could be None, it's rare to see
 because it means that this atom is the only in its tree.
 
 ## Class `Molecule` (Inherits `MathObj`)
-A molecule consists of: a type, a constructor, children, and a name.
+A molecule consists of: a type, children, and a name.
 
-Type & Constructor: These are mandatory attributes for molecules.
-Types must be elements of the MathType enum, while constructors should be
-enum specified in the module specifying the type.
+Type: These are mandatory attributes for molecules. Types must be elements of
+the MathType enum
+
+Constructor (`cons`): It is actually one of the molecule's children. Even though
+it is also a special attribute like `type`, a lot of time we want a constructor
+to be unknown. Why is `cons` special? Because we can look up the values in the
+type module.
 
 Children: can be atoms or other molecules. In program context, they're exactly
 like children node of the molecule.
 
 Name: optional, mainly for referencing roots
 
+# File `k_math_more.py`
+
+This builds on top of `khoa_math.py`, providing more concepts to interface user
+code.
+
+## Class `AtomData` and `MoleData`
+
+These dataclasses represents math objects that are yet to be attached to the
+tree. They are useful for interfacing with type modules' component
+dictionaries.
+
 # Type Modules Concepts
+
 For each type in MathType, we have a type module consisting of:
 
 1. A "constructor enum" (named `<type>Cons`) listing all constructors for the
