@@ -19,14 +19,14 @@ class WffCons(MyEnum):
 left_right_forms = [MoleTup(path='left_f', type_=MathType.WFF),
                     MoleTup(path='right_f', type_=MathType.WFF)]
 
-wff_components = {}
-wff_components[PlCons.ATOM] = [AtomTup(path='text', value=KConst.UNKNOWN)]
-wff_components[PlCons.NEGATION] = [MoleTup(path='body_f', type_=MathType.WFF)]
-wff_components[PlCons.CONJUNCTION] = left_right_forms
-wff_components[PlCons.DISJUNCTION] = left_right_forms
-wff_components[PlCons.BICONDITIONAL] = left_right_forms
-wff_components[PlCons.CONDITIONAL] = [MoleTup(path='ante', type_=MathType.WFF),
-                                      MoleTup(path='conse', type_=MathType.WFF)]
+wff_comp_dic = {}
+wff_comp_dic[PlCons.ATOM] = [AtomTup(path='text', value=KConst.UNKNOWN)]
+wff_comp_dic[PlCons.NEGATION] = [MoleTup(path='body_f', type_=MathType.WFF)]
+wff_comp_dic[PlCons.CONJUNCTION] = left_right_forms
+wff_comp_dic[PlCons.DISJUNCTION] = left_right_forms
+wff_comp_dic[PlCons.BICONDITIONAL] = left_right_forms
+wff_comp_dic[PlCons.CONDITIONAL] = [MoleTup(path='ante', type_=MathType.WFF),
+                                    MoleTup(path='conse', type_=MathType.WFF)]
 
 
 def wff_str(form: Molecule) -> str:

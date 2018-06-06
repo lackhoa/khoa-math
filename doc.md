@@ -1,8 +1,8 @@
 # Information About This Document
-This document contains the meaning of every module in the project. I must emphasize
-that this is NOT a docstring, but an extensive "comment" of the code. It says what
-the code does not say, like specifying the structure of classes, what the methods are for,
-what sentinel values mean, etc.
+This document contains the meaning of every module in the project. I must
+emphasize that this is NOT a docstring, but an extensive "comment" of the code.
+It says what the code does not say, like specifying the structure of classes,
+what the methods are for, what sentinel values mean, etc.
 
 # File `kset.py`:
 This file contains the structure for atoms' values attribute.
@@ -20,10 +20,10 @@ There are three levels of clarity information a kset can have, expressed in `con
 used for heuristic problem solving, not to reflect the actual length of
 its content.
 
-More on `KConst.UNKNOWN`: Technically speaking, there is no such thing as "unknown values".
-However, there are cases when there is no incentive to iterate
-through all the possible values, since it is so huge. Also, In a few cases
-(e.g. real numbers), there might be no way to enumerate all the values.
+More on `KConst.UNKNOWN`: Technically speaking, there is no such thing as
+"unknown values".  However, there are cases when there is no incentive to
+iterate through all the possible values, since it is so huge. Also, In a few
+cases (e.g. real numbers), there might be no way to enumerate all the values.
 
 A KSet whose content is an empty iterator represents a surely "impossibile" value,
 meaning that there is a logical inconsistency. Note that even though the False predicate
@@ -109,29 +109,35 @@ like children node of the molecule.
 Name: optional, mainly for referencing roots
 
 # Type Modules Concepts
-Type modules are modules that consists of:
+For each type in MathType, we have a type module consisting of:
 
-1. A "constructor enum" (called `Cons`) listing all constructors for the type, and
+1. A "constructor enum" (named `<type>Cons`) listing all constructors for the
+   type, and
 
-2. An "expansion dictionary" (called `exp_dic`) mapping constructors to
-corresponding lists of AtomTups and MoleTups, which can be thought of as
-"template" for actual atoms and molecules, but much more simplistic.
+2. An "component dictionary" (named `<type>comp_dic`) mapping the type's
+   constructors to corresponding lists of components as AtomTups and MoleTups,
+   which can be thought of as "template" for actual atoms/molecules to be
+   attached.
 
-3. A to-string function (`to_str(mol)`) representing Molecules in usual
-mathematical notatoin.
+3. A to-string function (named `<type>to_str(mol)`) representing Molecules in
+   usual mathematical notatoin.
 
-Every time you want to expand a molecule representing a well-formed-formula of
-this type, consult the expansion dictionary, construct the nodes according to
-the values returned, and attach those to the molecule in question.
+Every time you want to expand a molecule of this type, determine a constructor
+in the constructor enum, consult the component dictionary for this constructor,
+construct the nodes according to the values returned, and attach those to the
+molecule in question. Since this procedure is recursive, you can continue to
+expand the new nodes.
 
-# Type Module Index
-How do we know which type belong to which module? There is a file called `type_index.py`
-containing dictionaries mapping types to their corresponding constructor enums,
-expansion dictionaries, and to-string functions.
+# File `type_mgr.py` (The Type Manager)
 
-# File `wff.py`
-This file is a type module specifying the structure of well-formed-formulas
-and how to print them. The constructor enum is named `WffCons`, and the expansion
-dictionary is named `wff_components`.
+For ease of typing management, there is a file called `type_mgr.py` containing
+a dictionary `cons_dic` mapping types to their listings of constructors,
+`comp_dic` maps types to their component dictionaries, and `math_str` function,
+which will return a mathematical representation of the molecule passed in,
+reguardless of its type.
 
-## Function `wff_str(form)`
+Of course, this file is dependent on all type modules involved.
+
+# Listing Of Type Modules:
+
+* `wff.py` specifies well-formed formulas
