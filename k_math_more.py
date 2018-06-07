@@ -1,6 +1,6 @@
 from typing import Union, List, NamedTuple
 from khoa_math import MathObj, MathType, Atom, Molecule
-from kset import KSet
+from kset import KSet, STR
 
 
 class AtomData(NamedTuple):
@@ -12,6 +12,7 @@ class AtomData(NamedTuple):
 class MoleData(NamedTuple):
     path: str
     type_: MathType
+    cons: KSet = STR
 
 
 def get_role(path: str) -> str:
@@ -27,4 +28,4 @@ def math_obj_from_data(t: Union[AtomData, MoleData]) -> MathObj:
     if type(t) == AtomData:
         return Atom(role=get_role(t.path), value=t.value, web=t.web)
     elif type(t) == MoleData:
-        return Molecule(role=get_role(t.path), type_=t.type_)
+        return Molecule(role=get_role(t.path), type_=t.type_, cons=t.cons)

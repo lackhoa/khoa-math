@@ -13,17 +13,17 @@ class KSet:
         if user_len is not None: self.user_len = user_len
 
     def __len__(self) -> int:
-        if has_attr(self, 'user_len'):
+        if hasattr(self, 'user_len'):
             return self.user_len
-        elif has_attr(self.content, '__len__'):
+        elif hasattr(self.content, '__len__'):
             return len(self.content)
         elif self.is_explicit():
             return sum(1 for _ in self.content)
-        else: raise LengthUnsupportedError
+        else: raise LengthUnsupportedError(self)
 
     def has_len(self) -> bool:
         try: len(self); return True
-        except LengthUnsupportedError: return False
+        except LengthUnsupportedError(self): return False
 
     def __getitem__(self, index: int):
         for i, v in enumerate(self.content):
@@ -80,9 +80,10 @@ class KSet:
         return res
 
 
-class KConst(Enum):
-    ANY = lambda x: True
-    NONE = lambda x: False
+# Some handy ksets to use
+ANY = KSet(content = lambda x: True)
+NONE = KSet(content = lambda x: False)
+STR = KSet(content = lambda x: type(x) is str)
 
 
 class KSetError(Exception):

@@ -13,8 +13,14 @@ def k_enumerate(root: MathObj):
                 yield Atom(role= root.role, values = KSet(x))
         else:
             print('Result cannot be enumerated!')
+    elif type(root) == Molecule:
+        for i, x in enumerate(list_cons(root.type)):
+            res = Molecule(role='root', type_=root.type, cons=x)
+            res.name = str(i)
+            yield res
 
 
-res = k_enumerate(Atom(role = 'root', values = KSet(content = lambda x: x%2)))
+root = Molecule(role = 'root', type_ = MathType.WFF)
+res = k_enumerate(root)
 for t in res:
     print(RenderTree(t))

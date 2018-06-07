@@ -1,5 +1,5 @@
 from misc import MyEnum
-from kset import KSet, LengthUnsupportedError
+from kset import KSet, STR, LengthUnsupportedError
 
 from abc import ABC
 from enum import Enum, auto
@@ -11,7 +11,7 @@ class MathObj(ABC):
     def __init__(self, role):
         self.role = role
 
-    def get(self, path: str):
+    def __getitem__(self, path: str):
         res = self
         if path:
             for n in path.split('/'):
@@ -43,7 +43,7 @@ class MathObj(ABC):
         else:  # They're both molecules
             for child in self.children:
                 try:
-                    same = other.get(child.role)
+                    same = other[child.role]
                     if child != same: res = False; break
                 except PathDownError: res = False; break
         return res
@@ -100,16 +100,16 @@ class Molecule(MathObj):
     separator = '.'
     propa_rules = []
 
-    def __init__(self, role: str, type_: 'MathType', name=''):
+    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR):
         super().__init__(role)
         self.type = type_
-        self.name = name
-        self.children.append(Atom(role='cons', values=KElem.UNKNOWN))
+        self.cons = cons
+        self.children = []
 
     def __repr__(self) -> str:
-        val = str(self.values) if self.values else ''
-        return '{}:{}|{}:{}'.format(self.role, self.name, self.type,
-                self.get('cons').values)
+        name = self.name if hasattr(self, 'name') else ''
+        return '{}:{}|{}:{}'.format(self.role, name, self.type,
+                self.cons)
 
     def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
