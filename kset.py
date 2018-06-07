@@ -2,16 +2,12 @@ from misc import MyEnum
 from typing import Iterable, Union, Callable, Optional
 
 from itertools import takewhile
-from enum import auto
-
-
-class KConst(MyEnum):
-    UNKNOWN = auto()
+from enum import Enum
 
 
 class KSet:
     def __init__(self,
-                 content: Union[Iterable, Callable[..., bool], KConst],
+                 content: Union[Iterable, Callable[..., bool]],
                  user_len: Optional[int] = None):
         self.content = content
         if user_len is not None: self.user_len = user_len
@@ -36,8 +32,6 @@ class KSet:
     def __iter__(self):
         return iter(self.content)
 
-    def is_known(self): return (self.content != KConst.UKNOWN)
-
     def is_explicit(self):
         try: iter(self); return True
         except TypeError: return False
@@ -51,40 +45,45 @@ class KSet:
         except LengthUnsupportedError: return False
 
     def __and__(self, other: 'KSet'):
-        res = KSet(content = KConst.UNKNOWN)
-        k1, k2, e1, e2 = self.is_known(), other.is_known(), self.is_explicit(), other.is_explicit()
+        res: 'KSet'
+        e1, e2 = self.is_explicit(), other.is_explicit()
         if e1:
-            res = self
             if e2:
+                # Both are explicit
                 if type(self.content) == type(other.content) == set:
-                    # Special treatment for embedded sets
+                    # Special treatment for python sets as content
                     res = KSet(content = self.content & other.content)
                 else:
                     in_other = lambda x: x in other
                     unified_len = min(len(self), len(other))
                     res = KSet(content = takewhile(in_other, self),
                                user_len = unified_len)
-            elif k2:
+            else:
+                # Only self is explicit
                 in_other = lambda x: other.content(x)
                 unified_len = min(len(self), len(other)) if other.has_len() else len(self)
                 res = KSet(content = takewhile(in_other, self),
                            user_len = unified_len)
         elif e2:
-            res = other
-            if k1:
-                in_self = lambda x: self.content(x)
-                unified_len = min(len(self), len(other)) if self.has_len() else len(other)
-                res = KSet(content = takewhile(in_self, other),
-                           user_len = unified_len)
-        elif k1:
-            res = self
-            unified_len = min(len(self), len(other)) if self.has_len()\
-                          and other.has_len() else None
-            if k2:
-                res = KSet(content = lambda x: k1.content(x) and k2.content(x),
-                           user_len = unified_len)
-        elif k2: res = other
+            # Only other is explicit
+            in_self = lambda x: self.content(x)
+            unified_len = min(len(self), len(other)) if self.has_len() else len(other)
+            res = KSet(content = takewhile(in_self, other),
+                       user_len = unified_len)
+        else:
+            # None are explicit
+            unified_len = min(len(self), len(other))\
+                          if (self.has_len() and other.has_len())\
+                          else None
+            res = KSet(content = lambda x: self.content(x) and other.content(x),
+                       user_len = unified_len)
         return res
+
+
+class KConst(Enum):
+    ANY = lambda x: True
+    NONE = lambda x: False
+
 
 class KSetError(Exception):
     pass
@@ -93,3 +92,4 @@ class LengthUnsupportedError(KSetError):
     def __init__(self, ks: KSet, msg: str = 'Length cannot be calculated.'):
         self.ks = ks
         self.message = msg
+

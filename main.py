@@ -8,10 +8,13 @@ from anytree import PreOrderIter, RenderTree
 
 def k_enumerate(root: MathObj):
     if type(root) == Atom:
-        for x in root.values:
-            yield Atom(role= root.role, values = KSet(x))
+        if root.values.is_explicit():
+            for x in root.values:
+                yield Atom(role= root.role, values = KSet(x))
+        else:
+            print('Result cannot be enumerated!')
 
 
-res = k_enumerate(Atom(role = 'root', values = KSet(content = {1, 2, 3})))
+res = k_enumerate(Atom(role = 'root', values = KSet(content = lambda x: x%2)))
 for t in res:
     print(RenderTree(t))

@@ -1,5 +1,5 @@
 from khoa_math import MathType
-from kset import KSet, KConst
+from kset import KSet
 from misc import MyEnum
 from k_math_more import AtomData, MoleData
 
@@ -11,7 +11,7 @@ left_right_forms = [MoleData(path='left_f', type_=MathType.WFF),
                     MoleData(path='right_f', type_=MathType.WFF)]
 
 wff_cons_dic = {}
-wff_cons_dic['ATOM'] = [AtomData(path='text', value=KConst.UNKNOWN)]
+wff_cons_dic['ATOM'] = [AtomData(path='text', value=lambda x: type(x) is str)]
 wff_cons_dic['NEGATION'] = [MoleData(path='body_f', type_=MathType.WFF)]
 wff_cons_dic['CONJUNCTION'] = left_right_forms
 wff_cons_dic['DISJUNCTION'] = left_right_forms
