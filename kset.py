@@ -12,6 +12,9 @@ class KSet:
         self.content = content
         if user_len is not None: self.user_len = user_len
 
+    def __repr__(self) -> str:
+        return str(self.content)
+
     def __len__(self) -> int:
         if hasattr(self, 'user_len'):
             return self.user_len

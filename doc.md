@@ -73,8 +73,8 @@ Get a descendant of a this object, referenced by `path`.
 Paths are ultimately a series of movements, separated by forward slashes
 (in UNIX fashion, but use roles instead of directory names).
 
-#### `path(self)`
-return the path which takes the root to this node by `get`.
+#### `path_from(self, origin)`
+return the path which takes the origin to this node by `get`.
 
 #### `_recur_test(self, func, conj)`
 Template for recursive tests on trees, written in normal form.

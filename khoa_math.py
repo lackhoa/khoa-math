@@ -7,7 +7,7 @@ from typing import List, Iterable, Set, Callable, Dict, Union
 from anytree import NodeMixin
 
 
-class MathObj(ABC):
+class MathObj(ABC, NodeMixin):
     def __init__(self, role):
         self.role = role
 
@@ -24,7 +24,7 @@ class MathObj(ABC):
                     else: raise PathDownError(self, path)
         return res
 
-    def path(self, origin) -> str:
+    def path_from(self, origin) -> str:
         res = ''
         node = self
         while node != origin:
@@ -35,17 +35,20 @@ class MathObj(ABC):
         if res: res = res[1:]   # Get rid of the first slash if it's there
         return res
 
-    def __eq__(self, other) -> bool:
+    def _equiv(self, other) -> bool:
+        """Warning: placeholder code"""
         res = True
         if type(self) != type(other): res = False
         elif type(self) == Atom:
             res = (self.values == other.values)
-        else:  # They're both molecules
-            for child in self.children:
-                try:
-                    same = other[child.role]
-                    if child != same: res = False; break
-                except PathDownError: res = False; break
+        else:
+            # They're both molecules
+            if self.cons == other.cons:
+                for child in self.children:
+                    try:
+                        same = other[child.role]
+                        if not child._equiv(same): res = False; break
+                    except PathDownError: res = False; break
         return res
 
     def _recur_test(func: Callable[..., bool], conj = True) -> bool:
@@ -74,8 +77,7 @@ class MathObj(ABC):
             res = Atom(role=self.role, values=self.values, web=self.web)
         elif type(self) == Molecule:
             for child in self.children:
-                child_clone = child.clone()
-                child_clone.parent = res
+                res.parent += [child.clone()]
         return res
 
 class Atom(MathObj):
@@ -94,6 +96,9 @@ class Atom(MathObj):
     def children(self):
         """No children allowed!"""
         return []
+    @children.setter
+    def children(self, value):
+        raise Exception('Are you nuts? An atom can\'t reproduce!')
 
 
 class Molecule(MathObj):
@@ -104,7 +109,6 @@ class Molecule(MathObj):
         super().__init__(role)
         self.type = type_
         self.cons = cons
-        self.children = []
 
     def __repr__(self) -> str:
         name = self.name if hasattr(self, 'name') else ''

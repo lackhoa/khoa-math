@@ -1,10 +1,17 @@
-from khoa_math import MathType
-import wff
+from khoa_math import MathObj, MathType, Atom, Molecule
+from kset import KSet, STR
+
+from typing import List, Union, NamedTuple
 
 
-cons_dic = {}
-cons_dic[MathType.WFF] = wff.wff_cons_dic
+###Stuff to interface with the typing modules###
+class AtomData(NamedTuple):
+    path: str
+    values: KSet
+    web: List = []
 
 
-def list_cons(t: MathType):
-    return cons_dic[t].keys()
+class MoleData(NamedTuple):
+    path: str
+    type_: MathType
+    cons: KSet = STR
