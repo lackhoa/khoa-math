@@ -1,9 +1,9 @@
 from misc import MyEnum
-from kset import KSet, unify, LengthUnsupportedError
+from kset import KSet, LengthUnsupportedError
 
 from abc import ABC
 from enum import Enum, auto
-from typing import List, Set, Callable, Dict, Union
+from typing import List, Iterable, Set, Callable, Dict, Union
 from anytree import NodeMixin
 
 
@@ -79,7 +79,7 @@ class MathObj(ABC):
         return res
 
 class Atom(MathObj):
-    def __init__(self, role: str, values: KSet, web=[]):
+    def __init__(self, role: str, values: KSet, web: Iterable[str] = []):
         super().__init__(role)
         self.values = values
         self.web = web
@@ -87,23 +87,31 @@ class Atom(MathObj):
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
+    def __repr__(self) -> str:
+        return str(self.values.content)
+
+    @property
+    def children(self):
+        """No children allowed!"""
+        return []
+
 
 class Molecule(MathObj):
     separator = '.'
     propa_rules = []
 
-    def __init__(self, role: str, type_: MathType, name=''):
+    def __init__(self, role: str, type_: 'MathType', name=''):
         super().__init__(role)
         self.type = type_
         self.name = name
         self.children.append(Atom(role='cons', values=KElem.UNKNOWN))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         val = str(self.values) if self.values else ''
         return '{}:{}|{}:{}'.format(self.role, self.name, self.type,
                 self.get('cons').values)
 
-    def _pre_attach(self, parent: Molecule):
+    def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
 

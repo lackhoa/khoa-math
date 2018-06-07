@@ -1,6 +1,5 @@
 from misc import MyEnum
-from khoa_math import *
-from typing import Iterable, Union
+from typing import Iterable, Union, Callable, Optional
 
 from itertools import takewhile
 from enum import auto
@@ -13,7 +12,7 @@ class KConst(MyEnum):
 class KSet:
     def __init__(self,
                  content: Union[Iterable, Callable[..., bool], KConst],
-                 user_len=None: Union[int, NoneType]):
+                 user_len: Optional[int] = None):
         self.content = content
         if user_len is not None: self.user_len = user_len
 
@@ -27,10 +26,10 @@ class KSet:
         else: raise LengthUnsupportedError
 
     def has_len(self) -> bool:
-        try len(self): return True
+        try: len(self); return True
         except LengthUnsupportedError: return False
 
-    def __getitem__(self, index: str):
+    def __getitem__(self, index: int):
         for i, v in enumerate(self.content):
             if i == index: return v
 
@@ -51,7 +50,7 @@ class KSet:
         try: return (len(self) == 1)
         except LengthUnsupportedError: return False
 
-    def __and__(self, other: KSet):
+    def __and__(self, other: 'KSet'):
         res = KSet(content = KConst.UNKNOWN)
         k1, k2, e1, e2 = self.is_known(), other.is_known(), self.is_explicit(), other.is_explicit()
         if e1:
@@ -91,6 +90,6 @@ class KSetError(Exception):
     pass
 
 class LengthUnsupportedError(KSetError):
-    def __init__(self, ks: KSet, msg='Length cannot be calculated.': str):
+    def __init__(self, ks: KSet, msg: str = 'Length cannot be calculated.'):
         self.ks = ks
         self.message = msg

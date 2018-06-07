@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from collections import namedtupple
 
 # Awesome class to name Enums
 class MyEnum(Enum):
