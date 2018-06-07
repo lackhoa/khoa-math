@@ -22,11 +22,11 @@ class KSet:
             return len(self.content)
         elif self.is_explicit():
             return sum(1 for _ in self.content)
-        else: raise LengthUnsupportedError(self)
+        else: raise LengthUnsupportedError(ks=self)
 
     def has_len(self) -> bool:
         try: len(self); return True
-        except LengthUnsupportedError(self): return False
+        except LengthUnsupportedError: return False
 
     def __getitem__(self, index: int):
         for i, v in enumerate(self.content):
@@ -96,4 +96,3 @@ class LengthUnsupportedError(KSetError):
     def __init__(self, ks: KSet, msg: str = 'Length cannot be calculated.'):
         self.ks = ks
         self.message = msg
-

@@ -112,7 +112,7 @@ class Molecule(MathObj):
 
     def __repr__(self) -> str:
         name = self.name if hasattr(self, 'name') else ''
-        return '{}:{}|{}:{}'.format(self.role, name, self.type,
+        return 'r={}:n={}|t={}:c={}'.format(self.role, name, self.type,
                 self.cons)
 
     def _pre_attach(self, parent: 'Molecule'):

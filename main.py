@@ -3,6 +3,7 @@ from misc import *
 from khoa_math import *
 from type_mgr import *
 from type_data import *
+from wff import *
 
 from anytree import PreOrderIter, RenderTree
 
@@ -26,7 +27,7 @@ def math_obj_from_data(t: Union[AtomData, MoleData]) -> MathObj:
 
 
 def list_cons(t: MathType) -> List:
-    return cons_dic[t].keys()
+    return set(cons_dic[t].keys())
 
 
 def get_args(type_: MathType, cons: str) -> List[Union['AtomData', 'MoleData']]:
@@ -34,24 +35,35 @@ def get_args(type_: MathType, cons: str) -> List[Union['AtomData', 'MoleData']]:
     return cons_dic[type_][cons]
 
 
-def k_enumerate(root: MathObj):
+def k_enumerate(root: MathObj, max_dep: int):
+    if max_dep == 0: raise StopIteration
     if type(root) == Atom:
         if root.values.is_explicit():
             for x in root.values:
                 yield Atom(role= root.role, values = KSet(x))
         else:
             print('Result cannot be enumerated!')
+            raise StopIteration
+
     elif type(root) == Molecule:
-        for i, x in enumerate(list_cons(root.type)):
-            res = Molecule(role='root', type_=root.type, cons=KSet([x]))
-            res.name = str(i)
-            # Add its arguments since we now know the constructor
-            for arg in get_args(type_=res.type, cons=res.cons[0]):
-                math_obj_from_data(arg).parent = res
-            yield res
+        if not root.cons.is_explicit():
+            # Providing constructors if not yet available:
+            root.cons = root.cons & KSet(list_cons(root.type))
+        # Try out all the constructors
+        for cons_ in root.cons:
+            res = Molecule(role=root.role, type_=root.type, cons=KSet({cons_}))
+            # Attach arguments according to the constructor
+            for arg in get_args(type_=res.type, cons=cons_):
+                arg_node = math_obj_from_data(arg)
+                for k in k_enumerate(arg_node, max_dep-1):
+                    k.parent = res
+                    yield res
 
+wff_test_cons_dic = wff_cons_dic
+wff_test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P'}))]
+cons_dic['WFF_TEST'] = wff_test_cons_dic
 
-root = Molecule(role = 'root', type_ = MathType.WFF)
-res = k_enumerate(root)
-for t in res:
+start = Molecule(role='root', type_ = 'WFF_TEST')
+cnt = 0
+for t in k_enumerate(start, 2):
     print(RenderTree(t))
