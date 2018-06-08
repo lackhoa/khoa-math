@@ -5,6 +5,21 @@ let s:cpo_save=&cpo
 set cpo&vim
 nnoremap <silent> <NL> :set pastem`o``:set nopaste
 nnoremap <silent>  :set pastem`O``:set nopaste
+map  :noh
+map  :noh
+nnoremap  W gT
+nnoremap  w gt
+nnoremap  9 9gt
+nnoremap  8 8gt
+nnoremap  7 7gt
+nnoremap  6 6gt
+nnoremap  5 5gt
+nnoremap  4 4gt
+nnoremap  3 3gt
+nnoremap  2 2gt
+nnoremap  1 1gt
+nnoremap  \ :tabonly
+nnoremap  t :tabnew
 nnoremap ; :
 nnoremap <silent> N N:call HLNext(0.2)
 xmap S <Plug>VSurround
@@ -33,6 +48,7 @@ nmap ySs <Plug>YSsurround
 nmap yss <Plug>Yssurround
 nmap yS <Plug>YSurround
 nmap ys <Plug>Ysurround
+nnoremap <F1> :buffers:buffer 
 vnoremap <silent> <Plug>NetrwBrowseXVis :call netrw#BrowseXVis()
 nnoremap <silent> <Plug>NetrwBrowseX :call netrw#BrowseX(expand((exists("g:netrw_gx")? g:netrw_gx : '<cfile>')),netrw#CheckIfRemote())
 nmap <silent> <Plug>CommentaryUndo :echoerr "Change your <Plug>CommentaryUndo map to <Plug>Commentary<Plug>Commentary"
@@ -50,7 +66,6 @@ set backspace=indent,eol,start
 set clipboard=unnamedplus
 set expandtab
 set fileencodings=ucs-bom,utf-8,default,latin1
-set formatoptions=cqnt
 set gdefault
 set helplang=en
 set hlsearch
@@ -65,7 +80,7 @@ set shiftwidth=4
 set softtabstop=4
 set suffixes=.bak,~,.swp,.o,.info,.aux,.log,.dvi,.bbl,.blg,.brf,.cb,.ind,.idx,.ilg,.inx,.out,.toc
 set tabstop=4
-set textwidth=79
+set textwidth=80
 set wildignore=*.pyc
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
@@ -79,11 +94,11 @@ badd +1 type_mgr.py
 badd +1 doc.md
 badd +1 wff.py
 badd +118 test.py
-badd +0 main.py
-badd +0 khoa_math.py
-badd +0 misc.py
-badd +0 k_math_more.py
-badd +0 kset.py
+badd +1 main.py
+badd +1 khoa_math.py
+badd +1 misc.py
+badd +1 k_math_more.py
+badd +1 kset.py
 argglobal
 silent! argdel *
 argadd type_mgr.py
@@ -147,7 +162,7 @@ setlocal foldminlines=1
 setlocal foldnestmax=20
 setlocal foldtext=foldtext()
 setlocal formatexpr=
-setlocal formatoptions=cqnt
+setlocal formatoptions=tcq
 setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
 setlocal grepprg=
 setlocal iminsert=2
@@ -178,8 +193,7 @@ setlocal nopreserveindent
 setlocal nopreviewwindow
 setlocal quoteescape=\\
 setlocal noreadonly
-set relativenumber
-setlocal relativenumber
+setlocal norelativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
@@ -201,7 +215,7 @@ endif
 setlocal tabstop=4
 setlocal tagcase=
 setlocal tags=
-setlocal textwidth=79
+setlocal textwidth=80
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
@@ -209,24 +223,20 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-11
+22
 normal! zo
-14
+39
 normal! zo
-15
+41
 normal! zo
-16
+42
 normal! zo
-24
-normal! zo
-25
-normal! zo
-let s:l = 20 - ((12 * winheight(0) + 13) / 26)
+let s:l = 42 - ((24 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-20
-normal! 017|
+42
+normal! 019|
 tabedit kset.py
 set splitbelow splitright
 set nosplitbelow
@@ -345,51 +355,31 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-14
+9
 normal! zo
-55
+51
+normal! zo
+54
+normal! zo
+56
 normal! zo
 58
 normal! zo
 60
 normal! zo
-62
-normal! zo
-64
-normal! zo
-67
-normal! zo
-67
-normal! zo
-71
+66
 normal! zo
 72
 normal! zo
-72
-normal! zo
-74
-normal! zo
-76
+78
 normal! zo
 79
 normal! zo
 79
 normal! zo
-81
+79
 normal! zo
-83
-normal! zo
-83
-normal! zo
-83
-normal! zo
-85
-normal! zo
-86
-normal! zo
-86
-normal! zo
-let s:l = 62 - ((11 * winheight(0) + 14) / 28)
+let s:l = 62 - ((10 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -513,29 +503,23 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-29
+21
 normal! zo
-29
+21
 normal! zo
-29
+21
 normal! zo
-29
+21
 normal! zo
-29
+21
 normal! zo
-29
+21
 normal! zo
-29
-normal! zo
-29
-normal! zo
-33
-normal! zo
-let s:l = 36 - ((27 * winheight(0) + 14) / 28)
+let s:l = 21 - ((10 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-36
+21
 normal! 014|
 tabedit khoa_math.py
 set splitbelow splitright
@@ -657,150 +641,14 @@ setlocal wrap
 setlocal wrapmargin=0
 11
 normal! zo
-71
+84
 normal! zo
-82
-normal! zo
-92
-normal! zo
-102
-normal! zo
-104
-normal! zo
-125
-normal! zo
-let s:l = 84 - ((27 * winheight(0) + 14) / 28)
+let s:l = 84 - ((24 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
 84
 normal! 014|
-tabedit k_math_more.py
-set splitbelow splitright
-set nosplitbelow
-set nosplitright
-wincmd t
-set winheight=1 winwidth=1
-argglobal
-edit k_math_more.py
-setlocal keymap=
-setlocal noarabic
-setlocal autoindent
-setlocal backupcopy=
-setlocal balloonexpr=
-setlocal nobinary
-setlocal nobreakindent
-setlocal breakindentopt=
-setlocal bufhidden=
-setlocal buflisted
-setlocal buftype=
-setlocal nocindent
-setlocal cinkeys=0{,0},0),:,!^F,o,O,e
-setlocal cinoptions=
-setlocal cinwords=if,else,while,do,for,switch
-setlocal colorcolumn=
-setlocal comments=b:#,fb:-
-setlocal commentstring=#\ %s
-setlocal complete=.,w,b,u,t,i
-setlocal concealcursor=
-setlocal conceallevel=0
-setlocal completefunc=
-setlocal nocopyindent
-setlocal cryptmethod=
-setlocal nocursorbind
-setlocal nocursorcolumn
-setlocal nocursorline
-setlocal define=
-setlocal dictionary=
-setlocal nodiff
-setlocal equalprg=
-setlocal errorformat=
-setlocal expandtab
-if &filetype != 'python'
-setlocal filetype=python
-endif
-setlocal fixendofline
-setlocal foldcolumn=0
-setlocal foldenable
-setlocal foldexpr=0
-setlocal foldignore=#
-setlocal foldlevel=1
-setlocal foldmarker={{{,}}}
-set foldmethod=indent
-setlocal foldmethod=indent
-setlocal foldminlines=1
-setlocal foldnestmax=20
-setlocal foldtext=foldtext()
-setlocal formatexpr=
-setlocal formatoptions=cqnt
-setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
-setlocal grepprg=
-setlocal iminsert=2
-setlocal imsearch=2
-setlocal include=^\\s*\\(from\\|import\\)
-setlocal includeexpr=substitute(v:fname,'\\.','/','g')
-setlocal indentexpr=GetPythonIndent(v:lnum)
-setlocal indentkeys=0{,0},:,!^F,o,O,e,<:>,=elif,=except
-setlocal noinfercase
-setlocal iskeyword=@,48-57,_,192-255
-setlocal keywordprg=pydoc
-setlocal nolinebreak
-setlocal nolisp
-setlocal lispwords=
-set list
-setlocal list
-setlocal makeprg=
-setlocal matchpairs=(:),{:},[:]
-setlocal modeline
-setlocal modifiable
-setlocal nrformats=bin,octal,hex
-set number
-setlocal number
-setlocal numberwidth=4
-setlocal omnifunc=pythoncomplete#Complete
-setlocal path=
-setlocal nopreserveindent
-setlocal nopreviewwindow
-setlocal quoteescape=\\
-setlocal noreadonly
-setlocal norelativenumber
-setlocal norightleft
-setlocal rightleftcmd=search
-setlocal noscrollbind
-setlocal shiftwidth=4
-setlocal noshortname
-setlocal nosmartindent
-setlocal softtabstop=4
-setlocal nospell
-setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
-setlocal spellfile=
-setlocal spelllang=en
-setlocal statusline=
-setlocal suffixesadd=.py
-setlocal swapfile
-setlocal synmaxcol=3000
-if &syntax != 'python'
-setlocal syntax=python
-endif
-setlocal tabstop=4
-setlocal tagcase=
-setlocal tags=
-setlocal textwidth=79
-setlocal thesaurus=
-setlocal noundofile
-setlocal undolevels=-123456
-setlocal nowinfixheight
-setlocal nowinfixwidth
-setlocal wrap
-setlocal wrapmargin=0
-26
-normal! zo
-let s:l = 30 - ((27 * winheight(0) + 14) / 28)
-if s:l < 1 | let s:l = 1 | endif
-exe s:l
-normal! zt
-30
-normal! 042|
 tabedit type_mgr.py
 set splitbelow splitright
 set nosplitbelow
@@ -889,7 +737,8 @@ setlocal nopreserveindent
 setlocal nopreviewwindow
 setlocal quoteescape=\\
 setlocal noreadonly
-setlocal norelativenumber
+set relativenumber
+setlocal relativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
@@ -919,7 +768,7 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 15 - ((14 * winheight(0) + 14) / 28)
+let s:l = 15 - ((13 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
@@ -1042,13 +891,13 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 1 - ((0 * winheight(0) + 14) / 28)
+let s:l = 2 - ((1 * winheight(0) + 12) / 25)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1
-normal! 033|
-tabnext 1
+2
+normal! 010|
+tabnext 5
 set stal=1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf

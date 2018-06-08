@@ -3,6 +3,7 @@ from typing import Iterable, Union, Callable, Optional
 
 from itertools import takewhile
 from enum import Enum
+import inspect
 
 
 class KSet:
@@ -13,7 +14,7 @@ class KSet:
         if user_len is not None: self.user_len = user_len
 
     def __repr__(self) -> str:
-        return str(self.content)
+        return 'KSet({})'.format(self.content)
 
     def __len__(self) -> int:
         if hasattr(self, 'user_len'):
@@ -31,6 +32,8 @@ class KSet:
     def __getitem__(self, index: int):
         for i, v in enumerate(self.content):
             if i == index: return v
+        # Getting out of the loop means failure
+        raise IndexError
 
     def __iter__(self):
         return iter(self.content)
@@ -38,6 +41,10 @@ class KSet:
     def is_explicit(self):
         try: iter(self); return True
         except TypeError: return False
+
+    def make_explicit(self):
+        """Turn content to list. Don\'t try anything stupid with this!"""
+        self.content = list(self.content)
 
     def is_empty(self):
         try: return (len(self) == 0)

@@ -4,36 +4,16 @@ from kset import KSet, STR, LengthUnsupportedError
 from abc import ABC
 from enum import Enum, auto
 from typing import List, Iterable, Set, Callable, Dict, Union
-from anytree import NodeMixin
+from anytree import NodeMixin, Resolver, ResolverError
 
 
 class MathObj(ABC, NodeMixin):
     def __init__(self, role):
         self.role = role
 
-    def __getitem__(self, path: str):
-        res = self
-        if path:
-            for n in path.split('/'):
-                if n == '..':
-                    if not res.parent: raise PathUpError(self, path)
-                    else: res = res.parent
-                else:
-                    for child in res.children:
-                        if child.role == n: res = child; break
-                    else: raise PathDownError(self, path)
-        return res
-
-    def path_from(self, origin) -> str:
-        res = ''
-        node = self
-        while node != origin:
-            res = '/{}'.format(node.role) + res
-            node = node.parent
-            assert(node is not None),\
-                'You\'re probably asking for a path from a node of a different tree.'
-        if res: res = res[1:]   # Get rid of the first slash if it's there
-        return res
+    # def __getitem__(self, path: str):
+    #     r = Resolver('role')
+    #     return r.get(self, path)
 
     def _equiv(self, other) -> bool:
         """Warning: placeholder code"""
@@ -77,7 +57,7 @@ class MathObj(ABC, NodeMixin):
             res = Atom(role=self.role, values=self.values, web=self.web)
         elif type(self) == Molecule:
             for child in self.children:
-                res.parent += [child.clone()]
+                child.clone().parent = res
         return res
 
 class Atom(MathObj):
@@ -90,7 +70,8 @@ class Atom(MathObj):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def __repr__(self) -> str:
-        return str(self.values.content)
+        cur_val = self.cur_val if hasattr(self, 'cur_val') else ''
+        return 'r={}|v={}|w={}'.format(self.role, cur_val, self.web)
 
     @property
     def children(self):
@@ -102,7 +83,6 @@ class Atom(MathObj):
 
 
 class Molecule(MathObj):
-    separator = '.'
     propa_rules = []
 
     def __init__(self, role: str, type_: 'MathType', cons: KSet = STR):
@@ -112,8 +92,8 @@ class Molecule(MathObj):
 
     def __repr__(self) -> str:
         name = self.name if hasattr(self, 'name') else ''
-        return 'r={}:n={}|t={}:c={}'.format(self.role, name, self.type,
-                self.cons)
+        cur_con = self.cur_con if hasattr(self, 'cur_con') else ''
+        return 'r={}:n={}|t={}:c={}'.format(self.role, name, self.type, cur_con)
 
     def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -122,19 +102,3 @@ class Molecule(MathObj):
 class MathType(MyEnum):
     WFF = auto()
     PROOF = auto()
-
-class PathError(Exception):
-    """Base class for exceptions in this module."""
-    pass
-
-class PathUpError(PathError):
-    def __init__(self, ref, path, message='There is no way up.'):
-        self.message = message
-        self.ref = ref
-        self.path = path
-
-class PathDownError(PathError):
-    def __init__(self, ref, path, message='There is no way down.'):
-        self.message = message
-        self.ref = ref
-        self.path = path

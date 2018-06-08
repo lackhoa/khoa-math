@@ -117,7 +117,7 @@ type module.
 Children: can be atoms or other molecules. In program context, they're exactly
 like children node of the molecule.
 
-Name: optional, mainly for referencing roots
+Name: optional, mainly for referencing top-level nodes
 
 # File `k_math_more.py`
 
