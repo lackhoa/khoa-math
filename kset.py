@@ -3,7 +3,6 @@ from typing import Iterable, Union, Callable, Optional
 
 from itertools import takewhile
 from enum import Enum
-import inspect
 
 
 class KSet:
@@ -44,7 +43,7 @@ class KSet:
 
     def make_explicit(self):
         """Turn content to list. Don\'t try anything stupid with this!"""
-        self.content = list(self.content)
+        self.content = set(self.content)
 
     def is_empty(self):
         try: return (len(self) == 0)

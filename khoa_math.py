@@ -1,7 +1,7 @@
 from misc import MyEnum
 from kset import KSet, STR, LengthUnsupportedError
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import List, Iterable, Set, Callable, Dict, Union
 from anytree import NodeMixin, Resolver, ResolverError
@@ -50,15 +50,10 @@ class MathObj(ABC, NodeMixin):
         func = lambda a: a.values.is_singleton()
         return self._recur_test(func, True)
 
+    @abstractmethod
     def clone(self):
         """Return a deep copy of this object."""
-        res = None
-        if type(self) == Atom:
-            res = Atom(role=self.role, values=self.values, web=self.web)
-        elif type(self) == Molecule:
-            for child in self.children:
-                child.clone().parent = res
-        return res
+        pass
 
 class Atom(MathObj):
     def __init__(self, role: str, values: KSet, web: Iterable[str] = []):
@@ -71,7 +66,7 @@ class Atom(MathObj):
 
     def __repr__(self) -> str:
         cur_val = self.cur_val if hasattr(self, 'cur_val') else ''
-        return 'r={}|v={}|w={}'.format(self.role, cur_val, self.web)
+        return '{} | {}'.format(self.role, cur_val)
 
     @property
     def children(self):
@@ -80,6 +75,9 @@ class Atom(MathObj):
     @children.setter
     def children(self, value):
         raise Exception('Are you nuts? An atom can\'t reproduce!')
+
+    def clone(self):
+        return Atom(role=self.role, values=self.values, web=self.web)
 
 
 class Molecule(MathObj):
@@ -93,10 +91,16 @@ class Molecule(MathObj):
     def __repr__(self) -> str:
         name = self.name if hasattr(self, 'name') else ''
         cur_con = self.cur_con if hasattr(self, 'cur_con') else ''
-        return 'r={}:n={}|t={}:c={}'.format(self.role, name, self.type, cur_con)
+        return '{} | {} | {} | {}'.format(self.role, name, self.type, cur_con)
 
     def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
+
+    def clone(self):
+        res = Molecule(role=self.role, type_=self.type, cons=self.cons)
+        for child in self.children:
+            child.clone().parent = res
+        return res
 
 
 class MathType(MyEnum):
