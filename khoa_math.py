@@ -12,7 +12,7 @@ class MathObj(ABC, NodeMixin):
     def __init__(self, role):
         self.role = role
 
-    def get_role(self, path: str):
+    def get_path(self, path: str):
         r = Resolver('role')
         return r.get(self, path)
 

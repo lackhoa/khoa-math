@@ -19,37 +19,20 @@ def custom_traceback(exc, val, tb):
 sys.excepthook = custom_traceback
 
 
-def get_role(path: str) -> str:
-    """Extract the role from `path`."""
-    return path.split('/')[-1]
-
-
-def get_parent(path: str) -> str:
-    """Extract the path to the parent from `path`."""
-    return '/'.join(path.split('/')[:-1])
-
-
-def math_obj_from_data(t: Union[AtomData, MoleData]) -> MathObj:
-    """Construct math objects from dataclasses."""
-    if type(t) == AtomData:
-        return Atom(role=get_role(t.path), vals=t.vals, web=t.web)
-    else:
-        return Molecule(role=get_role(t.path), type_=t.type_, cons=t.cons)
-
-
 def list_cons(t: MathType) -> Set:
     return set(cons_dic[t].keys())
 
-def unify_cons(m: Molecule):
-    m.cons = m.cons & KSet(list_cons(m.type))
-    m.cons.make_explicit()  # since there are few constructors
 
 def k_enumerate(root: MathObj, max_dep: int):
     if type(root) == Atom and max_dep >= 0:
         # Atom: Loop through potential values
-        for val in root.vals:
+        if root.vals.is_explicit():
+            for val in root.vals:
+                res = root.clone()
+                res.vals = KSet({val})
+                yield res
+        else:
             res = root.clone()
-            res.vals = KSet({val})
             yield res
 
     elif max_dep != 0:
@@ -73,21 +56,36 @@ def k_enumerate(root: MathObj, max_dep: int):
                 res.cons = KSet({con})
                 children_suit_clone = [n.clone() for n in children_suit]
                 res.children = children_suit_clone
+                # Now res is a well-formed tree, but it's not complete, so:
+                for node in anytree.PostOrderIter(res):
+                    if type(node) == Atom and (not node.vals.is_explicit()):
+                        try:
+                            get_val_from_path = lambda x: node.parent.get_path(x).vals[0]
+                            node.vals = node.vals(*map(get_val_from_path, node.web))
+                        except Exception as e:
+                            print(e)  # Probably the inputs don't exist yet
                 yield res
 
 
 test_cons_dic = {}
-test_cons_dic['ATOM'] = [AtomData(path = 'text', vals = KSet({'P', 'Q'}))]
-# test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST')]
+test_cons_dic['ATOM'] = [AtomData(path = 'text', vals = KSet({'P'}))]
+test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST'),
+                             AtomData(path='text',
+                                      vals = KSet(lambda x: KSet({'(~{})'.format(x)})),
+                                      web=['body_f/text'])]
 test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
-                                MoleData(path='conse', type_='WFF_TEST')]
+                                MoleData(path='conse', type_='WFF_TEST'),
+                                AtomData(path = 'text',
+                                    vals = KSet(lambda x,y: KSet({'({}->{})'.format(x, y)})),
+                                    web=['ante/text', 'conse/text'])]
 cons_dic['WFF_TEST'] = test_cons_dic
 
-start = Molecule(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'CONDITIONAL'}))
+start = Molecule(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
 
 
+store = []
 for i, t in enumerate(k_enumerate(start, 3)):
-    t.name = i
+    t.name = i; store.append(t)
     print(anytree.RenderTree(t), end='\n\n')
 
 rt = lambda t: print(anytree.RenderTree(t))

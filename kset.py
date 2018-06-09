@@ -7,99 +7,98 @@ from enum import Enum
 
 class KSet:
     def __init__(self,
-                 content: Union[Iterable, Callable[..., bool]],
-                 user_len: Optional[int] = None):
-        self.content = content
-        if user_len is not None: self.user_len = user_len
+                 content: Optional[Iterable],
+                 qualifier: Callable[..., bool],
+                 user_len: Optional[int] = None
+                 custom_repr: Optional[str] = None):
+        self.content, self.qualifier, self.user_len, self.custom_repr =\
+            content, qualifier, user_len, custom_repr
 
     def __repr__(self) -> str:
-        if self.is_singleton(): return str(self[0])
-        else: return str(self.content)
+        if self.custom_repr: return self.custom_repr
+        elif self.is_singleton(): return str(self[0])
+        elif self.is_explicit(): return str(self.content)
+        else: return str(self.qualifier)
+
+    def has_len(self) -> bool:
+        return (self.user_len is not None) or self.is_explicit()
 
     def __len__(self) -> int:
-        if hasattr(self, 'user_len'):
+        if self.user_len is not None:
             return self.user_len
         elif hasattr(self.content, '__len__'):
             return len(self.content)
-        elif self.is_explicit():
+        else:
             return sum(1 for _ in self.content)
-        else: raise LengthUnsupportedError(ks=self)
 
-    def has_len(self) -> bool:
-        try: len(self); return True
-        except LengthUnsupportedError: return False
+    def is_explicit(self):
+        return (self.content is not None)
 
     def __getitem__(self, index: int):
+        """For explicit ksets only."""
         for i, v in enumerate(self.content):
             if i == index: return v
         # Getting out of the loop means failure
         raise IndexError
 
     def __iter__(self):
+        """For explicit ksets only."""
         return iter(self.content)
 
-    def is_explicit(self):
-        try: iter(self); return True
-        except TypeError: return False
+    def __call__(self, val):
+        """Usable for all ksets."""
+        if self.is_explicit(): return (val in self.content)
+        else: return self.qualifier(val)
 
     def make_explicit(self):
-        """Turn content to list. Don\'t try anything stupid with this!"""
+        """(For explicit ksets) Turn content to set. Be careful with this!"""
         self.content = set(self.content)
 
     def is_empty(self):
-        try: return (len(self) == 0)
-        except LengthUnsupportedError: return False
+        return (len(self) == 0) if has_len(self) else False
 
     def is_singleton(self):
-        try: return (len(self) == 1)
-        except LengthUnsupportedError: return False
+        return (len(self) == 1) if has_len(self) else False
 
     def __and__(self, other: 'KSet'):
         res: 'KSet'
         e1, e2 = self.is_explicit(), other.is_explicit()
         if e1:
             if e2:
-                # Both are explicit
+                # Both are explicit: result is explicit
                 if type(self.content) == type(other.content) == set:
                     # Special treatment for python sets as content
                     res = KSet(content = self.content & other.content)
                 else:
-                    in_other = lambda x: x in other
                     unified_len = min(len(self), len(other))
-                    res = KSet(content = takewhile(in_other, self),
+                    res = KSet(content = takewhile(other, self),
                                user_len = unified_len)
             else:
-                # Only self is explicit
-                in_other = lambda x: other.content(x)
+                # Only `self` is explicit: result is explicit takewhile
                 unified_len = min(len(self), len(other)) if other.has_len() else len(self)
-                res = KSet(content = takewhile(in_other, self),
+                res = KSet(content = takewhile(other, self),
                            user_len = unified_len)
         elif e2:
-            # Only other is explicit
-            in_self = lambda x: self.content(x)
+            # Only `other` is explicit: result is explicit takewhile
             unified_len = min(len(self), len(other)) if self.has_len() else len(other)
-            res = KSet(content = takewhile(in_self, other),
+            res = KSet(content = takewhile(self, other),
                        user_len = unified_len)
         else:
-            # None are explicit
+            # Either is explicit: result is implicit
             unified_len = min(len(self), len(other))\
                           if (self.has_len() and other.has_len())\
                           else None
-            res = KSet(content = lambda x: self.content(x) and other.content(x),
+            res = KSet(qualifier = lambda x: self(x) and other(x),
                        user_len = unified_len)
         return res
 
 
-# Some handy ksets to use
-ANY = KSet(content = lambda x: True)
-NONE = KSet(content = lambda x: False)
-STR = KSet(content = lambda x: type(x) is str)
+# Some handy ksets
+class KConst(Enum):
+    ANY = KSet(qualifier = lambda x: True, custom_repr='ANY')
+    NONE = KSet(qualifier = lambda x: False, custom_repr='NONE')
+    STR = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
 
 
 class KSetError(Exception):
     pass
-
-class LengthUnsupportedError(KSetError):
-    def __init__(self, ks: KSet, msg: str = 'Length cannot be calculated.'):
-        self.ks = ks
-        self.message = msg
