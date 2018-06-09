@@ -2,6 +2,7 @@ from misc import MyEnum
 from kset import KSet, STR, LengthUnsupportedError
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from enum import Enum, auto
 from typing import List, Iterable, Set, Callable, Dict, Union
 from anytree import NodeMixin, Resolver, ResolverError
@@ -77,7 +78,9 @@ class Atom(MathObj):
         raise Exception('Are you nuts? An atom can\'t reproduce!')
 
     def clone(self):
-        res = Atom(role=self.role, values=self.values, web=self.web)
+        # Gotta deep copy the mutable stuff
+        web_clone, values_clone = deepcopy(self.web), deepcopy(self.values)
+        res = Atom(role=self.role, values=values_clone, web=web_clone)
         if hasattr(self, 'cur_val'): res.cur_val = self.cur_val
         return res
 
@@ -99,7 +102,8 @@ class Molecule(MathObj):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def clone(self):
-        res = Molecule(role=self.role, type_=self.type, cons=self.cons)
+        cons_clone = deepcopy(self.cons)  # cons can be mutable
+        res = Molecule(role=self.role, type_=self.type, cons=cons_clone)
         if hasattr(self, 'cur_con'): res.cur_con = self.cur_con
         for child in self.children:
             child.clone().parent = res

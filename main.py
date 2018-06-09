@@ -50,11 +50,7 @@ def unify_cons(m: Molecule):
     m.cons = m.cons & KSet(list_cons(m.type))
     m.cons.make_explicit()  # since there are few constructors
 
-store = []
-naughty = []
-i_counter = 0
 def k_enumerate(root: MathObj, max_dep: int):
-    global i_counter
     if type(root) == Atom and max_dep >= 0:
         # Atom: Loop through potential values
         for val in root.values:
@@ -83,16 +79,11 @@ def k_enumerate(root: MathObj, max_dep: int):
                 res.cur_con = con
                 children_suit_clone = [n.clone() for n in children_suit]
                 res.children = children_suit_clone
-                res.name = i_counter
-                store.append(res)
-                if con == 'CONDITIONAL' and len(res.children) < 2:
-                    naughty.append(i_counter)
-                i_counter += 1
                 yield res
 
 
 test_cons_dic = {}
-test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P'}))]
+test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P', 'Q'}))]
 # test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST')]
 test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
                                 MoleData(path='conse', type_='WFF_TEST')]
@@ -101,7 +92,8 @@ cons_dic['WFF_TEST'] = test_cons_dic
 start = Molecule(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'CONDITIONAL'}))
 
 
-for i, t in enumerate(k_enumerate(start, 4)):
+for i, t in enumerate(k_enumerate(start, 3)):
+    t.name = i
     print(anytree.RenderTree(t), end='\n\n')
 
 rt = lambda t: print(anytree.RenderTree(t))
