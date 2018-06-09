@@ -57,17 +57,17 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, values: KSet, web: Iterable[str] = []):
+    def __init__(self, role: str, values: KSet, web: Iterable[str] = [], cur_val=None):
         super().__init__(role)
         self.values = values
         self.web = web
+        self.cur_val = cur_val
 
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def __repr__(self) -> str:
-        cur_val = self.cur_val if hasattr(self, 'cur_val') else ''
-        return '{} | {}'.format(self.role, cur_val)
+        return '{}, {}'.format(self.role, self.cur_val)
 
     @property
     def children(self):
@@ -80,23 +80,22 @@ class Atom(MathObj):
     def clone(self):
         # Gotta deep copy the mutable stuff
         web_clone, values_clone = deepcopy(self.web), deepcopy(self.values)
-        res = Atom(role=self.role, values=values_clone, web=web_clone)
-        if hasattr(self, 'cur_val'): res.cur_val = self.cur_val
+        res = Atom(role=self.role, values=values_clone, web=web_clone, cur_val=self.cur_val)
         return res
 
 
 class Molecule(MathObj):
     propa_rules = []
 
-    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR):
+    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR, cur_con = None, name: str=''):
         super().__init__(role)
         self.type = type_
         self.cons = cons
+        self.cur_con = cur_con
+        self.name = name
 
     def __repr__(self) -> str:
-        name = self.name if hasattr(self, 'name') else ''
-        cur_con = self.cur_con if hasattr(self, 'cur_con') else ''
-        return '{} | {} | {} | {}'.format(self.role, name, self.type, cur_con)
+        return '{}, {}, {}, {}'.format(self.role, self.name, self.type, self.cur_con)
 
     def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
