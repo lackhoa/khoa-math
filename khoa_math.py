@@ -12,16 +12,16 @@ class MathObj(ABC, NodeMixin):
     def __init__(self, role):
         self.role = role
 
-    # def __getitem__(self, path: str):
-    #     r = Resolver('role')
-    #     return r.get(self, path)
+    def get_role(self, path: str):
+        r = Resolver('role')
+        return r.get(self, path)
 
     def _equiv(self, other) -> bool:
         """Warning: placeholder code"""
         res = True
         if type(self) != type(other): res = False
         elif type(self) == Atom:
-            res = (self.values == other.values)
+            res = (self.vals == other.vals)
         else:
             # They're both molecules
             if self.cons == other.cons:
@@ -44,11 +44,11 @@ class MathObj(ABC, NodeMixin):
         return res
 
     def is_inconsistent(self) -> bool:
-        func = lambda a: a.values.is_empty()
+        func = lambda a: a.vals.is_empty()
         return self._recur_test(func, False)
 
     def is_complete(self) -> bool:
-        func = lambda a: a.values.is_singleton()
+        func = lambda a: a.vals.is_singleton()
         return self._recur_test(func, True)
 
     @abstractmethod
@@ -57,17 +57,16 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, values: KSet, web: Iterable[str] = [], cur_val=None):
+    def __init__(self, role: str, vals: KSet, web: Iterable[str] = []):
         super().__init__(role)
-        self.values = values
+        self.vals = vals
         self.web = web
-        self.cur_val = cur_val
 
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def __repr__(self) -> str:
-        return '{}, {}'.format(self.role, self.cur_val)
+        return '{} {}'.format(self.role, self.vals)
 
     @property
     def children(self):
@@ -79,23 +78,22 @@ class Atom(MathObj):
 
     def clone(self):
         # Gotta deep copy the mutable stuff
-        web_clone, values_clone = deepcopy(self.web), deepcopy(self.values)
-        res = Atom(role=self.role, values=values_clone, web=web_clone, cur_val=self.cur_val)
+        web_clone, vals_clone = deepcopy(self.web), deepcopy(self.vals)
+        res = Atom(role=self.role, vals=vals_clone, web=web_clone)
         return res
 
 
 class Molecule(MathObj):
     propa_rules = []
 
-    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR, cur_con = None, name: str=''):
+    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR, name: str=''):
         super().__init__(role)
         self.type = type_
         self.cons = cons
-        self.cur_con = cur_con
         self.name = name
 
     def __repr__(self) -> str:
-        return '{}, {}, {}, {}'.format(self.role, self.name, self.type, self.cur_con)
+        return '{} {} {} {}'.format(self.role, self.name, self.type, self.cons)
 
     def _pre_attach(self, parent: 'Molecule'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -103,7 +101,7 @@ class Molecule(MathObj):
     def clone(self):
         cons_clone = deepcopy(self.cons)  # cons can be mutable
         res = Molecule(role=self.role, type_=self.type, cons=cons_clone)
-        if hasattr(self, 'cur_con'): res.cur_con = self.cur_con
+        # Clone all the children, too
         for child in self.children:
             child.clone().parent = res
         return res

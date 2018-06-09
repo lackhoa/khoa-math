@@ -32,19 +32,13 @@ def get_parent(path: str) -> str:
 def math_obj_from_data(t: Union[AtomData, MoleData]) -> MathObj:
     """Construct math objects from dataclasses."""
     if type(t) == AtomData:
-        return Atom(role=get_role(t.path), values=t.values, web=t.web)
+        return Atom(role=get_role(t.path), vals=t.vals, web=t.web)
     else:
         return Molecule(role=get_role(t.path), type_=t.type_, cons=t.cons)
 
 
 def list_cons(t: MathType) -> Set:
     return set(cons_dic[t].keys())
-
-
-def get_args(m: Molecule) -> List[Union['AtomData', 'MoleData']]:
-    """Return an argument list based on type `t` and constructor `c`"""
-    return cons_dic[m.type][m.cur_con]
-
 
 def unify_cons(m: Molecule):
     m.cons = m.cons & KSet(list_cons(m.type))
@@ -53,9 +47,9 @@ def unify_cons(m: Molecule):
 def k_enumerate(root: MathObj, max_dep: int):
     if type(root) == Atom and max_dep >= 0:
         # Atom: Loop through potential values
-        for val in root.values:
+        for val in root.vals:
             res = root.clone()
-            res.cur_val = val
+            res.vals = KSet({val})
             yield res
 
     elif max_dep != 0:
@@ -76,14 +70,14 @@ def k_enumerate(root: MathObj, max_dep: int):
             possible_children_suit = product(*map(recur, args_node))
             for children_suit in possible_children_suit:
                 res = root.clone()
-                res.cur_con = con
+                res.cons = KSet({con})
                 children_suit_clone = [n.clone() for n in children_suit]
                 res.children = children_suit_clone
                 yield res
 
 
 test_cons_dic = {}
-test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P', 'Q'}))]
+test_cons_dic['ATOM'] = [AtomData(path = 'text', vals = KSet({'P', 'Q'}))]
 # test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST')]
 test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
                                 MoleData(path='conse', type_='WFF_TEST')]

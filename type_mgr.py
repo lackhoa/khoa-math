@@ -7,7 +7,7 @@ from typing import List, Union, NamedTuple
 ###Stuff to interface with the typing modules###
 class AtomData(NamedTuple):
     path: str
-    values: KSet
+    vals: KSet
     web: List = []
 
 
