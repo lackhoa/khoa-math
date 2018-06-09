@@ -50,42 +50,49 @@ def unify_cons(m: Molecule):
     m.cons = m.cons & KSet(list_cons(m.type))
     m.cons.make_explicit()  # since there are few constructors
 
-
+store = []
+naughty = []
+i_counter = 0
 def k_enumerate(root: MathObj, max_dep: int):
-    if type(root) == Atom:
+    global i_counter
+    if type(root) == Atom and max_dep >= 0:
         # Atom: Loop through potential values
         for val in root.values:
             res = root.clone()
             res.cur_val = val
             yield res
 
-    else:
+    elif max_dep != 0:
         # suply constructor
         cons = root.cons & KSet(list_cons(root.type))
 
         # Molecule: loop through potential constructors
         for con in cons:
-            if max_dep <= 1:
-                # check to prevent infinite loop:
+            if max_dep == 1:
+                # mechanism to prevent infinite loop:
                 if any(map(lambda x: type(x) == MoleData, cons_dic[root.type][con])):
                     continue  # Try another constructor
 
             # Here is where the recursion begins:
-            dec_dep = max_dep - 1
-            recur = partial(k_enumerate, max_dep = dec_dep)
+            recur = partial(k_enumerate, max_dep = max_dep-1)
             # Turn data to real nodes:
             args_node = map(math_obj_from_data, cons_dic[root.type][con])
             possible_children_suit = product(*map(recur, args_node))
-            for children_comb in possible_children_suit:
+            for children_suit in possible_children_suit:
                 res = root.clone()
                 res.cur_con = con
-                res.children = children_comb
-                if con == 'CONDITIONAL' and len(res.children) < 2: print('Fuck')
+                children_suit_clone = [n.clone() for n in children_suit]
+                res.children = children_suit_clone
+                res.name = i_counter
+                store.append(res)
+                if con == 'CONDITIONAL' and len(res.children) < 2:
+                    naughty.append(i_counter)
+                i_counter += 1
                 yield res
 
 
 test_cons_dic = {}
-test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P', 'Q', 'R'}))]
+test_cons_dic['ATOM'] = [AtomData(path = 'text', values = KSet({'P'}))]
 # test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST')]
 test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
                                 MoleData(path='conse', type_='WFF_TEST')]
@@ -94,6 +101,7 @@ cons_dic['WFF_TEST'] = test_cons_dic
 start = Molecule(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'CONDITIONAL'}))
 
 
-for i, t in enumerate(k_enumerate(start, 3)):
-    print('#', i)
-    print(anytree.RenderTree(t), end='\n')
+for i, t in enumerate(k_enumerate(start, 4)):
+    print(anytree.RenderTree(t), end='\n\n')
+
+rt = lambda t: print(anytree.RenderTree(t))

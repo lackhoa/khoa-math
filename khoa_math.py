@@ -77,7 +77,9 @@ class Atom(MathObj):
         raise Exception('Are you nuts? An atom can\'t reproduce!')
 
     def clone(self):
-        return Atom(role=self.role, values=self.values, web=self.web)
+        res = Atom(role=self.role, values=self.values, web=self.web)
+        if hasattr(self, 'cur_val'): res.cur_val = self.cur_val
+        return res
 
 
 class Molecule(MathObj):
@@ -98,6 +100,7 @@ class Molecule(MathObj):
 
     def clone(self):
         res = Molecule(role=self.role, type_=self.type, cons=self.cons)
+        if hasattr(self, 'cur_con'): res.cur_con = self.cur_con
         for child in self.children:
             child.clone().parent = res
         return res
