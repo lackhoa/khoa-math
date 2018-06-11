@@ -9,7 +9,7 @@ from type_data import *
 from wff import *
 
 import anytree
-from typing import Set, Iterable
+from typing import Set, Iterable, FrozenSet
 from itertools import product, starmap
 from functools import partial
 
@@ -19,8 +19,8 @@ def custom_traceback(exc, val, tb):
 sys.excepthook = custom_traceback
 
 
-def list_cons(t: MathType) -> Set:
-    return set(cons_dic[t].keys())
+def list_cons(t: MathType) -> FrozenSet:
+    return frozenset(cons_dic[t].keys())
 
 
 def k_enumerate(root: MathObj, max_dep: int):
@@ -31,9 +31,7 @@ def k_enumerate(root: MathObj, max_dep: int):
                 res = root.clone()
                 res.vals = KSet({val})
                 yield res
-        else:
-            res = root.clone()
-            yield res
+        else: yield root.clone()
 
     elif max_dep != 0:
         # suply constructor
@@ -67,18 +65,14 @@ def k_enumerate(root: MathObj, max_dep: int):
                 yield res
 
 
-test_cons_dic = {}
-test_cons_dic['ATOM'] = [AtomData(path = 'text', vals = KSet({'P'}))]
-test_cons_dic['NEGATION'] = [MoleData(path='body_f', type_='WFF_TEST'),
-                             AtomData(path='text',
-                                      vals = KSet(lambda x: KSet({'(~{})'.format(x)})),
-                                      web=['body_f/text'])]
-test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
-                                MoleData(path='conse', type_='WFF_TEST'),
-                                AtomData(path = 'text',
-                                    vals = KSet(lambda x,y: KSet({'({}->{})'.format(x, y)})),
-                                    web=['ante/text', 'conse/text'])]
-cons_dic['WFF_TEST'] = test_cons_dic
+tdic = {}
+tdic['ATOM'] = [FAtom(role='text', vals=KSet(['P']))]
+tdic['NEGATION'] = [FMole(role='body_f', type_='WFF_TEST']
+
+tdic['CONDITIONAL'] = [FMole(role='ante', type_='WFF_TEST'),
+                       FMole(role='conse', type_='WFF_TEST'),
+                       AtomData(role = 'text', vals = KConst.STR)]
+cons_dic['WFF_TEST'] = tdic
 
 start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
 

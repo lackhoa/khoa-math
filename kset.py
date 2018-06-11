@@ -11,19 +11,13 @@ class KSet:
                  qualifier: Optional[Callable[..., bool]] = None,
                  user_len: Optional[int] = None,
                  custom_repr: Optional[str] = None):
-        try: hash(content); hash(qualifier)
-        except: raise TypeError('Content and qualifier must both be hashable')
-
         assert((content is None) ^ (qualifier is None)),\
                 'One and only one of either content or qualifier should be present'
-        self._content, self._qualifier, self.user_len, self.custom_repr =\
+        # Guarantee immutability for content (as far as I know)
+        if type(content) == list or type(contet) == set:
+            content = frozenset(content)
+        self.content, self.qualifier, self.user_len, self.custom_repr =\
             content, qualifier, user_len, custom_repr
-
-    @property
-    def content(self): return self._content
-
-    @property
-    def qualifier(self): return self._qualifier
 
     def __eq__(self, other):
         return self.content == other.content and self.qualifier == other.qualifier
@@ -83,20 +77,20 @@ class KSet:
         if e1:
             if e2:
                 # Both are explicit: result is explicit
-                if type(self.content) == type(other.content) == set:
-                    # Special treatment for python sets as content
+                try:
+                    # Special treatment for types that implements union
                     res = KSet(content = self.content & other.content)
-                else:
+                except TypeError:
                     unified_len = min(len(self), len(other))
                     res = KSet(content = takewhile(other, self),
                                user_len = unified_len)
             else:
-                # Only `self` is explicit: result is explicit takewhile
+                # Only `self` is explicit: result is explicit
                 unified_len = min(len(self), len(other)) if other.has_len() else len(self)
                 res = KSet(content = takewhile(other, self),
                            user_len = unified_len)
         elif e2:
-            # Only `other` is explicit: result is explicit takewhile
+            # Only `other` is explicit: result is explicit
             unified_len = min(len(self), len(other)) if self.has_len() else len(other)
             res = KSet(content = takewhile(self, other),
                        user_len = unified_len)
