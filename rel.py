@@ -1,16 +1,21 @@
 from misc import MyEnum
+from enum import auto
 
 
-class RelType(MyEnum)
+class RelT(MyEnum):
     """Each relation's value is its arity"""
-    EQ = 2
-    FUNC = 2
-    UNION = 3
+    EQ = auto()
+    FUN = auto()  # (func input1 ... input_k output)
+    UNION = auto()  # (subset_1 ... subset_k union)
 
 
 class Rel:
-    def __init__(self, type_: RelType, tup):
-        assert(len(tup) == type_.value),\
-            'Expected tuple with arity {}, got {}'.format(type_.value, len(tup))
+    def __init__(self, type_: RelT, *slots):
         self.type = type_
-        self.tup = tup
+        self.slots = slots
+    
+    def get(self, attr: str):
+        if self.type == RelT.FUN:
+            if attr == 'fun': return self.slots[0]
+            elif attr == 'in': return self.slots[1:-1]
+            elif attr == 'out': return self.slots[-1]

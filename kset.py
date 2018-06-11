@@ -13,8 +13,8 @@ class KSet:
                  custom_repr: Optional[str] = None):
         assert((content is None) ^ (qualifier is None)),\
                 'One and only one of either content or qualifier should be present'
-        # Guarantee immutability for content (as far as I know)
-        if type(content) == list or type(contet) == set:
+        # Sort of guarantee immutability for content
+        if type(content) == list or type(content) == set:
             content = frozenset(content)
         self.content, self.qualifier, self.user_len, self.custom_repr =\
             content, qualifier, user_len, custom_repr
