@@ -35,8 +35,6 @@ def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
     Return the same type that it receives.
     If a child exists, it must be legit.
     """
-    # Clone first, then we can do whatever we want
-    res = root.clone()
     # recursion decreases by dep
     recur = partial(k_enumerate, max_dep = max_dep-1)
 
@@ -44,9 +42,10 @@ def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
         # Atom: Loop through potential values
         if root.vals.is_explicit():
             for val in root.vals:
+                res = root.clone()
                 res.vals = KSet({val})
                 yield res
-        else: raise Exception('What the hell am I supposed to loop through now?')
+        # else: raise Exception('What the hell am I supposed to loop through now?')
 
     elif max_dep != 0:
         # suply constructor
@@ -55,7 +54,6 @@ def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
         # Mole: loop through all potential constructors, now that we have 'em
         for con in cons:
             # Now we know the exact constructor
-            res.cons = KSet({con})
             args, rels = cons_dic[root.type][con]
 
             if max_dep == 1:
@@ -67,19 +65,20 @@ def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
             # Debating the relations:
             for rel in rels:
                 if rel.type == RelT.FUN\
-                    and (not res.has_path(rel.get('out'))
-                         or (not res.get_path(rel.get('out')).vals.is_singleton())):
+                    and (not root.has_path(rel.get('out'))
+                         or (not root.get_path(rel.get('out')).vals.is_singleton())):
                     goals = []
                     for slot in rel.get('in'):
                         # Since the inputs are necessary, we must find them first
-                        if not res.has_path(slot):
+                        if not root.has_path(slot):
                             # There should be only one, btw
                             goals += [n for n in args if n.role == tlr(slot)]
                     all_input_suits = product(*map(recur, goals))
                     # Find the output
                     for input_suit in all_input_suits:
-                        input_suit_clone = [n.clone() for n in input_suit]
-                        res.children = input_suit_clone
+                        res = root.clone()
+                        res.cons = KSet({con})
+                        res.children = [n.clone() for n in input_suit]
                         get_first_of_path = lambda p: res.get_path(p).vals[0]
                         output = rel.get('fun')(*map(get_first_of_path, rel.get('in')))
                         # Attach the output node to `res`
@@ -89,11 +88,11 @@ def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
 
             # Done with relations
             # Gather all the args remaining, they should all be easy
-            rem_args = [n for n in args if (not res.has_path(n.role))]
+            rem_args = [n for n in args if (not root.has_path(n.role))]
             all_rem_args_suit = product(*map(recur, rem_args))
             for rem_args_suit in all_rem_args_suit:
-                rem_args_suit_clone = [n.clone() for n in rem_args_suit]
-                res.children = rem_args_suit_clone
+                res = root.clone()
+                res.children = [n.clone() for n in rem_args_suit]
                 yield res
 
 
