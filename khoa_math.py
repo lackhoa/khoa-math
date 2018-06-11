@@ -1,5 +1,5 @@
 from misc import MyEnum
-from kset import KSet, STR, LengthUnsupportedError
+from kset import KSet, KConst
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -9,28 +9,13 @@ from anytree import NodeMixin, Resolver, ResolverError
 
 
 class MathObj(ABC, NodeMixin):
+    @abstractmethod
     def __init__(self, role):
-        self.role = role
+        self._role = role
 
     def get_path(self, path: str):
         r = Resolver('role')
         return r.get(self, path)
-
-    def _equiv(self, other) -> bool:
-        """Warning: placeholder code"""
-        res = True
-        if type(self) != type(other): res = False
-        elif type(self) == Atom:
-            res = (self.vals == other.vals)
-        else:
-            # They're both molecules
-            if self.cons == other.cons:
-                for child in self.children:
-                    try:
-                        same = other[child.role]
-                        if not child._equiv(same): res = False; break
-                    except PathDownError: res = False; break
-        return res
 
     def _recur_test(func: Callable[..., bool], conj = True) -> bool:
         res = True if conj else False
@@ -57,10 +42,11 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, vals: KSet, web: Iterable[str] = []):
-        super().__init__(role)
-        self.vals = vals
-        self.web = web
+    def __init__(self, role: str, vals: KSet):
+        self._role, self.vals = role, vals
+
+    @property
+    def role(self): return self._role
 
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -72,41 +58,122 @@ class Atom(MathObj):
     def children(self):
         """No children allowed!"""
         return []
+
     @children.setter
     def children(self, value):
-        raise Exception('Are you nuts? An atom can\'t reproduce!')
+        raise Exception('Atoms cannot have children')
 
     def clone(self):
         # Gotta deep copy the mutable stuff
-        web_clone, vals_clone = deepcopy(self.web), deepcopy(self.vals)
-        res = Atom(role=self.role, vals=vals_clone, web=web_clone)
+        vals_clone = deepcopy(self.vals)
+        res = Atom(role=self.role, vals=vals_clone)
         return res
 
 
-class Molecule(MathObj):
-    propa_rules = []
+class Mole(MathObj):
+    def __init__(self, role: str, type_: 'MathType', cons: KSet = KConst.STR, name: str=''):
+        self._role, self._type, self.cons, self.name = role, type_, cons, name
 
-    def __init__(self, role: str, type_: 'MathType', cons: KSet = STR, name: str=''):
-        super().__init__(role)
-        self.type = type_
-        self.cons = cons
-        self.name = name
+    @property
+    def role(self): return self._role
+
+    @property
+    def type(self): return self._type
 
     def __repr__(self) -> str:
         return '{} {} {} {}'.format(self.role, self.name, self.type, self.cons)
 
-    def _pre_attach(self, parent: 'Molecule'):
+    def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def clone(self):
         cons_clone = deepcopy(self.cons)  # cons can be mutable
-        res = Molecule(role=self.role, type_=self.type, cons=cons_clone)
+        res = Mole(role=self.role, type_=self.type, cons=cons_clone)
         # Clone all the children, too
         for child in self.children:
             child.clone().parent = res
         return res
 
 
+class FAtom(Atom):
+    """Frozen Atom"""
+    def __init__(self, atom: Atom):
+        self._role, self._vals = atom.role, atom.vals
+
+    @property
+    def vals(self):
+        return self._vals
+
+    @property
+    def parent(self):
+        try: return self.__parent
+        except AttributeError: return None
+
+    @parent.setter
+    def parent(self, value):
+        raise AttributeError('Cannot change a frozen atom\'s parent')
+
+    def __eq__(self, other) -> bool:
+        return (type(self) == type(other)) and (self.vals == other.vals)
+
+    def __hash__(self) -> int:
+        return hash((self.role, self.vals))
+
+
+class FMole(Mole):
+    """Frozen Molecules"""
+    def __init__(self, mole: Atom):
+        self._role, self._type, self._cons, self.name = mole.role, mole.type,\
+            mole.cons, mole.name
+        self._children = tuple()
+        for child in mole.children:
+            if type(child) == Atom:
+                self._children += (FAtom(child),)
+            else:
+                self._children += (FMole(child),)
+
+    @property
+    def cons(self): return self._cons
+
+    @property
+    def parent(self, value):
+        try: return self.__parent
+        except AttributeError: return None
+
+    @parent.setter
+    def parent(self, value):
+        raise AttributeError('Cannot change a frozen molecule\'s parent')
+
+    @property
+    def children(self):
+        return self._children
+
+    @children.setter
+    def children(self, value):
+        raise AttributeError('Cannot change a frozen molecule\'s children')
+
+    def __eq__(self, other) -> bool:
+        if type(self) == type(other) and len(self.children) == len(other.children):
+            for child in self.children:
+                if child != other.get_path(child.role): break
+            else: return True
+        return False
+
+    def __hash__(self) -> int:
+        """Hopefully this does not take too much time"""
+        return hash((self.role, self.type, self.cons, self.children))
+
 class MathType(MyEnum):
     WFF = auto()
     PROOF = auto()
+
+
+
+
+# ===Testing zone===
+if __name__ == '__main__':
+    a = Atom('sub', KSet(frozenset()))
+    m = Mole('root', MathType.WFF, KSet(frozenset()))
+    a.parent = m
+    fa = FAtom(a)
+    fm = FMole(m)

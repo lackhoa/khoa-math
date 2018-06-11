@@ -39,7 +39,7 @@ def k_enumerate(root: MathObj, max_dep: int):
         # suply constructor
         cons = root.cons & KSet(list_cons(root.type))
 
-        # Molecule: loop through potential constructors
+        # Mole: loop through potential constructors
         for con in cons:
             if max_dep == 1:
                 # mechanism to prevent infinite loop:
@@ -80,7 +80,7 @@ test_cons_dic['CONDITIONAL'] = [MoleData(path='ante', type_='WFF_TEST'),
                                     web=['ante/text', 'conse/text'])]
 cons_dic['WFF_TEST'] = test_cons_dic
 
-start = Molecule(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
+start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
 
 
 store = []

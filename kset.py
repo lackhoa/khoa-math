@@ -7,12 +7,29 @@ from enum import Enum
 
 class KSet:
     def __init__(self,
-                 content: Optional[Iterable],
-                 qualifier: Callable[..., bool],
-                 user_len: Optional[int] = None
+                 content: Optional[Iterable] = None,
+                 qualifier: Optional[Callable[..., bool]] = None,
+                 user_len: Optional[int] = None,
                  custom_repr: Optional[str] = None):
-        self.content, self.qualifier, self.user_len, self.custom_repr =\
+        try: hash(content); hash(qualifier)
+        except: raise TypeError('Content and qualifier must both be hashable')
+
+        assert((content is None) ^ (qualifier is None)),\
+                'One and only one of either content or qualifier should be present'
+        self._content, self._qualifier, self.user_len, self.custom_repr =\
             content, qualifier, user_len, custom_repr
+
+    @property
+    def content(self): return self._content
+
+    @property
+    def qualifier(self): return self._qualifier
+
+    def __eq__(self, other):
+        return self.content == other.content and self.qualifier == other.qualifier
+
+    def __hash__(self) -> int:
+        return hash((self.content, self.qualifier))
 
     def __repr__(self) -> str:
         if self.custom_repr: return self.custom_repr
@@ -55,10 +72,10 @@ class KSet:
         self.content = set(self.content)
 
     def is_empty(self):
-        return (len(self) == 0) if has_len(self) else False
+        return (len(self) == 0) if self.has_len() else False
 
     def is_singleton(self):
-        return (len(self) == 1) if has_len(self) else False
+        return (len(self) == 1) if self.has_len() else False
 
     def __and__(self, other: 'KSet'):
         res: 'KSet'
@@ -102,3 +119,7 @@ class KConst(Enum):
 
 class KSetError(Exception):
     pass
+
+class KSetDataError(KSetError):
+    def __init__(self, msg):
+        self.message = msg
