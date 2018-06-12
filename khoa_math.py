@@ -10,8 +10,8 @@ from anytree import NodeMixin, Resolver, ResolverError, ChildResolverError
 
 class MathObj(ABC, NodeMixin):
     @abstractmethod
-    def __init__(self, role):
-        self._role = role
+    def __init__(self, role, name=''):
+        self.role, self.name = role, name
 
     def __check_loop(self, node):
         if node is not None:
@@ -34,20 +34,19 @@ class MathObj(ABC, NodeMixin):
             # ATOMIC END
             self._post_attach(parent)
 
-
     def get_path(self, path: str):
         r = Resolver('role')
         return r.get(self, path)
 
-    def _recur_test(func: Callable[..., bool], conj = True) -> bool:
+    def _recur_test(self, func: Callable[..., bool], conj = True) -> bool:
         res = True if conj else False
         if type(self) == Atom: return func(self)
         else:
             for child in self.children:
                 if conj:
-                    if not MathObj._recur_test(child, func, conj): res = False; break
-                else:
-                    if MathObj._recur_test(child, func, conj): res = True; break
+                    if not child._recur_test(func, conj): res = False; break
+                elif not conj:
+                    if child._recur_test(func, conj): res = True; break
         return res
 
     def is_inconsistent(self) -> bool:
@@ -64,14 +63,15 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, vals: KSet):
-        self.role, self.vals = role, vals
+    def __init__(self, role: str, vals: KSet, name: str=''):
+        super().__init__(role, name)
+        self.vals = vals
 
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def __repr__(self) -> str:
-        return '{}({}, {})'.format(self.__class__.__name__, self.role, self.vals)
+        return 'A({}, {}, {})'.format(self.role, self.vals, self.name)
 
     @property
     def children(self):
@@ -82,7 +82,7 @@ class Atom(MathObj):
         raise Exception('Atoms cannot have children')
 
     def clone(self) -> 'Atom':
-        res = Atom(role=self.role, vals=self.vals)
+        res = Atom(role=self.role, vals=self.vals.clone())
         return res
 
     def __eq__(self, other) -> bool:
@@ -94,15 +94,14 @@ class Atom(MathObj):
 
 class Mole(MathObj):
     def __init__(self, role: str, type_: 'MathT',
-                 cons: KSet = KConst.STR.value, rels: Iterable['Rel'] = [],
+                 cons: KSet = KConst.STR.value,
                  name: str='', parent=None, children: Iterable[Union[Atom, 'Mole']]=[]):
-        self.role, self.type, self.cons, self.rels = role, type_, cons, rels
-        self.name, self.parent, self.children = name, parent, tuple(children)
+        super().__init__(role, name)
+        self.type, self.cons = type_, cons
+        self.parent, self.children = parent, tuple(children)
 
     def __repr__(self) -> str:
-        return '{}({}, {}, {}, {})'.format(self.__class__.__name__,
-                                           self.role, self.name,
-                                           self.type, self.cons)
+        return 'M({}, {}, {}, {})'.format(self.role, self.name, self.type, self.cons)
 
     def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -111,8 +110,30 @@ class Mole(MathObj):
         try: self.get_path(role); return True
         except ChildResolverError: return False
 
+    def kattach(self, node: Union[Atom, 'Mole'], mode='unify'):
+        """Attach `node` to this molecule"""
+        if type(node) == Atom:
+            if self.has_path(node.role):
+                same = self.get_path(node.role)
+                same.vals = same.vals & node.vals
+            else: node.parent = self
+        elif type(node) == Mole:
+            if self.has_path(node.role):
+                same = self.get_path(node.role)
+                same.cons = same.cons & node.cons
+                for node_child in node.children:
+                    same.kattach(node_child)
+            else: node.parent = self
+
+    def spec(self, path: str) -> bool:
+        try:
+            child = self.get_path(path)
+            if type(child) == Atom: return child.vals.is_singleton()
+            else: return child.cons.is_singleton()
+        except ChildResolverError: return False
+
     def clone(self) -> 'Mole':
-        res = Mole(role=self.role, type_=self.type, cons=self.cons, rels=self.cons)
+        res = Mole(role=self.role, type_=self.type, cons=self.cons.clone())
         # Clone all the children, too
         for child in self.children:
             child.clone().parent = res
@@ -129,8 +150,7 @@ class Mole(MathObj):
 
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
-        return hash((self.role, self.type, self.cons, self.children, self.rels))
-
+        return hash((self.role, self.type, self.cons, self.children))
 
 ATMO = Union[Atom, Mole]
 

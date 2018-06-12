@@ -1,4 +1,5 @@
 import sys
+import logging
 import traceback
 
 from kset import *
@@ -15,8 +16,11 @@ from itertools import product, starmap
 from functools import partial
 
 
+logging.basicConfig(format='\n%(message)s', stream=sys.stderr, level=logging.DEBUG)
+
+
 def custom_traceback(exc, val, tb):
-    print("\n".join(traceback.format_exception(exc, val, tb)), file=sys.stderr)
+    logging.debug("\n".join(traceback.format_exception(exc, val, tb)), file=sys.stderr)
 sys.excepthook = custom_traceback
 
 
@@ -29,71 +33,130 @@ def tlr(path: str) -> str:
     return path.split('/')[0]
 
 
-def k_enumerate(root: ATMO, max_dep: int) -> Iterable[ATMO]:
+def dt(t): logging.debug(anytree.RenderTree(t))
+def rt(t): logging.info(anytree.RenderTree(t))
+
+
+count = 0
+bag = []
+def save(t, tag=''):
+    global count
+    t.name = str(count) + tag
+    count += 1
+    bag.append(t)
+
+
+def kenumerate(root: ATMO, max_dep: int, tags=(), checked_rel=()) -> Iterable[ATMO]:
     """
     This function does NOT alter the root.
     Return the same type that it receives.
     If a child exists, it must be legit.
     """
-    # recursion decreases by dep
-    recur = partial(k_enumerate, max_dep = max_dep-1)
-
+    # Atom route
     if type(root) == Atom and max_dep >= 0:
+        logging.debug('\nEnumerating this atom:')
+        dt(root)
         # Atom: Loop through potential values
         if root.vals.is_explicit():
             for val in root.vals:
-                res = root.clone()
+                res = res.clone()
                 res.vals = KSet({val})
-                yield res
-        # else: raise Exception('What the hell am I supposed to loop through now?')
+                save(res); yield res
+        else:
 
+
+            raise Exception('What the hell am I supposed to loop through now?')
+
+    # Molecule route
     elif max_dep != 0:
-        # suply constructor
-        cons = root.cons & KSet(list_cons(root.type))
+        logging.debug('\nEnumerating this molecule')
+        dt(root)
+        if 'choose_con' not in tags:
+            logging.debug('Constructor choosing phase')
+            tags += ('choose_con',)
+            cons = root.cons & KSet(list_cons(root.type))
 
-        # Mole: loop through all potential constructors, now that we have 'em
-        for con in cons:
-            # Now we know the exact constructor
-            args, rels = cons_dic[root.type][con]
-
-            if max_dep == 1:
-                # mechanism to prevent infinite loop:
-                if any(map(lambda x: type(x) is Mole, args)):
-                    continue  # Try another constructor
-
-            # Here is where the recursion begins:
-            # Debating the relations:
-            for rel in rels:
-                if rel.type == RelT.FUN\
-                    and (not root.has_path(rel.get('out'))
-                         or (not root.get_path(rel.get('out')).vals.is_singleton())):
-                    goals = []
-                    for slot in rel.get('in'):
-                        # Since the inputs are necessary, we must find them first
-                        if not root.has_path(slot):
-                            # There should be only one, btw
-                            goals += [n for n in args if n.role == tlr(slot)]
-                    all_input_suits = product(*map(recur, goals))
-                    # Find the output
-                    for input_suit in all_input_suits:
-                        res = root.clone()
-                        res.cons = KSet({con})
-                        res.children = [n.clone() for n in input_suit]
-                        get_first_of_path = lambda p: res.get_path(p).vals[0]
-                        output = rel.get('fun')(*map(get_first_of_path, rel.get('in')))
-                        # Attach the output node to `res`
-                        Atom(role=rel.get('out'), vals=KSet({output})).parent = res
-                        for k in k_enumerate(res, max_dep):
-                            yield k
-
-            # Done with relations
-            # Gather all the args remaining, they should all be easy
-            rem_args = [n for n in args if (not root.has_path(n.role))]
-            all_rem_args_suit = product(*map(recur, rem_args))
-            for rem_args_suit in all_rem_args_suit:
+            for con in cons:
+                logging.debug('Chosen {}'.format(con))
                 res = root.clone()
-                res.children = [n.clone() for n in rem_args_suit]
-                yield res
+                res.cons = KSet({con})
+                args, rels = cons_dic[root.type][con]
+
+                # mechanism to prevent infinite loop:
+                if max_dep == 1:
+                    if any(map(lambda x: type(x) is Mole, args)):
+                        logging.debug('Out of level, try another constructor')
+                        continue
+
+                logging.debug('The tree right now:')
+                dt(res)
+                for arg in args:
+                    res.kattach(arg)
+                logging.debug('Out tree is now full:')
+                dt(res)
+                logging.debug('With this decision in mind, let\'s go again!')
+                for k in kenumerate(res, max_dep, tags):
+                    yield k
+            raise StopIteration
+
+        rels = cons_dic[root.type][root.cons[0]].rels
+        try: rel = [r for r in rels if r not in checked_rel][0]
+        except IndexError: rel = None
+        if rel:
+            logging.debug('Relation phase')
+            logging.debug('Checking relation {}'.format(rel))
+            checked_rel += (rel,)
+            if rel.type == RelT.FUN:
+                logging.debug('It\'s a functional relation')
+                in_args = []
+                for slot in rel.get('in'):
+                    in_args += [n for n in root.children if n.role == tlr(slot)]
+
+                logging.debug('The inputs needed are:')
+                logging.debug(in_args)
+                recur = partial(kenumerate, max_dep = max_dep-1)
+                all_input_suits = product(*map(recur, in_args))
+                logging.debug('Got all input suits. Reminder: we are dealing with:')
+                dt(root)
+                for input_suit in all_input_suits:
+                    res = root.clone()
+                    for inp in input_suit: res.kattach(inp)
+
+                    logging.debug('Attached input suit:')
+                    dt(res)
+                    get_first_of_path = lambda p: res.get_path(p).vals[0]
+                    output = rel.get('fun')\
+                            (*map(get_first_of_path, rel.get('in')))
+                    out_atom = Atom(role=rel.get('out'), vals=KSet({output}))
+                    res.kattach(out_atom)
+                    logging.debug('Attached output:')
+                    dt(res)
+
+                    logging.debug('Done with this relation, restart!')
+                    for k in kenumerate(res, max_dep, tags, checked_rel):
+                        save(k); yield k
+            raise StopIteration
+
+        logging.debug('We are now in the finishing phase')
+        recur = partial(kenumerate, max_dep = max_dep-1)
+        missing_children = [n for n in root.children if not n.is_complete()]
+        if missing_children:
+            logging.debug('There are still children missing')
+            all_children_suits = product(*map(recur, root.children))
+            logging.debug('Looping through all children suit')
+            for children_suit in all_children_suits:
+                res = root.clone()
+                for n in children_suit:
+                    res.kattach(n.clone())
+                logging.debug('Attached children suit')
+                dt(res)
+                assert(res.is_complete())
+                logging.debug('Let\'s yield this!')
+                save(res); yield res
+        else:
+            logging.debug('No children missing')
+            logging.debug('Let\'s yield this!')
+            yield root.clone()
 
 
 tdic = {}
@@ -115,10 +178,6 @@ cons_dic['WFF_TEST'] = tdic
 start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
 
 
-store = []
-LEVEL_CAP = 3
-for i, t in enumerate(k_enumerate(root=start, max_dep=LEVEL_CAP)):
-    t.name = i; store.append(t)
-    print(anytree.RenderTree(t), end='\n\n')
-
-rt = lambda t: print(anytree.RenderTree(t))
+LEVEL_CAP = 2
+for t in kenumerate(root=start, max_dep=LEVEL_CAP):
+    logging.info('RETURNED {}\n\n'.format(anytree.RenderTree(t)))

@@ -19,11 +19,18 @@ class KSet:
         self.content, self.qualifier, self.user_len, self.custom_repr =\
             content, qualifier, user_len, custom_repr
 
+        # List out the content for viewing pleasure
+        if self.is_explicit() and len(self) <= 20:
+            self.expand()
+
     def __eq__(self, other):
         return self.content == other.content and self.qualifier == other.qualifier
 
     def __hash__(self) -> int:
         return hash((self.content, self.qualifier))
+
+    def clone(self) -> 'KSet':
+        return KSet(self.content, self.qualifier, self.user_len, self.custom_repr)
 
     def __repr__(self) -> str:
         if self.custom_repr: return self.custom_repr
@@ -61,9 +68,9 @@ class KSet:
         if self.is_explicit(): return (val in self.content)
         else: return self.qualifier(val)
 
-    def make_explicit(self):
+    def expand(self):
         """(For explicit ksets) Turn content to set. Be careful with this!"""
-        self.content = set(self.content)
+        self.content = frozenset(self.content)
 
     def is_empty(self):
         return (len(self) == 0) if self.has_len() else False
