@@ -1,10 +1,10 @@
-from misc import MyEnum
+from misc import MyEnum, car, cdr, rcar, rcdr
 from kset import KSet, KConst
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from enum import Enum, auto
-from typing import List, Iterable, Set, Callable, Dict, Union
+from enum import *
+from typing import *
 from anytree import NodeMixin, Resolver, ResolverError, ChildResolverError
 
 
@@ -93,7 +93,7 @@ class Atom(MathObj):
 
 
 class Mole(MathObj):
-    def __init__(self, role: str, type_: 'MathT',
+    def __init__(self, role: str, type_: Optional['MathT'],
                  cons: KSet = KConst.STR.value,
                  name: str='', parent=None, children: Iterable[Union[Atom, 'Mole']]=[]):
         super().__init__(role, name)
@@ -110,9 +110,23 @@ class Mole(MathObj):
         try: self.get_path(role); return True
         except ChildResolverError: return False
 
-    def kattach(self, node: Union[Atom, 'Mole'], mode='unify'):
-        """Attach `node` to this molecule"""
-        if type(node) == Atom:
+    def pave_way(self, path: str):
+        """Keep attaching unknown nodes until `self.has_path(path)` is True"""
+        if not self.has_path(path):
+            if not self.has_path(car(path)):
+                new_child = Mole(role=car(path), type_=None)
+            else: new_child = self.get_path(car(path))
+            new_child.parent = self
+            new_child.pave_way(cdr(path))
+
+    def kattach(self, node: Union[Atom, 'Mole'], path: str = '', mode: str = 'unify'):
+        """
+        Attach `node` to this molecule, with optional path down the line
+        """
+        if path != '':
+            self.pave_way(path)
+            self.get_path(path).kattach(node, mode=mode)
+        elif type(node) == Atom:
             if self.has_path(node.role):
                 same = self.get_path(node.role)
                 same.vals = same.vals & node.vals
@@ -120,9 +134,11 @@ class Mole(MathObj):
         elif type(node) == Mole:
             if self.has_path(node.role):
                 same = self.get_path(node.role)
+                if same.type == None: same.type = node.type
+                else: assert(same.type == node.type), 'Two type, one node?'
                 same.cons = same.cons & node.cons
                 for node_child in node.children:
-                    same.kattach(node_child)
+                    same.kattach(node_child, mode=mode)
             else: node.parent = self
 
     def spec(self, path: str) -> bool:
