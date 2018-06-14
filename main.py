@@ -91,9 +91,19 @@ def con_p(root, max_dep, trace):
             continue
 
         logging.debug('We still have enough level for this molecule')
+        ill_formed = False
+        for child in res.children:
+            if child.role not in [arg.role for arg in args]:
+                ill_formed = True; break
+        if ill_formed:
+            logging.debug('This molecule has too many children for this constructor')
+            continue
+        else: logging.debug('Good, there is no redundant children')
+
         for arg in args:
             res.kattach(arg)
         logging.debug('Attached children according to constructor:\n{}'.format(rt(res)))
+
         logging.debug('Yielding from constructor phase')
         yield res
 
@@ -120,7 +130,7 @@ def rel_p(root: Mole, max_dep, trace, phase=0):
         logging.debug('The inputs needed are:')
         logging.debug(in_args)
         logging.debug('Let\'s see what input suits there are:')
-        recur = partial(kenum, max_dep = max_dep-1, trace=trace)
+        recur = partial(kenum, max_dep = max_dep-1)
         all_input_suits = product(*map(recur, in_args))
         for choice, input_suit in enumerate(all_input_suits):
             res = root.clone()
@@ -147,7 +157,7 @@ def fin_p(root, max_dep, trace):
     if [n for n in root.children if not n.is_complete()]:
         logging.debug('There are incomplete children')
         logging.debug('Trying out all possible children suits:')
-        recur = partial(kenum, max_dep = max_dep-1, trace=trace)
+        recur = partial(kenum, max_dep = max_dep-1)
         all_children_suits = product(*map(recur, root.children))
         for choice, children_suit in enumerate(all_children_suits):
             res = root.clone()

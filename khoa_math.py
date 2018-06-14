@@ -71,7 +71,8 @@ class Atom(MathObj):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     def __repr__(self) -> str:
-        return 'A({}, {}, {})'.format(self.role, self.vals, self.name)
+        fields = (f for f in [self.name, self.role, str(self.vals)] if f != '')
+        return 'A({})'.format(', '.join(fields))
 
     @property
     def children(self):
@@ -101,7 +102,8 @@ class Mole(MathObj):
         self.parent, self.children = parent, tuple(children)
 
     def __repr__(self) -> str:
-        return 'M({}, {}, {}, {})'.format(self.role, self.name, self.type, self.cons)
+        fields = (f for f in [self.name, self.role, str(self.type), str(self.cons)] if f != '')
+        return 'M({})'.format(', '.join(fields))
 
     def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
