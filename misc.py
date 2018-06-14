@@ -1,3 +1,4 @@
+import logging, inspect
 from enum import Enum, auto
 from typing import Iterable
 
@@ -26,3 +27,17 @@ def cdr(path: str): return '/'.join(path.split('/')[1:])
 def rcar(path: str): return '/'.join(path.split('/')[-1])
 
 def rcdr(path: str): return '/'.join(path.split('/')[:-1])
+
+
+class IndentFormatter(logging.Formatter):
+    """Logging formatter with indentation based on call stack"""
+    def __init__(self, fmt=None, datefmt=None):
+        logging.Formatter.__init__(self, fmt, datefmt)
+        self.baseline = len(inspect.stack()) + 10
+    def format(self, rec):
+        stack = inspect.stack()
+        rec.indent = '  '*(len(stack)-self.baseline)
+        rec.function = stack[10][3]
+        out = logging.Formatter.format(self, rec)
+        del rec.indent; del rec.function
+        return out

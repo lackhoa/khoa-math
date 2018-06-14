@@ -1,3 +1,4 @@
 __pycache__/
 *.swp
 .mypy_cache/
+logs/
