@@ -98,7 +98,7 @@ def con_p(root, max_dep, trace):
         if ill_formed:
             logging.debug('This molecule has too many children for this constructor')
             continue
-        else: logging.debug('Good, there is no redundant children')
+        else: logging.debug('Good, there is no redundant components')
 
         for arg in args:
             res.kattach(arg)
@@ -117,8 +117,7 @@ def rel_p(root: Mole, max_dep, trace, phase=0):
     except IndexError:
         logging.debug('No more relations, relation phase over')
         logging.debug('Yielding from relation phase')
-        yield root.clone()
-        raise StopIteration
+        return root.clone()
 
     logging.debug('Working with relation {}'.format(rel))
     if rel.type == RelT.FUN:
