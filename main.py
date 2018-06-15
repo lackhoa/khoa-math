@@ -3,7 +3,6 @@ from misc import *
 from khoa_math import *
 from type_mgr import *
 from type_data import *
-from wff import *
 from rel import *
 from call_tree import *
 
@@ -131,7 +130,7 @@ def rel_p(root: Mole, max_dep, orig=None):
 
                 input_suits = product(*in_args_enum)
                 for input_suit in input_suits:
-                    input_suit_orig = orig.branch('Chosen input suit: {}'.format(input_suit))
+                    input_suit_orig = orig.branch('Chosen a new input suit')
                     res = root.clone()
                     for inp in input_suit:
                         res.kattach(inp.clone())
@@ -179,26 +178,10 @@ def fin_p(root, max_dep, orig):
         yield root.clone()
 
 
-tdic = {}
-tdic['ATOM'] = CI(args=[Atom(role='text', vals=KSet({'P', 'Q'}))])
-tdic['NEGATION'] = CI(args=[Atom(role='text', vals=KConst.STR.value),
-                            Mole(role='body_f', type_='WFF_TEST')],
-                      rels=[Rel(RelT.FUN,
-                                lambda s: '(~{})'.format(s),
-                                'body_f/text', 'text')])
-
-# tdic['CONDITIONAL'] = CI(args=[Mole(role='ante', type_='WFF_TEST'),
-#                                Mole(role='conse', type_='WFF_TEST'),
-#                                Atom(role = 'text', vals = KConst.STR.value)],
-#                          rels=[Rel(RelT.FUN,
-#                                    lambda s1, s2: '(()&())'.format(s1, s2),
-#                                    'ante/text', 'conse/text', 'text')])
-cons_dic['WFF_TEST'] = tdic
-
-start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION'}))
+start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION', 'CONDITIONAL'}))
 
 
-LEVEL_CAP = 2
+LEVEL_CAP = 3
 debug_root = LogNode('Start Debug')  # For describing the program run
 info_root = LogNode('Start Info')  # For output
 for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
