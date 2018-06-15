@@ -40,16 +40,14 @@ def rt(t): return str(anytree.RenderTree(t))
 def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
     if phase == 0:
         orig.log(30*'#'); orig.log('Welcome to kenum!')
-        orig.log_rt('The root is:', root)
+        orig.log('The root is:', root.clone())
     if type(root) == Atom and max_dep >= 0:
         orig.log('It\'s an atom')
         if root.vals.is_explicit():
             for val in root.vals:
-                this_val_orig = orig.branch('Chosen a new value for the atom:')
                 res = root.clone()
                 res.vals = KSet({val})
-                this_val_orig.log_rt('', res)
-                this_val_orig.log('Yielding this atom')
+                orig.log('Yielding this atom:', res.clone())
                 yield res
         else:
             raise Exception('What the hell am I supposed to loop through now?')
@@ -61,17 +59,19 @@ def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
             this_wf_orig = orig.branch('Chosen this from Formation phase')
-            this_wf_orig.log_rt(intro='', tree=well_formed)
+            this_wf_orig.log(txt='CHOICE', tree=well_formed.clone())
             this_wf_orig.log('Let\'s go to Relation Phase')
+
             for relationed in rel_p(root=well_formed, max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch('Chosen this from Relation Phase:')
-                this_rel_orig.log_rt(intro='', tree=relationed)
+                this_rel_orig.log(txt='CHOICE', tree=relationed.clone())
                 this_rel_orig.log('Let\'s go to Finishing Phase')
+
                 for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
                     this_fin_orig = this_rel_orig.branch('Chosen this from Finishing Phase:')
-                    this_fin_orig.log_rt(intro='', tree=finished)
+                    this_fin_orig.log(txt='CHOICE', tree=finished.clone())
                     this_fin_orig.log('All phases are complete, yielding from main')
-                    yield finished
+                    yield finished.clone()
 
 
 def form_p(root, max_dep, orig):
@@ -102,7 +102,7 @@ def form_p(root, max_dep, orig):
 
         for arg in args:
             res.kattach(arg)
-        con_orig.log_rt('Attached all missing components', res)
+        con_orig.log('Attached all missing components', res.clone())
 
         con_orig.log('Yielding from constructor phase')
         yield res
@@ -134,8 +134,8 @@ def rel_p(root: Mole, max_dep, orig=None):
                     input_suit_orig = orig.branch('Chosen input suit: {}'.format(input_suit))
                     res = root.clone()
                     for inp in input_suit:
-                        res.kattach(inp)
-                    input_suit_orig.log_rt('Attached input suit:', res)
+                        res.kattach(inp.clone())
+                    input_suit_orig.log('Attached input suit:', res.clone())
 
                     function = rel.get('fun')
                     get_first_of_path = lambda p: res.get_path(p).vals[0]
@@ -144,7 +144,7 @@ def rel_p(root: Mole, max_dep, orig=None):
 
                     out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
                     res.kattach(node=out_atom, path=cdr(rel.get('out')))
-                    input_suit_orig.log_rt('Attached output:', res)
+                    input_suit_orig.log('Attached output:', res.clone())
                     input_suit_orig.log('Yielding!')
                     yield res
     else:
@@ -168,7 +168,7 @@ def fin_p(root, max_dep, orig):
             res = root.clone()
             for n in children_suit:
                 res.kattach(n.clone())
-            children_suit_orig.log_rt('Attached children suit:', res)
+            children_suit_orig.log('Attached children suit:', res.clone())
             assert(res.is_complete())
             children_suit_orig.log('Confirmed that the tree is complete')
             children_suit_orig.log('Let\'s yield!')
@@ -202,11 +202,11 @@ LEVEL_CAP = 2
 debug_root = LogNode('Start Debug')  # For describing the program run
 info_root = LogNode('Start Info')  # For output
 for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
-    info_root.log_rt('RETURNED:', t)
+    info_root.log('RETURNED:', t.clone())
 
 # Writing logs
-logging.debug(str(rt(debug_root)))
-logging.info(str(rt(info_root)))
+logging.debug(render_log(debug_root))
+logging.info(render_log(info_root))
 
 # Got some sick graphs, too:
 # anytree.exporter.DotExporter(debug_root).to_dotfile('logs/debug.dot')
