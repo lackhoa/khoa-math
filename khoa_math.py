@@ -72,7 +72,7 @@ class Atom(MathObj):
 
     def __repr__(self) -> str:
         fields = (f for f in [self.name, self.role, 'vals='+str(self.vals)] if f != '')
-        return 'A({})'.format(', '.join(fields))
+        return 'A: {}'.format(', '.join(fields))
 
     @property
     def children(self):
@@ -81,6 +81,10 @@ class Atom(MathObj):
     @children.setter
     def children(self, value):
         raise Exception('Atoms cannot have children')
+
+    @property
+    def val(self):
+        return self.vals[0]
 
     def clone(self) -> 'Atom':
         res = Atom(role=self.role, vals=self.vals.clone())
@@ -105,10 +109,14 @@ class Mole(MathObj):
         fields = (f for f in [self.name, self.role, str(self.type),
                               'cons='+str(self.cons)]
                   if f != '')
-        return 'M({})'.format(', '.join(fields))
+        return 'M: {}'.format(', '.join(fields))
 
     def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
+
+    @property
+    def con:
+        return self.cons[0]
 
     def has_path(self, role: str) -> bool:
         try: self.get_path(role); return True

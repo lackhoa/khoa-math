@@ -54,10 +54,9 @@ class KSet:
 
     def __getitem__(self, index: int):
         """For explicit ksets only."""
-        for i, v in enumerate(self.content):
-            if i == index: return v
-        # Getting out of the loop means failure
-        raise IndexError
+        res = nth(self.content, index)
+        if res is not None: return res
+        else: raise IndexError
 
     def __iter__(self):
         """For explicit ksets only."""

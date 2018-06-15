@@ -36,6 +36,12 @@ sys.excepthook = custom_traceback
 def rt(t): return str(anytree.RenderTree(t))
 
 
+class KEnumError(Exception):
+    def __init__(self, node):
+        self.message = 'Cannot enumerate this node'
+        self.node = node
+
+
 def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
     if phase == 0:
         orig.log(30*'#'); orig.log('Welcome to kenum!')
@@ -49,7 +55,7 @@ def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
                 orig.log('Yielding this atom:', res.clone())
                 yield res
         else:
-            raise Exception('What the hell am I supposed to loop through now?')
+            raise KEnumError(self)
 
     else:
         if phase == 0:
@@ -61,7 +67,21 @@ def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
             this_wf_orig.log(txt='CHOICE', tree=well_formed.clone())
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            for relationed in rel_p(root=well_formed, max_dep=max_dep, orig=this_wf_orig):
+            rels = cons_dic[well_formed.type][well_formed.con].rels
+            rel_iter = iter(rels)
+            def repeat_rel_p(tree):
+                nonlocal this_wf_orig, max_dep, rel_iter
+                try:
+                    this_rel = next(rel_iter)
+                    for new_tree in rel_p(
+                            root=root, max_dep=max_dep rel=this_rel, orig=this_wf_orig):
+                        choice_orig = this_wf_orig.branch('Chosen ')
+                        for res in repeat_rel_p(new_tree):
+                            yield res
+                except StopIteration:
+                    yield node.clone()
+
+            for relationed in repeat_rel_p(this_wf_orig):
                 this_rel_orig = this_wf_orig.branch('Chosen this from Relation Phase:')
                 this_rel_orig.log(txt='CHOICE', tree=relationed.clone())
                 this_rel_orig.log('Let\'s go to Finishing Phase')
@@ -107,48 +127,65 @@ def form_p(root, max_dep, orig):
         yield res
 
 
-def rel_p(root: Mole, max_dep, orig=None):
-    """Apply all relations to root"""
+def rel_p(root: Mole, max_dep, rel, orig=None):
+    """Apply all relation `rel` to aid in root enumeration"""
     orig.log('#'*30); orig.log('Welcome to Relation Phase')
-    rels = cons_dic[root.type][root.cons[0]].rels
 
-    if rels:
-        for rel in rels:
-            orig.log('Working with relation {}'.format(rel))
-            if rel.type == RelT.FUN:
-                orig.log('It\'s a functional relation')
-                in_args = []
-                for slot in rel.get('in'):
-                    in_args += [n for n in root.children if n.role == car(slot)]
+    orig.log('Working with relation {}'.format(rel))
+    if rel.type == RelT.FUN:
+        orig.log('It\'s a functional relation')
+        in_args = [root.get_path(slot) for slot in rel.get('in')]
 
-                orig.log('The inputs needed are:'); orig.log(in_args)
+        orig.log('The inputs needed are:'); orig.log(in_args)
 
-                in_args_enum = []
-                for in_arg in in_args:
-                    in_arg_enum_orig = orig.log('Enumerating argument {}'.format(in_arg))
-                    in_args_enum.append(kenum(in_arg, max_dep = max_dep-1, orig=orig))
+        in_args_enum = []
+        for in_arg in in_args:
+            in_arg_enum_orig = orig.log('Will enumerating argument {}'.format(in_arg))
+            in_args_enum.append(kenum(in_arg, max_dep = max_dep-1, orig=orig))
 
-                input_suits = product(*in_args_enum)
-                for input_suit in input_suits:
-                    input_suit_orig = orig.branch('Chosen a new input suit')
-                    res = root.clone()
-                    for inp in input_suit:
-                        res.kattach(inp.clone())
-                    input_suit_orig.log('Attached input suit:', res.clone())
+        input_suits = product(*in_args_enum)
+        for input_suit in input_suits:
+            input_suit_orig = orig.branch('Chosen a new input suit')
+            res = root.clone()
+            for inp in input_suit:
+                res.kattach(inp.clone())
+            input_suit_orig.log('Attached input suit:', res.clone())
 
-                    function = rel.get('fun')
-                    get_first_of_path = lambda p: res.get_path(p).vals[0]
-                    arguments = map(get_first_of_path, rel.get('in'))
-                    output = function(*arguments)
+            function = rel.get('fun')
+            get_first_of_path = lambda p: res.get_path(p).vals[0]
+            arguments = map(get_first_of_path, rel.get('in'))
+            output = function(*arguments)
 
-                    out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
-                    res.kattach(node=out_atom, path=cdr(rel.get('out')))
-                    input_suit_orig.log('Attached output:', res.clone())
-                    input_suit_orig.log('Yielding!')
-                    yield res
-    else:
-        orig.log('There are no relations, yielding right now')
-        yield root.clone()
+            out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
+            res.kattach(node=out_atom, path=cdr(rel.get('out')))
+            input_suit_orig.log('Attached output:', res.clone())
+            input_suit_orig.log('Yielding!')
+            yield res
+
+    elif res.type == RelT.UNION:
+        orig.log('It\'s a union!')
+        orig.log('Try enumerating the union part')
+        uni_path, subs_path = rel.get('uni'), rel.get('subs')
+        uni_node = root.get_path(car(uni_path))
+        try:
+            for uni_compl in kenum(
+                    root=uni_node, max_dep=max_dep-1, orig=orig):
+                uni_orig = orig.branch('Chosen union:')
+                power = powerset(uni_compl.values[0])
+                subs_root = [root.get_path(car(path)) for path in subs_path]
+                bunch_of_shit = product(power, repeat=len(subs_path)-1)
+                for vs in vss:
+                    origin.log('Chosen a new set of values')
+                    for i, v in enumerate(vs):
+                        subs_root[i].values = v
+                    uni_fun = lambda x, y: x & y
+                    union_kset = reduce(uni_fun, vs)
+                    leftover = uni_compl.val - union_kset
+                    subs_root[-1].vals = KSet({leftover})
+
+                subs_root_unified = (sub_root &  for sub_root in subs_root)
+
+        except KEnumError:
 
 
 def fin_p(root, max_dep, orig):

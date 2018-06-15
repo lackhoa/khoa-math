@@ -13,11 +13,23 @@ class MyEnum(Enum):
         return self.value
 
 
-def take_index(L: Iterable, n: int):
-    """Return `element` n of an iterable `L`"""
-    for i, v in enumerate(L):
-        if i == n: return v
-    else: raise IndexError
+def take(n, iterable):
+    "Return first n items of the iterable as a list"
+    return list(islice(iterable, n))
+
+
+def nth(iterable, n, default=None):
+    "Returns the nth item or a default value"
+    return next(islice(iterable, n, None), default)
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+
+
 
 
 def car(path: str): return path.split('/')[0]
@@ -27,17 +39,3 @@ def cdr(path: str): return '/'.join(path.split('/')[1:])
 def rcar(path: str): return '/'.join(path.split('/')[-1])
 
 def rcdr(path: str): return '/'.join(path.split('/')[:-1])
-
-
-class IndentFormatter(logging.Formatter):
-    """Logging formatter with indentation based on call stack"""
-    def __init__(self, fmt=None, datefmt=None):
-        logging.Formatter.__init__(self, fmt, datefmt)
-        self.baseline = len(inspect.stack()) + 10
-    def format(self, rec):
-        stack = inspect.stack()
-        rec.indent = '  '*(len(stack)-self.baseline)
-        rec.function = stack[10][3]
-        out = logging.Formatter.format(self, rec)
-        del rec.indent; del rec.function
-        return out

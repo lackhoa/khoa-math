@@ -18,9 +18,11 @@ class Rel:
         if self.type == RelT.FUN:
             return '{} -> {}'.format(self.get('in'), self.get('out'))
 
-    def get(self, attr: str):
+    def get(self, key: str):
         if self.type == RelT.FUN:
-            if attr == 'fun': return self.slots[0]
-            elif attr == 'in': return self.slots[1:-1]
-            elif attr == 'out': return self.slots[-1]
-
+            if key == 'fun': return self.slots[0]
+            elif key == 'in': return self.slots[1:-1]
+            elif key == 'out': return self.slots[-1]
+        elif self.type == Relt.UNION:
+            if key == 'subs': return self.slots[:-1]
+            if key == 'uni': return self.slots[-1]
