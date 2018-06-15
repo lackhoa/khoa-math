@@ -19,22 +19,22 @@ class LogNode(NodeMixin):
         child.parent = self
 
     def log_rt(self, intro, tree, style='DoubleStyle'):
-        START_DELIM = ''
-        END_DELIM = ''
+        START_DELIM = '('
+        END_DELIM = ')'
         lines = [intro, START_DELIM, str(RenderTree(tree, DoubleStyle)), END_DELIM]
         self.log('\n'.join(lines))
 
-    def call(self, call_txt):
-        """Return the node with `call_name`"""
-        return LogNode(txt = call_txt, parent = self)
+    def branch(self, branch_txt):
+        """Return the node with `branch_name`"""
+        return LogNode(txt = branch_txt, parent = self)
 
 
 if __name__ == '__main__':
     root = LogNode('Start')
     def a(orig):
         orig.log('do something')
-        b_call = orig.call('Call b')
-        b(b_call)
+        b_branch = orig.branch('Call b')
+        b(b_branch)
 
     def b(orig):
         x = Node('x'); y = Node('y', parent=x)
