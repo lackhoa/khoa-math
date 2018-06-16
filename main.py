@@ -46,41 +46,45 @@ class KEnumError(Exception):
 def kenum(root: ATMO, max_dep: int, orig=None):
     orig.log(30*'#'); orig.log('Welcome to kenum!')
     orig.log('The root is:'); orig.log_t(root)
-    if type(root) == Atom and max_dep >= 0:
-        orig.log('It\'s an atom')
-        if root.vals.is_explicit():
-            for val in root.vals:
-                res = root.clone()
-                res.vals = KSet({val})
-                res.legit = True
-                orig.log('Yielding this atom:'); orig.log_t(res)
-                yield res
-        else:
-            raise KEnumError(self)
-
+    if root.legit:
+        orig.log('Node already legit, yielding!')
+        yield root.clone()
     else:
-        orig.log('It\'s a molecule')
+        if type(root) == Atom and max_dep >= 0:
+            orig.log('It\'s an atom')
+            if root.vals.is_explicit():
+                for val in root.vals:
+                    res = root.clone()
+                    res.vals = KSet({val})
+                    res.legit = True
+                    orig.log('Yielding this atom:'); orig.log_t(res)
+                    yield res
+            else:
+                raise KEnumError(self)
 
-        orig.log('Let\'s go to Formation Phase')
-        for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
-            this_wf_orig = orig.branch(['Chosen this from Formation phase'])
-            this_wf_orig.log_t(well_formed)
-            this_wf_orig.log('Let\'s go to Relation Phase')
+        else:
+            orig.log('It\'s a molecule')
 
-            rels = cons_dic[well_formed.type][well_formed.con].rels
-            rel_iter_ = iter(rels)
-            for relationed in repeat_rel_p(
-                    root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
-                this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
-                this_rel_orig.log_t(relationed)
-                this_rel_orig.log('Let\'s go to Finishing Phase')
+            orig.log('Let\'s go to Formation Phase')
+            for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
+                this_wf_orig = orig.branch(['Chosen this from Formation phase'])
+                this_wf_orig.log_t(well_formed)
+                this_wf_orig.log('Let\'s go to Relation Phase')
 
-                for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
-                    this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
-                    this_fin_orig.log_t(finished)
-                    this_fin_orig.log('All phases are complete, yielding from main')
-                    final = finished.clone(); final.legit = True
-                    yield final
+                rels = cons_dic[well_formed.type][well_formed.con].rels
+                rel_iter_ = iter(rels)
+                for relationed in repeat_rel_p(
+                        root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
+                    this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
+                    this_rel_orig.log_t(relationed)
+                    this_rel_orig.log('Let\'s go to Finishing Phase')
+
+                    for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
+                        this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
+                        this_fin_orig.log_t(finished)
+                        this_fin_orig.log('All phases are complete, yielding from main')
+                        final = finished.clone(); final.legit = True
+                        yield final
 
 
 def form_p(root, max_dep, orig):
@@ -165,17 +169,15 @@ def rel_p(root: Mole, max_dep, rel, orig):
     #         for uni_legit in kenum(
     #                 root=uni_root, max_dep=max_dep-1, orig=orig):
     #             uni_orig = orig.branch(['Chosen union:'])
-    #             power = powerset(uni_legit.val)
     #             subs_root = [root.get_path(car(path)) for path in subs_path]
-    #             product = product(power, repeat=len(subs_path)-1)
-    #             for vs in product:
-    #                 choice_orig = origin.branch(['Chosen a new set of values'])
-    #                 for i, v in enumerate(vs):
-    #                     subs_root[i].values = v
-    #                 uni_fun = lambda x, y: x & y
-    #                 union_kset = reduce(uni_fun, vs)
-    #                 leftover = uni_legit.val - union_kset
-    #                 subs_root[-1].vals = KSet({leftover})
+    #             uni_orig.log('Updating the subsets')
+    #             for sub_root in subs_root:
+    #                 sub_root.kattach(powerset(uni_legit.val))
+    #             m_subs_root = []
+    #             for sub_root in m_subs_root:
+    #                 if not sub_root.legit:
+    #                     m_subs_root.append(kenum(root=sub_root, max_dep=max_dep-1, orig=orig))
+
 
     #             subs_root_unified = (sub_root &  for sub_root in subs_root)
 

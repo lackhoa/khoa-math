@@ -145,13 +145,17 @@ class Mole(MathObj):
             if self.has_path(node.role):
                 same = self.get_path(node.role)
                 same.vals = same.vals & node.vals
+                same.legit = node.legit
             else: node.parent = self
         elif type(node) == Mole:
             if self.has_path(node.role):
                 same = self.get_path(node.role)
-                if same.type == None: same.type = node.type
-                else: assert(same.type == node.type), 'Two type, one node?'
+                if same.type == None:
+                    same.type = node.type
+                else:
+                    assert(same.type == node.type), 'Two type, one node?'
                 same.cons = same.cons & node.cons
+                same.legit = node.legit
                 for node_child in node.children:
                     same.kattach(node_child, mode=mode)
             else: node.parent = self
