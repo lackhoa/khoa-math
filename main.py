@@ -7,6 +7,7 @@ from rel import *
 from call_tree import *
 
 import anytree, anytree.exporter
+import timeit
 from typing import Set, Iterable, FrozenSet, Union
 from itertools import product, starmap
 from functools import partial
@@ -227,8 +228,12 @@ start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION', '
 LEVEL_CAP = 3
 debug_root = LogNode(['Start Debug'])  # For describing the program execution
 info_root = LogNode(['Start Info'])  # For output
+start_time = timeit.default_timer()
 for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
     info_root.log('RETURNED:'); info_root.log_t(t)
+stop_time = timeit.default_timer()
+
+logging.info("Program Executed in {} seconds".format(stop_time - start_time))
 
 # Writing logs
 logging.debug(render_log(debug_root))
