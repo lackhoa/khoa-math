@@ -66,19 +66,6 @@ def kenum(root: ATMO, max_dep: int, orig=None):
             this_wf_orig.log_t(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            def repeat_rel_p(root, max_dep, rel_iter, orig):
-                try:
-                    this_rel = next(rel_iter)
-                    for new_root in rel_p(
-                            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
-                        choice_orig = this_wf_orig.branch(['Chosen '])
-                        choice_orig.log('TREE'); choice_orig.log_t(new_root)
-                        for res in repeat_rel_p(new_root, max_dep, rel_iter, choice_orig):
-                            yield res
-                except StopIteration:
-                    orig.log('No more relations, yielding')
-                    yield root.clone()
-
             rels = cons_dic[well_formed.type][well_formed.con].rels
             rel_iter_ = iter(rels)
             for relationed in repeat_rel_p(
@@ -93,7 +80,8 @@ def kenum(root: ATMO, max_dep: int, orig=None):
                     this_fin_orig.log('CHOICE');
                     this_fin_orig.log_t(finished)
                     this_fin_orig.log('All phases are complete, yielding from main')
-                    yield finished.clone()
+                    final = finished.clone(); final.marked = True
+                    yield final
 
 
 def form_p(root, max_dep, orig):
@@ -145,7 +133,10 @@ def rel_p(root: Mole, max_dep, rel, orig):
 
         in_legit = []
         for in_root in in_roots:
-            in_legit.append(kenum(in_root, max_dep = max_dep-1, orig=orig))
+            if in_root.legit:
+                in_legit.append([in_root])
+            else:
+                in_legit.append(kenum(in_root, max_dep = max_dep-1, orig=orig))
 
         in_suits = product(*in_legit)
         for in_suit in in_suits:
@@ -172,60 +163,69 @@ def rel_p(root: Mole, max_dep, rel, orig):
     #     orig.log('It\'s a union!')
     #     orig.log('Try enumerating the union part')
     #     uni_path, subs_path = rel.get('uni'), rel.get('subs')
-    #     uni_node = root.get_path(car(uni_path))
+    #     uni_root = root.get_path(car(uni_path))
     #     try:
-    #         for uni_compl in kenum(
-    #                 root=uni_node, max_dep=max_dep-1, orig=orig):
+    #         for uni_legit in kenum(
+    #                 root=uni_root, max_dep=max_dep-1, orig=orig):
     #             uni_orig = orig.branch(['Chosen union:'])
-    #             power = powerset(uni_compl.values[0])
+    #             power = powerset(uni_legit.val)
     #             subs_root = [root.get_path(car(path)) for path in subs_path]
-    #             bunch_of_shit = product(power, repeat=len(subs_path)-1)
-    #             for vs in vss:
-    #                 origin.log('Chosen a new set of values')
+    #             product = product(power, repeat=len(subs_path)-1)
+    #             for vs in product:
+    #                 choice_orig = origin.branch(['Chosen a new set of values'])
     #                 for i, v in enumerate(vs):
     #                     subs_root[i].values = v
     #                 uni_fun = lambda x, y: x & y
     #                 union_kset = reduce(uni_fun, vs)
-    #                 leftover = uni_compl.val - union_kset
+    #                 leftover = uni_legit.val - union_kset
     #                 subs_root[-1].vals = KSet({leftover})
 
     #             subs_root_unified = (sub_root &  for sub_root in subs_root)
 
-    #     except KEnumError:
+
+def repeat_rel_p(root, max_dep, rel_iter, orig):
+    try:
+        this_rel = next(rel_iter)
+        for new_root in rel_p(
+                root=root, max_dep=max_dep, rel=this_rel, orig=orig):
+            choice_orig = orig.branch(['Chosen '])
+            choice_orig.log('TREE'); choice_orig.log_t(new_root)
+            for res in repeat_rel_p(new_root, max_dep, rel_iter, choice_orig):
+                yield res
+    except StopIteration:
+        orig.log('No more relations, yielding')
+        yield root.clone()
 
 
 def fin_p(root, max_dep, orig):
     """Enumerate all children that haven't been enumerated"""
     orig.log('#'*30); orig.log('We are now in Finishing Phase')
-    if [n for n in root.children if not n.is_complete()]:
-        orig.log('There are incomplete children')
-        children_enum = []
-        for child in root.children:
-            orig.log('Enumerating child {}'.format(child))
+    children_enum = []
+    for child in root.children:
+        if child.legit:
+            children_enum.append(child)
+        else:
             children_enum.append(kenum(child, max_dep = max_dep-1, orig=orig))
 
-        all_children_suits = product(*children_enum)
-        for children_suit in all_children_suits:
-            children_suit_orig = orig.branch(['Chosen a new children suit'])
-            res = root.clone()
-            for n in children_suit:
-                res.kattach(n.clone())
-            children_suit_orig.log('Attached children suit:')
-            children_suit_orig.log_t(res)
-            assert(res.is_complete())
-            children_suit_orig.log('Confirmed that the tree is complete')
-            children_suit_orig.log('Let\'s yield!')
-            yield res
-    else:
-        orig.log('Great! No children missing, let\'s yield!')
-        yield root.clone()
+    all_children_suits = product(*children_enum)
+    for children_suit in all_children_suits:
+        children_suit_orig = orig.branch(['Chosen a new children suit'])
+        res = root.clone()
+        for n in children_suit:
+            res.kattach(n.clone())
+        children_suit_orig.log('Attached children suit:')
+        children_suit_orig.log_t(res)
+        assert(res.is_complete())
+        children_suit_orig.log('Confirmed that the tree is complete')
+        children_suit_orig.log('Let\'s yield!')
+        yield res
 
 
 start = Mole(role='root', type_ = 'WFF_TEST', cons = KSet({'ATOM', 'NEGATION', 'CONDITIONAL'}))
 
 
 LEVEL_CAP = 3
-debug_root = LogNode(['Start Debug'])  # For describing the program run
+debug_root = LogNode(['Start Debug'])  # For describing the program execution
 info_root = LogNode(['Start Info'])  # For output
 for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
     info_root.log('RETURNED:'); info_root.log_t(t)

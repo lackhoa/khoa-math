@@ -66,6 +66,7 @@ class Atom(MathObj):
     def __init__(self, role: str, vals: KSet, name: str=''):
         super().__init__(role, name)
         self.vals = vals
+        self.legit = False
 
     def _pre_attach(self, parent):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -88,6 +89,7 @@ class Atom(MathObj):
 
     def clone(self) -> 'Atom':
         res = Atom(role=self.role, vals=self.vals.clone())
+        res.legit = self.legit
         return res
 
     def __eq__(self, other) -> bool:
@@ -104,6 +106,7 @@ class Mole(MathObj):
         super().__init__(role, name)
         self.type, self.cons = type_, cons
         self.parent, self.children = parent, tuple(children)
+        self.legit = False
 
     def __repr__(self) -> str:
         fields = (f for f in [self.name, self.role, str(self.type),
@@ -165,6 +168,7 @@ class Mole(MathObj):
         # Clone all the children, too
         for child in self.children:
             child.clone().parent = res
+        res.legit = self.legit
         return res
 
     def __eq__(self, other) -> bool:
@@ -186,14 +190,3 @@ ATMO = Union[Atom, Mole]
 class MathT(MyEnum):
     WFF = auto()
     PROOF = auto()
-
-
-
-
-# ===Testing zone===
-if __name__ == '__main__':
-    a = Atom('sub', KSet(frozenset()))
-    m = Mole('root', MathT.WFF, KSet(frozenset()))
-    a.parent = m
-    fa = FAtom(a)
-    fm = FMole(m)
