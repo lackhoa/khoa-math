@@ -52,6 +52,7 @@ def kenum(root: ATMO, max_dep: int, orig=None):
             for val in root.vals:
                 res = root.clone()
                 res.vals = KSet({val})
+                res.legit = True
                 orig.log('Yielding this atom:'); orig.log_t(res)
                 yield res
         else:
@@ -63,7 +64,6 @@ def kenum(root: ATMO, max_dep: int, orig=None):
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
             this_wf_orig = orig.branch(['Chosen this from Formation phase'])
-            this_wf_orig.log('CHOICE')
             this_wf_orig.log_t(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
@@ -72,16 +72,14 @@ def kenum(root: ATMO, max_dep: int, orig=None):
             for relationed in repeat_rel_p(
                     root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
-                this_rel_orig.log('CHOICE');
                 this_rel_orig.log_t(relationed)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
                 for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
                     this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
-                    this_fin_orig.log('CHOICE');
                     this_fin_orig.log_t(finished)
                     this_fin_orig.log('All phases are complete, yielding from main')
-                    final = finished.clone(); final.marked = True
+                    final = finished.clone(); final.legit = True
                     yield final
 
 
@@ -113,7 +111,7 @@ def form_p(root, max_dep, orig):
 
         for arg in args:
             res.kattach(arg)
-        con_orig.log('Attached all missing components')
+        con_orig.log('Attached all m components')
         con_orig.log_t(res)
 
         con_orig.log('Yielding from constructor phase')
@@ -132,21 +130,19 @@ def rel_p(root: Mole, max_dep, rel, orig):
         for in_root in in_roots:
             orig.log_t(in_root)
 
-        in_legit = []
+        m_ins = []
         for in_root in in_roots:
-            if in_root.legit:
-                in_legit.append([in_root])
-            else:
-                in_legit.append(kenum(in_root, max_dep = max_dep-1, orig=orig))
+            if not in_root.legit:
+                m_ins.append(kenum(in_root, max_dep = max_dep-1, orig=orig))
 
-        in_suits = product(*in_legit)
-        for in_suit in in_suits:
-            in_suit_orig = orig.branch(['Chosen a new input suit'])
+        m_ins_legit = product(*m_ins)
+        for m_in_legit in m_ins_legit:
+            m_in_orig = orig.branch(['Chosen a new input suit'])
             res = root.clone()
-            for inp in in_suit:
+            for inp in m_in_legit:
                 res.kattach(inp.clone())
-            in_suit_orig.log('Attached input suit:')
-            in_suit_orig.log_t(res)
+            m_in_orig.log('Attached input suit:')
+            m_in_orig.log_t(res)
 
             function = rel.get('fun')
             get_val_of_path = lambda p: res.get_path(p).val
@@ -155,9 +151,9 @@ def rel_p(root: Mole, max_dep, rel, orig):
 
             out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
             res.kattach(node=out_atom, path=rcdr(rel.get('out')))
-            in_suit_orig.log('Attached output:')
-            in_suit_orig.log_t(res)
-            in_suit_orig.log('Yielding!')
+            m_in_orig.log('Attached output:')
+            m_in_orig.log_t(res)
+            m_in_orig.log('Yielding!')
             yield res
 
     # elif res.type == RelT.UNION:
@@ -190,7 +186,7 @@ def repeat_rel_p(root, max_dep, rel_iter, orig):
         for new_root in rel_p(
                 root=root, max_dep=max_dep, rel=this_rel, orig=orig):
             choice_orig = orig.branch(['Chosen '])
-            choice_orig.log('TREE'); choice_orig.log_t(new_root)
+            choice_orig.log_t(new_root)
             for res in repeat_rel_p(new_root, max_dep, rel_iter, choice_orig):
                 yield res
     except StopIteration:
@@ -201,24 +197,20 @@ def repeat_rel_p(root, max_dep, rel_iter, orig):
 def fin_p(root, max_dep, orig):
     """Enumerate all children that haven't been enumerated"""
     orig.log('#'*30); orig.log('We are now in Finishing Phase')
-    children_enum = []
+    m_children_enum = []
     for child in root.children:
-        if child.legit:
-            children_enum.append(child)
-        else:
-            children_enum.append(kenum(child, max_dep = max_dep-1, orig=orig))
+        if not child.legit:
+            m_children_enum.append(kenum(child, max_dep = max_dep-1, orig=orig))
 
-    all_children_suits = product(*children_enum)
-    for children_suit in all_children_suits:
-        children_suit_orig = orig.branch(['Chosen a new children suit'])
+    m_children_suits = product(*m_children_enum)
+    for m_children_suit in m_children_suits:
+        m_children_suit_orig = orig.branch(['Chosen a new children suit'])
         res = root.clone()
-        for n in children_suit:
+        for n in m_children_suit:
             res.kattach(n.clone())
-        children_suit_orig.log('Attached children suit:')
-        children_suit_orig.log_t(res)
-        assert(res.is_complete())
-        children_suit_orig.log('Confirmed that the tree is complete')
-        children_suit_orig.log('Let\'s yield!')
+        m_children_suit_orig.log('Attached children suit:')
+        m_children_suit_orig.log_t(res)
+        m_children_suit_orig.log('Let\'s yield!')
         yield res
 
 
