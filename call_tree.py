@@ -2,49 +2,44 @@ from anytree import *
 
 
 class LogNode(NodeMixin):
-    def __init__(self, txt: str, parent=None, tree=None):
-        self.parent = parent
-        self.txt = str(txt)
-        self.tree = tree
+    def __init__(self, lines=[], parent=None):
+        self.lines, self.parent = lines, parent
 
-    def __repr__(self):
-        return self.txt
+    def log(self, line):
+        """Add a new line"""
+        self.lines.append(line)
 
-    @property
-    def name(self):
-        return self.txt
+    def log_t(self, tree, style=DoubleStyle):
+        """Add a tree"""
+        for pre, fill, node in RenderTree(tree, style=style):
+            self.lines.append("%s%s" % (pre, node))
 
-    def log(self, txt, tree=None):
-        """Add a new log node to `self`"""
-        child = LogNode(txt = txt, tree = tree)
-        child.parent = self
-
-    def branch(self, branch_txt, branch_tree=None):
+    def branch(self, lines=[]):
         """Return the a child node with `branch_name`"""
-        return LogNode(txt = branch_txt, tree = branch_tree, parent = self)
+        return LogNode(lines=lines, parent=self)
 
 
 def render_log(root: LogNode, main_style=ContStyle, sub_style=DoubleStyle):
     lines = []
-    for pre, fill, node in RenderTree(root, style=main_style):
-        lines.append("%s%s" % (pre, node.txt))
-        if node.tree is not None:
-            for pre_, fill_, node_ in RenderTree(node.tree, style=sub_style):
-                lines.append("%s%s%s" % (fill, pre_, node_))
+    for pre, fill, node in RenderTree(root):
+        lines.append("%s%s" % (pre, node.lines[0]))
+        for line in node.lines[1:]:
+            lines.append("%s%s" % (fill, line))
     return '\n'.join(lines)
 
 
 if __name__ == '__main__':
-    root = LogNode('Start')
+    root = LogNode(['Start'])
     def a(orig):
         orig.log('do something')
-        b_branch = orig.branch('Call b')
+        b_branch = orig.branch(['Call b'])
         b(b_branch)
 
     def b(orig):
-        x = LogNode('x'); y = LogNode('y', parent=x)
-        branch = orig.branch('Here\'s a tree inside a tree:', x)
-        branch.log(LogNode('and something under that'))
+        x = Node('x'); y = Node('y', parent=x)
+        branch = orig.branch(['Here\'s a tree inside a tree:'])
+        branch.log_t(x)
+        branch.log('and something under that')
 
     a(root)
     print(render_log(root))

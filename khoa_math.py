@@ -131,7 +131,7 @@ class Mole(MathObj):
             new_child.parent = self
             new_child.pave_way(cdr(path))
 
-    def kattach(self, node: Union[Atom, 'Mole'], path: str = '', mode: str = 'unify'):
+    def kattach(self, node: Union[Atom, 'Mole'], path: str = '', mode: str = 'merge'):
         """
         Attach `node` to this molecule, with optional path down the line
         """
