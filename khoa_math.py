@@ -85,6 +85,7 @@ class Atom(MathObj):
 
     @property
     def val(self):
+        assert(self.vals.is_singleton()), 'Not a singleton'
         return self.vals[0]
 
     def clone(self) -> 'Atom':
@@ -119,6 +120,7 @@ class Mole(MathObj):
 
     @property
     def con(self):
+        assert(self.cons.is_singleton()), 'Not a singleton'
         return self.cons[0]
 
     def has_path(self, role: str) -> bool:

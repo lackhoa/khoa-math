@@ -37,6 +37,6 @@ def car(path: str): return path.split('/')[0]
 
 def cdr(path: str): return '/'.join(path.split('/')[1:])
 
-def rcar(path: str): return '/'.join(path.split('/')[-1])
+def rcar(path: str): return path.split('/')[-1]
 
 def rcdr(path: str): return '/'.join(path.split('/')[:-1])

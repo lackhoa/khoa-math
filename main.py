@@ -60,7 +60,7 @@ def kenum(root: ATMO, max_dep: int, orig=None):
                     orig.log('Yielding this atom:'); orig.log_t(res)
                     yield res
             else:
-                raise KEnumError(self)
+                raise KEnumError(root)
 
         else:
             orig.log('It\'s a molecule')
@@ -129,7 +129,7 @@ def rel_p(root: Mole, max_dep, rel, orig):
     orig.log('Working with relation {}'.format(rel))
     if rel.type == RelT.FUN:
         orig.log('It\'s a functional relation')
-        in_roots = [root.get_path(car(slot)) for slot in rel.get('in')]
+        in_roots = [root.get_path(car(path)) for path in rel.get('in')]
         orig.log('The inputs needed are:')
         for in_root in in_roots:
             orig.log_t(in_root)
@@ -153,33 +153,70 @@ def rel_p(root: Mole, max_dep, rel, orig):
             arguments = map(get_val_of_path, rel.get('in'))
             output = function(*arguments)
 
-            out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
+            out_atom = Atom(role=rcar(rel.get('out')), vals=KSet({output}))
             res.kattach(node=out_atom, path=rcdr(rel.get('out')))
             m_in_orig.log('Attached output:')
             m_in_orig.log_t(res)
             m_in_orig.log('Yielding!')
             yield res
 
-    # elif res.type == RelT.UNION:
-    #     orig.log('It\'s a union!')
-    #     orig.log('Try enumerating the union part')
-    #     uni_path, subs_path = rel.get('uni'), rel.get('subs')
-    #     uni_root = root.get_path(car(uni_path))
-    #     try:
-    #         for uni_legit in kenum(
-    #                 root=uni_root, max_dep=max_dep-1, orig=orig):
-    #             uni_orig = orig.branch(['Chosen union:'])
-    #             subs_root = [root.get_path(car(path)) for path in subs_path]
-    #             uni_orig.log('Updating the subsets')
-    #             for sub_root in subs_root:
-    #                 sub_root.kattach(powerset(uni_legit.val))
-    #             m_subs_root = []
-    #             for sub_root in m_subs_root:
-    #                 if not sub_root.legit:
-    #                     m_subs_root.append(kenum(root=sub_root, max_dep=max_dep-1, orig=orig))
-
-
-    #             subs_root_unified = (sub_root &  for sub_root in subs_root)
+    elif res.type == RelT.UNION:
+        orig.log('It\'s a union!')
+        orig.log('Try enumerating the union part')
+        uni_path, subs_path = rel.get('uni'), rel.get('subs')
+        uni_root = root.get_path(car(uni_path))
+        subs_root = [root.get_path(car(path)) for path in subs_path]
+        try:
+            for uni_legit in kenum(
+                    root=uni_root, max_dep=max_dep-1, orig=orig):
+                rc = root.clone()
+                rc.kattach(uni_legit)
+                uni_orig = orig.branch(['Chosen the union part:'])
+                uni_orig.log_t(rc)
+                uni_orig.log('Updating the subsets')
+                for sub_root in subs_root[:-1]:
+                    sub_root.kattach(powerset(uni_legit.val))
+                m_sub_roots = []
+                for index, sub_root in enumerate(subs_root):
+                    if (not sub_root.legit) and (index != len(subs_root)-1):
+                        m_sub_roots.append(kenum(root=sub_root, max_dep=max_dep-1, orig=orig))
+                for m_sub_roots_legit in product(*m_sub_roots):
+                    sub_orig = uni_orig.branch(['Chosen subsets (except for the last)'])
+                    res = rc.clone()
+                    for m_sub_root in m_sub_roots:
+                        res.kattach(m_sub_root)
+                    sub_orig.log('Attached those:')
+                    sub_orig.log_t(res)
+                    subsets_so_far = [res.get_path(path).val for path in subs_path[:-1]]  # type: (frozen)set
+                    union_so_far = reduce(lambda x, y: x & y, subsets_so_far)  # type: (frozen)set
+                    leftover = uni_legit.val - union_so_far  # type: (frozen)set
+                    val_for_last = KSet({leftover | union_so_far})
+                    last_atom = Atom(role=rcar(subs_path[-1]), vals=val_for_last)
+                    res.kattach(last_atom, path=rcdr(subs_path[-1]))
+                    sub_orig.log('Attached the union:')
+                    sub_orig.log_t(res)
+                    yield res
+        except KEnumError:
+            orig.log('Well, that didn\'t work')
+            orig.log('Then it must mean that the subsets are known')
+            m_sub_roots = []
+            for sub_root in subs_root:
+                if (not sub_root.legit):
+                    m_sub_roots.append(kenum(root=sub_root, max_dep=max_dep-1, orig=orig))
+                for m_sub_roots_legit in product(*m_sub_roots):
+                    sub_orig = uni_orig.branch(['Chosen subsets'])
+                    res = root.clone()
+                    for m_sub_root in m_sub_roots:
+                        res.kattach(m_sub_root)
+                    sub_orig.log('Attached those:')
+                    sub_orig.log_t(res)
+                    subsets = [res.get_path(path).val for path in subs_path]  # type: list of (frozen)set
+                    union = reduce(lambda x, y: x & y, subsets)  # type: (frozen)set
+                    union_atom = Atom(role=rcar(uni_path), vals=KSet({union}))
+                    res.kattach(union_atom, path=rcdr(uni_path))
+                    sub_orig.log('Attached the union:')
+                    sub_orig.log_t(res)
+                    yield(res)
 
 
 def repeat_rel_p(root, max_dep, rel_iter, orig):
