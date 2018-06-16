@@ -1,4 +1,4 @@
-from misc import MyEnum
+from misc import *
 from typing import Iterable, Union, Callable, Optional
 
 from itertools import takewhile

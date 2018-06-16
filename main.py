@@ -16,7 +16,7 @@ from graphviz import Digraph
 
 # Handler that writes debugs to a file
 debug_handler = logging.FileHandler(filename='logs/debug.log', mode='w+')
-debug_handler.setFormatter(IndentFormatter('%(indent)s%(function)s: %(message)s'))
+debug_handler.setFormatter(logging.Formatter('%(message)s'))
 debug_handler.setLevel(logging.DEBUG)
 
 # Handler that writes info messages or higher to the sys.stderr
@@ -42,10 +42,9 @@ class KEnumError(Exception):
         self.node = node
 
 
-def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
-    if phase == 0:
-        orig.log(30*'#'); orig.log('Welcome to kenum!')
-        orig.log('The root is:', root.clone())
+def kenum(root: ATMO, max_dep: int, orig=None):
+    orig.log(30*'#'); orig.log('Welcome to kenum!')
+    orig.log('The root is:', root.clone())
     if type(root) == Atom and max_dep >= 0:
         orig.log('It\'s an atom')
         if root.vals.is_explicit():
@@ -58,8 +57,7 @@ def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
             raise KEnumError(self)
 
     else:
-        if phase == 0:
-            orig.log('It\'s a molecule')
+        orig.log('It\'s a molecule')
 
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
@@ -67,21 +65,23 @@ def kenum(root: ATMO, max_dep: int, phase=0, orig=None):
             this_wf_orig.log(txt='CHOICE', tree=well_formed.clone())
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            rels = cons_dic[well_formed.type][well_formed.con].rels
-            rel_iter = iter(rels)
-            def repeat_rel_p(tree):
-                nonlocal this_wf_orig, max_dep, rel_iter
+            def repeat_rel_p(root, max_dep, rel_iter, orig):
                 try:
                     this_rel = next(rel_iter)
-                    for new_tree in rel_p(
-                            root=root, max_dep=max_dep rel=this_rel, orig=this_wf_orig):
+                    for new_root in rel_p(
+                            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
                         choice_orig = this_wf_orig.branch('Chosen ')
-                        for res in repeat_rel_p(new_tree):
+                        choice_orig.log(txt='TREE', tree=new_root)
+                        for res in repeat_rel_p(new_root, max_dep, rel_iter, choice_orig):
                             yield res
                 except StopIteration:
-                    yield node.clone()
+                    orig.log('No more relations, yielding')
+                    yield root.clone()
 
-            for relationed in repeat_rel_p(this_wf_orig):
+            rels = cons_dic[well_formed.type][well_formed.con].rels
+            rel_iter_ = iter(rels)
+            for relationed in repeat_rel_p(
+                    root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch('Chosen this from Relation Phase:')
                 this_rel_orig.log(txt='CHOICE', tree=relationed.clone())
                 this_rel_orig.log('Let\'s go to Finishing Phase')
@@ -127,65 +127,63 @@ def form_p(root, max_dep, orig):
         yield res
 
 
-def rel_p(root: Mole, max_dep, rel, orig=None):
+def rel_p(root: Mole, max_dep, rel, orig):
     """Apply all relation `rel` to aid in root enumeration"""
     orig.log('#'*30); orig.log('Welcome to Relation Phase')
 
     orig.log('Working with relation {}'.format(rel))
     if rel.type == RelT.FUN:
         orig.log('It\'s a functional relation')
-        in_args = [root.get_path(slot) for slot in rel.get('in')]
+        in_roots = [root.get_path(car(slot)) for slot in rel.get('in')]
+        orig.log('The inputs needed are:'); orig.log(in_roots)
 
-        orig.log('The inputs needed are:'); orig.log(in_args)
+        in_legit = []
+        for in_root in in_roots:
+            in_legit.append(kenum(in_root, max_dep = max_dep-1, orig=orig))
 
-        in_args_enum = []
-        for in_arg in in_args:
-            in_arg_enum_orig = orig.log('Will enumerating argument {}'.format(in_arg))
-            in_args_enum.append(kenum(in_arg, max_dep = max_dep-1, orig=orig))
-
-        input_suits = product(*in_args_enum)
-        for input_suit in input_suits:
-            input_suit_orig = orig.branch('Chosen a new input suit')
+        in_suits = product(*in_legit)
+        for in_suit in in_suits:
+            in_suit_orig = orig.branch('Chosen a new input suit')
             res = root.clone()
-            for inp in input_suit:
+            for inp in in_suit:
                 res.kattach(inp.clone())
-            input_suit_orig.log('Attached input suit:', res.clone())
+            in_suit_orig.log('Attached input suit:', res.clone())
 
             function = rel.get('fun')
-            get_first_of_path = lambda p: res.get_path(p).vals[0]
-            arguments = map(get_first_of_path, rel.get('in'))
+            get_val_of_path = lambda p: res.get_path(p).val
+            arguments = map(get_val_of_path, rel.get('in'))
             output = function(*arguments)
 
             out_atom = Atom(role=car(rel.get('out')), vals=KSet({output}))
-            res.kattach(node=out_atom, path=cdr(rel.get('out')))
-            input_suit_orig.log('Attached output:', res.clone())
-            input_suit_orig.log('Yielding!')
+            res.kattach(node=out_atom, path=rcdr(rel.get('out')))
+            in_suit_orig.log('Attached output:', res.clone())
+            in_suit_orig.log('Yielding!')
             yield res
 
-    elif res.type == RelT.UNION:
-        orig.log('It\'s a union!')
-        orig.log('Try enumerating the union part')
-        uni_path, subs_path = rel.get('uni'), rel.get('subs')
-        uni_node = root.get_path(car(uni_path))
-        try:
-            for uni_compl in kenum(
-                    root=uni_node, max_dep=max_dep-1, orig=orig):
-                uni_orig = orig.branch('Chosen union:')
-                power = powerset(uni_compl.values[0])
-                subs_root = [root.get_path(car(path)) for path in subs_path]
-                bunch_of_shit = product(power, repeat=len(subs_path)-1)
-                for vs in vss:
-                    origin.log('Chosen a new set of values')
-                    for i, v in enumerate(vs):
-                        subs_root[i].values = v
-                    uni_fun = lambda x, y: x & y
-                    union_kset = reduce(uni_fun, vs)
-                    leftover = uni_compl.val - union_kset
-                    subs_root[-1].vals = KSet({leftover})
+    # elif res.type == RelT.UNION:
+    #     orig.log('It\'s a union!')
+    #     orig.log('Try enumerating the union part')
+    #     uni_path, subs_path = rel.get('uni'), rel.get('subs')
+    #     uni_node = root.get_path(car(uni_path))
+    #     try:
+    #         for uni_compl in kenum(
+    #                 root=uni_node, max_dep=max_dep-1, orig=orig):
+    #             uni_orig = orig.branch('Chosen union:')
+    #             power = powerset(uni_compl.values[0])
+    #             subs_root = [root.get_path(car(path)) for path in subs_path]
+    #             bunch_of_shit = product(power, repeat=len(subs_path)-1)
+    #             for vs in vss:
+    #                 origin.log('Chosen a new set of values')
+    #                 for i, v in enumerate(vs):
+    #                     subs_root[i].values = v
+    #                 uni_fun = lambda x, y: x & y
+    #                 union_kset = reduce(uni_fun, vs)
+    #                 leftover = uni_compl.val - union_kset
+    #                 subs_root[-1].vals = KSet({leftover})
 
-                subs_root_unified = (sub_root &  for sub_root in subs_root)
+    #             subs_root_unified = (sub_root &  for sub_root in subs_root)
 
-        except KEnumError:
+    #     except KEnumError:
 
 
 def fin_p(root, max_dep, orig):

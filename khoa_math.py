@@ -115,7 +115,7 @@ class Mole(MathObj):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
 
     @property
-    def con:
+    def con(self):
         return self.cons[0]
 
     def has_path(self, role: str) -> bool:

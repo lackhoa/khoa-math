@@ -1,6 +1,7 @@
 import logging, inspect
 from enum import Enum, auto
 from typing import Iterable
+from itertools import *
 
 
 # Awesome class to name Enums

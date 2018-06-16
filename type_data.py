@@ -1,4 +1,5 @@
-from khoa_math import MathT
+from khoa_math import MathT, Atom, Mole
+from type_mgr import CI
 from kset import KSet, KConst
 import wff, wff_test
 
@@ -14,4 +15,4 @@ union = {}
 union['UNI'] = CI(args = [
     Atom(role='sub0', vals={frozenset({1,2,3,4})}),
     Atom(role='sub1', vals={frozenset({5,6})}),
-    Atom(role='uni', vals=KConst.ANY.value,]
+    Atom(role='uni', vals=KConst.ANY.value,),])
