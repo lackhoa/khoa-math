@@ -55,7 +55,7 @@ def kenum(root: ATMO, max_dep: int, orig=None):
             if root.vals.is_explicit():
                 for val in root.vals:
                     res = root.clone()
-                    res.vals = KSet({val})
+                    res.val = val
                     res.legit = True
                     orig.log('Yielding this atom:'); orig.log_t(res)
                     yield res
@@ -96,7 +96,7 @@ def form_p(root, max_dep, orig):
     for con in cons:
         con_orig = orig.branch(['Chosen constructor {}'.format(con)])
         res = root.clone()
-        res.cons = KSet({con})
+        res.con = con
         args, rels = cons_dic[root.type][con]
 
         if max_dep == 1 and any(map(lambda x: type(x) is Mole, args)):
@@ -170,7 +170,6 @@ def _uni_rel(root, rel, max_dep, orig):
     orig.log('Try enumerating the superset part')
     super_path, subs_path = rel.get('uni'), rel.get('subs')
     super_root = root.get_path(car(super_path))
-    subs_root = [root.get_path(car(path)) for path in subs_path]
     try:
         for uni_legit in kenum(
                 root=super_root, max_dep=max_dep-1, orig=orig):
@@ -183,12 +182,14 @@ def _uni_rel(root, rel, max_dep, orig):
                 rc.kattach(a, path=rcdr(sub_path))
             uni_orig.log('Result is'); uni_orig.log_t(rc)
             uni_orig.log('Now we are ready to enumerate the subsets')
+            subs_root = [rc.get_path(car(path)) for path in subs_path]  # We updated some of those
             sub_roots_legit = (
                 kenum(root=s, max_dep=max_dep-1, orig=orig) for s in subs_root[:-1] if not s.legit)
             for sub_roots_legit in product(*sub_roots_legit):
                 sub_orig = uni_orig.branch(['Chosen subsets (except for the last)'])
                 res = rc.clone()
                 for sub_root_legit in sub_roots_legit:
+                    sub_orig.log('Attaching:'); sub_orig.log_t(sub_root_legit)
                     res.kattach(sub_root_legit)
                 sub_orig.log('Attached those:'); sub_orig.log_t(res)
                 subsets_so_far = (res.get_path(path).val for path in subs_path[:-1])  # type: (frozen)set
@@ -203,6 +204,7 @@ def _uni_rel(root, rel, max_dep, orig):
     except KEnumError:
         orig.log('Well, that didn\'t work')
         orig.log('Then it must mean that the subsets are known')
+        subs_root = [root.get_path(car(path)) for path in subs_path]
         sub_roots_legit = (
                 kenum(root=s, max_dep=max_dep-1, orig=orig) for s in subs_root if not s.legit)
         for sub_roots_legit in product(*sub_roots_legit):
@@ -257,7 +259,7 @@ def fin_p(root, max_dep, orig):
 start = Mole(role='root', type_ = 'UNI')
 
 
-LEVEL_CAP = 3
+LEVEL_CAP = 2
 debug_root = LogNode(['Start Debug'])  # For describing the program execution
 info_root = LogNode(['Start Info'])  # For output
 start_time = timeit.default_timer()

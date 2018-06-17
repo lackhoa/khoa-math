@@ -63,9 +63,9 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, vals: KSet, name: str=''):
+    def __init__(self, role: str, vals: KSet, val=None, name: str=''):
         super().__init__(role, name)
-        self.vals = vals
+        self.vals = KSet(frozenset({val})) if val is not None else vals
         self.legit = False
 
     def _pre_attach(self, parent):
@@ -88,6 +88,10 @@ class Atom(MathObj):
         assert(self.vals.is_singleton()), 'Not a singleton'
         return self.vals[0]
 
+    @val.setter
+    def val(self, value):
+        self.vals = KSet(frozenset({value}))
+
     def clone(self) -> 'Atom':
         res = Atom(role=self.role, vals=self.vals.clone())
         res.legit = self.legit
@@ -102,10 +106,11 @@ class Atom(MathObj):
 
 class Mole(MathObj):
     def __init__(self, role: str, type_: Optional['MathT'],
-                 cons: KSet = KConst.STR.value,
+                cons: KSet = KConst.STR.value, con=None,
                  name: str='', parent=None, children: Iterable[Union[Atom, 'Mole']]=[]):
         super().__init__(role, name)
-        self.type, self.cons = type_, cons
+        self.type = type_
+        self.cons = KSet(frozenset({con})) if con is not None else cons
         self.parent, self.children = parent, tuple(children)
         self.legit = False
 
@@ -123,6 +128,10 @@ class Mole(MathObj):
         assert(self.cons.is_singleton()), 'Not a singleton'
         return self.cons[0]
 
+    @con.setter
+    def con(self, value):
+         self.cons = KSet(frozenset({value}))
+
     def has_path(self, role: str) -> bool:
         try: self.get_path(role); return True
         except ChildResolverError: return False
@@ -137,9 +146,7 @@ class Mole(MathObj):
             new_child.pave_way(cdr(path))
 
     def kattach(self, node: Union[Atom, 'Mole'], path: str = '', mode: str = 'merge'):
-        """
-        Attach `node` to this molecule, with optional path down the line
-        """
+        """Attach `node` to this molecule, with optional path down the line"""
         if path != '':
             self.pave_way(path)
             self.get_path(path).kattach(node, mode=mode)
