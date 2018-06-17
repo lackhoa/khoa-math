@@ -1,7 +1,6 @@
 from misc import *
 from typing import Iterable, Union, Callable, Optional
 
-from itertools import takewhile
 from enum import Enum
 
 
@@ -9,19 +8,24 @@ class KSet:
     def __init__(self,
                  content: Optional[Iterable] = None,
                  qualifier: Optional[Callable[..., bool]] = None,
-                 user_len: Optional[int] = None,
                  custom_repr: Optional[str] = None):
+        """Content should be set for better performance"""
         assert((content is None) ^ (qualifier is None)),\
                 'One and only one of either content or qualifier should be present'
-        # Sort of guarantee immutability for content
-        if type(content) == list or type(content) == set:
-            content = frozenset(content)
-        self.content, self.qualifier, self.user_len, self.custom_repr =\
-            content, qualifier, user_len, custom_repr
+        self.content = content
+        self.qualifier, self.custom_repr = qualifier, custom_repr
 
-        # List out the content for viewing pleasure
-        if self.is_explicit() and len(self) <= 20:
-            self.expand()
+    @property
+    def content(self):
+        if self._content is None: return None
+        else:
+            save, res = tee(self._content)
+            self._content = save  # Iteration on the content won't affect the original save
+            return res
+
+    @content.setter
+    def content(self, value):
+        self._content = value
 
     def __eq__(self, other):
         return self.content == other.content and self.qualifier == other.qualifier
@@ -30,24 +34,17 @@ class KSet:
         return hash((self.content, self.qualifier))
 
     def clone(self) -> 'KSet':
-        return KSet(self.content, self.qualifier, self.user_len, self.custom_repr)
+        # Content is already a copy, qualifier and custom_repr are immutable
+        return KSet(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
         if self.custom_repr: return self.custom_repr
-        elif self.is_singleton(): return str(self[0])
-        elif self.is_explicit(): return str(self.content)
-        else: return str(self.qualifier)
-
-    def has_len(self) -> bool:
-        return (self.user_len is not None) or self.is_explicit()
+        elif self.is_explicit(): return 'KS: {}'.format(str(list(self.content)))
+        else: return 'KS: {}'.format(str(self.qualifier))
 
     def __len__(self) -> int:
-        if self.user_len is not None:
-            return self.user_len
-        elif hasattr(self.content, '__len__'):
-            return len(self.content)
-        else:
-            return sum(1 for _ in self.content)
+        if hasattr(self.content, '__len__'): return len(self.content)
+        else: return sum(1 for _ in self.content)
 
     def is_explicit(self):
         return (self.content is not None)
@@ -67,15 +64,11 @@ class KSet:
         if self.is_explicit(): return (val in self.content)
         else: return self.qualifier(val)
 
-    def expand(self):
-        """(For explicit ksets) Turn content to set. Be careful with this!"""
-        self.content = frozenset(self.content)
-
     def is_empty(self):
-        return (len(self) == 0) if self.has_len() else False
+        return (len(self) == 0) if self.is_explicit() else False
 
     def is_singleton(self):
-        return (len(self) == 1) if self.has_len() else False
+        return (len(self) == 1) if self.is_explicit() else False
 
     def __and__(self, other: 'KSet'):
         res: 'KSet'
@@ -88,25 +81,21 @@ class KSet:
                     res = KSet(content = self.content & other.content)
                 except TypeError:
                     unified_len = min(len(self), len(other))
-                    res = KSet(content = takewhile(other, self),
-                               user_len = unified_len)
+                    res = KSet(content = filter(other, self))
             else:
                 # Only `self` is explicit: result is explicit
-                unified_len = min(len(self), len(other)) if other.has_len() else len(self)
-                res = KSet(content = takewhile(other, self),
-                           user_len = unified_len)
+                unified_len = min(len(self), len(other)) if other.is_explicit() else len(self)
+                res = KSet(content = filter(other, self))
         elif e2:
             # Only `other` is explicit: result is explicit
-            unified_len = min(len(self), len(other)) if self.has_len() else len(other)
-            res = KSet(content = takewhile(self, other),
-                       user_len = unified_len)
+            unified_len = min(len(self), len(other)) if self.is_explicit() else len(other)
+            res = KSet(content = filter(self, other))
         else:
             # Either is explicit: result is implicit
             unified_len = min(len(self), len(other))\
-                          if (self.has_len() and other.has_len())\
+                          if (self.is_explicit() and other.is_explicit())\
                           else None
-            res = KSet(qualifier = lambda x: self(x) and other(x),
-                       user_len = unified_len)
+            res = KSet(qualifier = lambda x: self(x) and other(x))
         return res
 
 

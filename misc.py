@@ -25,12 +25,9 @@ def nth(iterable, n, default=None):
 
 
 def powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    "powerset([1,2,3]) --> {} {1,} {2,} {3,} {1,2} {1,3} {2,3} {1,2,3} (frozenset)"
     s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-
-
-
+    return (frozenset(x) for x in chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
 
 
 def car(path: str): return path.split('/')[0]

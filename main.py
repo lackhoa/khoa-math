@@ -122,8 +122,6 @@ def form_p(root, max_dep, orig):
         yield res
 
 
-
-
 def rel_p(root: Mole, max_dep, rel, orig):
     """Apply all relation `rel` to aid in root enumeration"""
     orig.log('#'*30); orig.log('Welcome to Relation Phase')
@@ -181,11 +179,12 @@ def _uni_rel(root, rel, max_dep, orig):
             uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_t(rc)
             uni_orig.log('Updating the subsets')
             for sub_path in subs_path[:-1]:
-                a = Atom(role=rcar(sub_path), vals=KSet(powerset(uni_legit.val)))
+                a = Atom(role=rcar(sub_path), vals=KSet(content=powerset(uni_legit.val)))
                 rc.kattach(a, path=rcdr(sub_path))
+            uni_orig.log('Result is'); uni_orig.log_t(rc)
             uni_orig.log('Now we are ready to enumerate the subsets')
             sub_roots_legit = (
-                    kenum(root=s, max_dep=max_dep-1, orig=orig) for s in subs_root[:-1] if not s.legit)
+                kenum(root=s, max_dep=max_dep-1, orig=orig) for s in subs_root[:-1] if not s.legit)
             for sub_roots_legit in product(*sub_roots_legit):
                 sub_orig = uni_orig.branch(['Chosen subsets (except for the last)'])
                 res = rc.clone()
@@ -195,7 +194,7 @@ def _uni_rel(root, rel, max_dep, orig):
                 subsets_so_far = (res.get_path(path).val for path in subs_path[:-1])  # type: (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = uni_legit.val - union_so_far  # type: (frozen)set
-                val_for_last = KSet({leftover | union_so_far})
+                val_for_last = KSet((leftover | x for x in powerset(union_so_far)))
                 last_atom = Atom(role=rcar(subs_path[-1]), vals=val_for_last)
                 res.kattach(last_atom, path=rcdr(subs_path[-1]))
                 sub_orig.log('Attached the union:'); sub_orig.log_t(res)
@@ -262,15 +261,15 @@ LEVEL_CAP = 3
 debug_root = LogNode(['Start Debug'])  # For describing the program execution
 info_root = LogNode(['Start Info'])  # For output
 start_time = timeit.default_timer()
-for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
-    info_root.log('RETURNED:'); info_root.log_t(t)
-stop_time = timeit.default_timer()
-
-logging.info("Program Executed in {} seconds".format(stop_time - start_time))
-
-# Writing logs
-logging.debug(render_log(debug_root))
-logging.info(render_log(info_root))
+try:
+    for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
+        info_root.log('RETURNED:'); info_root.log_t(t)
+finally:
+    stop_time = timeit.default_timer()
+    # Writing logs
+    logging.info("Program Executed in {} seconds".format(stop_time - start_time))
+    logging.debug(render_log(debug_root))
+    logging.info(render_log(info_root))
 
 # Got some sick graphs, too:
 # anytree.exporter.DotExporter(debug_root).to_dotfile('logs/debug.dot')

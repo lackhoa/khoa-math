@@ -9,9 +9,9 @@ import wff, wff_test
 uni_dic = {}
 uni_dic['ATOM'] = CI(
     args = [
-        Atom(role='sub0', vals=KSet({frozenset({7,3,4,1}), frozenset({1,2,3,4})})),
-        Atom(role='sub1', vals=KSet({frozenset({5,6}), frozenset(set())})),
-        Atom(role='uni', vals=KConst.ANY.value,),],
+        Atom(role='sub0', vals=KSet([frozenset({1,2,}), frozenset({3})])),
+        Atom(role='sub1', vals=KConst.ANY.value),
+        Atom(role='uni', vals=KSet([frozenset({1,2,3}), frozenset({2,3,4})]))],
     rels = [Rel(RelT.UNION, 'sub0', 'sub1', 'uni')])
 
 
