@@ -88,7 +88,7 @@ def kenum(root: ATMO, max_dep: int, orig=None):
 
 
 def form_p(root, max_dep, orig):
-    """Assure that the root is well-formed (for one immediate level)"""
+    """Assure that the root is well-formed"""
     orig.log('#'*30); orig.log('Welcome to Formation Phase')
     cons = root.cons & KSet(cons_dic[root.type].keys())
     orig.log('Possible constructors after unified are: {}'.format(cons))

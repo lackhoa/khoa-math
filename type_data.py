@@ -22,6 +22,33 @@ wff_dic['CONDITIONAL'] = CI(
             lambda s1, s2: '({}->{})'.format(s1, s2),
             'ante/text', 'conse/text', 'text',)])
 
+wff_dic['BICONDITIONAL'] = CI(
+        args=[Mole(role='left', type_='WFF'),
+              Mole(role='right', type_='WFF'),
+              Atom(role = 'text', vals = KConst.STR.value),],
+        rels=[Rel(
+            RelT.FUN,
+            lambda s1, s2: '({}<->{})'.format(s1, s2),
+            'left/text', 'right/text', 'text',)])
+
+wff_dic['CONJUNCTION'] = CI(
+        args=[Mole(role='left', type_='WFF'),
+              Mole(role='right', type_='WFF'),
+              Atom(role = 'text', vals = KConst.STR.value),],
+        rels=[Rel(
+            RelT.FUN,
+            lambda s1, s2: '({}&{})'.format(s1, s2),
+            'left/text', 'right/text', 'text',)])
+
+wff_dic['DISJUNCTION'] = CI(
+        args=[Mole(role='left', type_='WFF'),
+              Mole(role='right', type_='WFF'),
+              Atom(role = 'text', vals = KConst.STR.value),],
+        rels=[Rel(
+            RelT.FUN,
+            lambda s1, s2: '({}v{})'.format(s1, s2),
+            'left/text', 'right/text', 'text',)])
+
 
 # Well-formed formulas testing
 wff_dic_test = {}
