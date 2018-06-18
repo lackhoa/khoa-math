@@ -49,20 +49,27 @@ def kenum(root: ATMO, max_dep: int, orig=None):
         orig.log('Node already legit, yielding!')
         yield root.clone()
     else:
-        if type(root) == Atom and max_dep >= 0:
+        if type(root) == Atom:
             orig.log('It\'s an atom')
-            if root.vals.is_explicit():
-                for val in root.vals:
-                    res = root.clone()
-                    res.val = val
-                    res.legit = True
-                    orig.log('Yielding this atom:'); orig.log_t(res)
-                    yield res
+            if max_dep >= 0:
+                if root.vals.is_explicit():
+                    for val in root.vals:
+                        res = root.clone()
+                        res.val = val
+                        res.legit = True
+                        orig.log('Yielding this atom:'); orig.log_t(res)
+                        yield res
+                else:
+                    orig.log('Can\'t get any value for it')
+                    raise KEnumError(root)
             else:
-                raise KEnumError(root)
+                orig.log('But we do not have enough level left (how did it happen?)')
+                return
 
         else:
             orig.log('It\'s a molecule')
+            try: assert(type(root) == Mole)
+            except AssertionError: orig.log('Well, it\'s a {}'.format(type(root)))
 
             orig.log('Let\'s go to Formation Phase')
             for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
@@ -174,13 +181,13 @@ def _iso_rel(root, rel, max_dep, orig):
     left,   right  = rel.slots[2], rel.slots[3]
     try:
         Lr_rel = Rel(RelT.FUN, Lr_fun, left, right)
-        for res in _fun_rel(root=root, rel=Lr_rel, orig=orig):
+        for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig):
             yield res
     except KEnumError:
         orig.log('Left to right did not work, how about right to left?')
         orig.log('Delegating work for the functional module')
-        rL_rel = Rel(Relt.FUN, rL_fun, right, left)
-        for res in _fun_rel(root=root, rel=rL_fun, orig=orig):
+        rL_rel = Rel(RelT.FUN, rL_fun, right, left)
+        for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig):
             yield res
 
 
@@ -275,14 +282,16 @@ def fin_p(root, max_dep, orig):
 
 
 def main():
-    LEVEL_CAP = 2
-    start_roots = [Mole(role='root0', type_ = 'WFF_TEST'),
-                   Mole(role='root1', type_ = 'UNI')]
+    LEVEL_CAP = 3
+    start_roots = [Mole(role='wff_root', type_ = 'WFF_TEST'),
+                   Mole(role='union_root', type_ = 'UNI'),
+                   Mole(role='proof_root0', type_ = 'PROOF_TEST'),
+                   Mole(role='iso_root0', type_ = 'ISO_TEST')]
     debug_root = LogNode(['Start Debug'])  # For describing the program execution
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for start in start_roots:
+        for start in start_roots[:]:
             for count, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 t.name = str(count)
                 info_root.log('RETURNED:'); info_root.log_t(t)

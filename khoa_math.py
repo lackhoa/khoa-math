@@ -123,10 +123,14 @@ class Mole(MathObj):
         self.legit = False
 
     def __repr__(self) -> str:
-        fields = (f for f in [self.name, self.role, str(self.type),
-                              'cons='+str(self.cons)]
-                  if f != '')
+        fields = (
+            f for f in [self.name, self.role, str(self.type), 'cons=' + str(self.cons)]
+            if f != '')
         return 'M: {}'.format(', '.join(fields))
+
+    def __str__(self) -> str:
+        try: return self.get_path('text').val
+        except: return repr(self)
 
     def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -139,6 +143,13 @@ class Mole(MathObj):
     @con.setter
     def con(self, value):
          self.cons = KSet(frozenset({value}))
+
+    @property
+    def val(self):
+        """A molecule's value is the unmodifiable blueprint of itself"""
+        assert(self.legit), 'We are not sure yet whether this molecule exists'
+        return self
+
 
     def has_path(self, role: str) -> bool:
         try: self.get_path(role); return True
