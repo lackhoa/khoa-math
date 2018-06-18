@@ -1,11 +1,16 @@
 let SessionLoad = 1
 if &cp | set nocp | endif
-map  GVgg
 let s:cpo_save=&cpo
 set cpo&vim
+inoremap <expr> <Down> pumvisible() ? "\" : "\<Down>"
+inoremap <expr> <S-Tab> pumvisible() ? "\" : "\<S-Tab>"
+inoremap <expr> <Up> pumvisible() ? "\" : "\<Up>"
+imap <Nul> <C-Space>
+map  GVgg
 nnoremap <silent> <NL> :set pastem`o``:set nopaste
 nnoremap <silent>  :set pastem`O``:set nopaste
 map  :noh
+nnoremap  d :YcmShowDetailedDiagnostic
 nnoremap  W gT
 nnoremap  w gt
 nnoremap  9 9gt
@@ -54,31 +59,28 @@ nnoremap <silent> <Plug>SurroundRepeat .
 map <F6> :setlocal spell! spelllang=en_us
 imap S <Plug>ISurround
 imap s <Plug>Isurround
+inoremap <expr> 	 pumvisible() ? "\" : "\	"
 imap  <Plug>Isurround
 let &cpo=s:cpo_save
 unlet s:cpo_save
 set autoindent
-set autowrite
 set background=dark
 set backspace=indent,eol,start
 set clipboard=unnamedplus
+set completefunc=youcompleteme#CompleteFunc
+set completeopt=preview,menuone
 set expandtab
 set fileencodings=ucs-bom,utf-8,default,latin1
 set gdefault
 set helplang=en
-set hidden
 set hlsearch
-set ignorecase
-set incsearch
 set laststatus=2
-set listchars=trail:·,space:·,nbsp:~,tab:|\ 
 set makeprg=sage\ -b\ &&\ sage\ -t\ %
-set operatorfunc=<SNR>13_opfunc
 set printoptions=paper:a4
 set ruler
-set runtimepath=~/.vim,~/.vim/bundle/Vundle.vim,~/.vim/bundle/vim-surround,~/.vim/bundle/vim-commentary,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim74,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after,~/.vim/bundle/Vundle.vim,~/.vim/bundle/Vundle.vim/after,~/.vim/bundle/vim-surround/after,~/.vim/bundle/vim-commentary/after
+set runtimepath=~/.vim,~/.vim/bundle/Vundle.vim,~/.vim/bundle/vim-surround,~/.vim/bundle/vim-commentary,~/.vim/bundle/indentpython.vim,~/.vim/bundle/YouCompleteMe,/var/lib/vim/addons,/usr/share/vim/vimfiles,/usr/share/vim/vim74,/usr/share/vim/vimfiles/after,/var/lib/vim/addons/after,~/.vim/after,~/.vim/bundle/Vundle.vim,~/.vim/bundle/Vundle.vim/after,~/.vim/bundle/vim-surround/after,~/.vim/bundle/vim-commentary/after,~/.vim/bundle/indentpython.vim/after,~/.vim/bundle/YouCompleteMe/after
 set shiftwidth=4
-set smartcase
+set showcmd
 set softtabstop=4
 set suffixes=.bak,~,.swp,.o,.info,.aux,.log,.dvi,.bbl,.blg,.brf,.cb,.ind,.idx,.ilg,.inx,.out,.toc
 set tabstop=4
@@ -86,19 +88,22 @@ set wildignore=*.pyc
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
-cd ~/Desktop/Khoa\ Math
+cd ~/Desktop/KhoaMath
 if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +0 main.py
-badd +0 type_data.py
-badd +0 kset.py
-badd +0 rel.py
-badd +0 wff_test.py
+badd +1 main.py
+badd +1 type_mgr.py
+badd +1 type_data.py
+badd +1 rel.py
+badd +1 ~/.vimrc
 argglobal
 silent! argdel *
 argadd main.py
+argadd rel.py
+argadd type_data.py
+argadd type_mgr.py
 set stal=2
 edit main.py
 set splitbelow splitright
@@ -128,7 +133,7 @@ setlocal commentstring=#\ %s
 setlocal complete=.,w,b,u,t,i
 setlocal concealcursor=
 setlocal conceallevel=0
-setlocal completefunc=
+setlocal completefunc=youcompleteme#CompleteFunc
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -163,15 +168,14 @@ setlocal imsearch=2
 setlocal include=^\\s*\\(from\\|import\\)
 setlocal includeexpr=substitute(v:fname,'\\.','/','g')
 setlocal indentexpr=GetPythonIndent(v:lnum)
-setlocal indentkeys=0{,0},:,!^F,o,O,e,<:>,=elif,=except
+setlocal indentkeys=!^F,o,O,<:>,0),0],0},=elif,=except
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=pydoc
 setlocal nolinebreak
 setlocal nolisp
 setlocal lispwords=
-set list
-setlocal list
+setlocal nolist
 setlocal makeprg=
 setlocal matchpairs=(:),{:},[:]
 setlocal modeline
@@ -217,12 +221,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 218 - ((6 * winheight(0) + 7) / 15)
+let s:l = 176 - ((7 * winheight(0) + 14) / 28)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-218
-normal! 013|
+176
+normal! 061|
 tabedit type_data.py
 set splitbelow splitright
 set nosplitbelow
@@ -230,6 +234,8 @@ set nosplitright
 wincmd t
 set winheight=1 winwidth=1
 argglobal
+4argu
+edit type_data.py
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -251,7 +257,7 @@ setlocal commentstring=#\ %s
 setlocal complete=.,w,b,u,t,i
 setlocal concealcursor=
 setlocal conceallevel=0
-setlocal completefunc=
+setlocal completefunc=youcompleteme#CompleteFunc
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -286,15 +292,14 @@ setlocal imsearch=2
 setlocal include=^\\s*\\(from\\|import\\)
 setlocal includeexpr=substitute(v:fname,'\\.','/','g')
 setlocal indentexpr=GetPythonIndent(v:lnum)
-setlocal indentkeys=0{,0},:,!^F,o,O,e,<:>,=elif,=except
+setlocal indentkeys=!^F,o,O,<:>,0),0],0},=elif,=except
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=pydoc
 setlocal nolinebreak
 setlocal nolisp
 setlocal lispwords=
-set list
-setlocal list
+setlocal nolist
 setlocal makeprg=
 setlocal matchpairs=(:),{:},[:]
 setlocal modeline
@@ -341,12 +346,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 12 - ((2 * winheight(0) + 8) / 16)
+let s:l = 79 - ((25 * winheight(0) + 14) / 28)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-12
-normal! 074|
+79
+normal! 081|
 tabedit rel.py
 set splitbelow splitright
 set nosplitbelow
@@ -354,6 +359,7 @@ set nosplitright
 wincmd t
 set winheight=1 winwidth=1
 argglobal
+edit rel.py
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -375,7 +381,7 @@ setlocal commentstring=#\ %s
 setlocal complete=.,w,b,u,t,i
 setlocal concealcursor=
 setlocal conceallevel=0
-setlocal completefunc=
+setlocal completefunc=youcompleteme#CompleteFunc
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -410,15 +416,14 @@ setlocal imsearch=2
 setlocal include=^\\s*\\(from\\|import\\)
 setlocal includeexpr=substitute(v:fname,'\\.','/','g')
 setlocal indentexpr=GetPythonIndent(v:lnum)
-setlocal indentkeys=0{,0},:,!^F,o,O,e,<:>,=elif,=except
+setlocal indentkeys=!^F,o,O,<:>,0),0],0},=elif,=except
 setlocal noinfercase
 setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=pydoc
 setlocal nolinebreak
 setlocal nolisp
 setlocal lispwords=
-set list
-setlocal list
+setlocal nolist
 setlocal makeprg=
 setlocal matchpairs=(:),{:},[:]
 setlocal modeline
@@ -433,7 +438,8 @@ setlocal nopreserveindent
 setlocal nopreviewwindow
 setlocal quoteescape=\\
 setlocal noreadonly
-setlocal norelativenumber
+set relativenumber
+setlocal relativenumber
 setlocal norightleft
 setlocal rightleftcmd=search
 setlocal noscrollbind
@@ -464,13 +470,13 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 16 - ((6 * winheight(0) + 7) / 15)
+let s:l = 1 - ((0 * winheight(0) + 14) / 28)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-16
+1
 normal! 0
-tabnext 2
+tabnext 3
 set stal=1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf

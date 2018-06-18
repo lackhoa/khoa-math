@@ -1,8 +1,14 @@
 from khoa_math import MathT, Atom, Mole
-from type_mgr import CI
 from kset import KSet, KConst
 from rel import Rel, RelT
 
+from typing import NamedTuple, Iterable, Union
+
+
+###Stuff to interface with the typing modules###
+class CI(NamedTuple):
+    args: Iterable[Union['Atom', 'Molecule']]
+    rels: Iterable[Rel] = []
 
 #----------------------------TYPES----------------------------
 # Well-formed Formulas

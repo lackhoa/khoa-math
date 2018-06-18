@@ -17,9 +17,11 @@ class Rel:
 
     def __repr__(self) -> str:
         if self.type == RelT.FUN:
-            return '{} -> {}'.format(self.get('in'), self.get('out'))
+            return '{} -> {}'.format(' '.join(self.get('in')), self.get('out'))
         elif self.type == RelT.UNION:
-            return '(UNION {}) = {}'.format(self.get('subs'), self.get('uni'))
+            return '(U {}) = {}'.format(' '.join(self.get('subs')), self.get('uni'))
+        if self.type == RelT.ISO:
+            return '{} <-> {}'.format(self.get('left'), self.get('right'))
 
     def get(self, key: str):
         if self.type == RelT.FUN:
@@ -29,3 +31,8 @@ class Rel:
         elif self.type == RelT.UNION:
             if key == 'subs': return self.slots[:-1]
             if key == 'uni': return self.slots[-1]
+        elif self.type == RelT.ISO:
+            if key == 'Lr_fun': return self.slots[0]
+            if key == 'rL_fun': return self.slots[1]
+            if key == 'left': return self.slots[2]
+            if key == 'right': return self.slots[3]

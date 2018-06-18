@@ -1,7 +1,6 @@
 from kset import *
 from misc import *
 from khoa_math import *
-from type_mgr import *
 from type_data import *
 from rel import *
 from call_tree import *
@@ -126,7 +125,7 @@ def rel_p(root: Mole, max_dep, rel, orig):
     """Apply all relation `rel` to aid in root enumeration"""
     orig.log('#'*30); orig.log('Welcome to Relation Phase')
 
-    orig.log('Working with relation {}'.format(rel))
+    orig.log('Working with relation \"{}\"'.format(rel))
     if rel.type == RelT.FUN:
         orig.log('It\'s a functional relation')
         for res in _fun_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
@@ -134,6 +133,10 @@ def rel_p(root: Mole, max_dep, rel, orig):
     elif rel.type == RelT.UNION:
         orig.log('It\'s a union relation')
         for res in _uni_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
+            yield res
+    elif rel.type == RelT.ISO:
+        orig.log('It\'s an isomorphic relation')
+        for res in _iso_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
 
 
@@ -162,6 +165,23 @@ def _fun_rel(root, max_dep, rel, orig):
         m_in_orig.log_t(res)
         m_in_orig.log('Yielding!')
         yield res
+
+
+def _iso_rel(root, rel, max_dep, orig):
+    orig.log('Try left to right first')
+    orig.log('Delegating work for the functional module')
+    Lr_fun, rL_fun = rel.slots[0], rel.slots[1]
+    left,   right  = rel.slots[2], rel.slots[3]
+    try:
+        Lr_rel = Rel(RelT.FUN, Lr_fun, left, right)
+        for res in _fun_rel(root=root, rel=Lr_rel, orig=orig):
+            yield res
+    except KEnumError:
+        orig.log('Left to right did not work, how about right to left?')
+        orig.log('Delegating work for the functional module')
+        rL_rel = Rel(Relt.FUN, rL_fun, right, left)
+        for res in _fun_rel(root=root, rel=rL_fun, orig=orig):
+            yield res
 
 
 def _uni_rel(root, rel, max_dep, orig):
