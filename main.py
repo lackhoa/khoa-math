@@ -282,16 +282,23 @@ def fin_p(root, max_dep, orig):
 
 
 def main():
+    p = Mole(type_='WFF', con='ATOM', children=[Atom(role='text', val='P')])
+    q = Mole(type_='WFF', con='ATOM', children=[Atom(role='text', val='Q')])
+    and_intro_root = Mole(type_='PROOF',
+                          children=[Atom(role='dep', val=frozenset({p, q}))])
+    
+
     LEVEL_CAP = 3
     start_roots = [Mole(role='wff_root', type_ = 'WFF_TEST'),
                    Mole(role='union_root', type_ = 'UNI'),
                    Mole(role='proof_root0', type_ = 'PROOF_TEST'),
-                   Mole(role='iso_root0', type_ = 'ISO_TEST')]
+                   Mole(role='iso_root0', type_ = 'ISO_TEST'),
+                   and_intro_root]
     debug_root = LogNode(['Start Debug'])  # For describing the program execution
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for start in start_roots[:]:
+        for start in start_roots[4:]:
             for count, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 t.name = str(count)
                 info_root.log('RETURNED:'); info_root.log_t(t)

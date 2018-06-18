@@ -63,9 +63,10 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str,
+    def __init__(self, 
                  vals: KSet = KConst.ANY.value,
                  val=None,
+                 role: str='',
                  name: str=''):
         super().__init__(role, name)
         self.vals = KSet(frozenset({val})) if val is not None else vals
@@ -109,10 +110,10 @@ class Atom(MathObj):
 
 class Mole(MathObj):
     def __init__(self,
-                 role: str,
                  type_: Optional[str],
                  cons: KSet = KConst.STR.value,
-                 con=None,
+                 con: str=None,
+                 role: str='',
                  name: str='',
                  parent=None,
                  children: Iterable[Union[Atom, 'Mole']]=[]):
@@ -127,10 +128,6 @@ class Mole(MathObj):
             f for f in [self.name, self.role, str(self.type), 'cons=' + str(self.cons)]
             if f != '')
         return 'M: {}'.format(', '.join(fields))
-
-    def __str__(self) -> str:
-        try: return self.get_path('text').val
-        except: return repr(self)
 
     def _pre_attach(self, parent: 'Mole'):
         assert(type(parent) != Atom), 'Can\'t attach to an atom!'
@@ -164,8 +161,14 @@ class Mole(MathObj):
             new_child.parent = self
             new_child.pave_way(cdr(path))
 
-    def kattach(self, node: Union[Atom, 'Mole'], path: str = '', mode: str = 'merge'):
-        """Attach `node` to this molecule, with optional path down the line"""
+    def kattach(self, node: Union[Atom, 'Mole'],
+                path: str = '', mode: str = 'merge', role: str=None):
+        """
+        Attach `node` to this molecule, with optional path down the line
+        :param role: the new role that `node` node will take
+        """
+        if role is not None:
+            node.role = role
         if path != '':
             self.pave_way(path)
             self.get_path(path).kattach(node, mode=mode)
@@ -213,6 +216,6 @@ class Mole(MathObj):
 
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
-        return hash((self.role, self.type, self.cons, self.children))
+        return hash((self.type, self.cons, self.children))
 
 ATMO = Union[Atom, Mole]

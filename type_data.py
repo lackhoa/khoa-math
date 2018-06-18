@@ -64,17 +64,23 @@ cons_dic['WFF']['DISJUNCTION'] = CI(
 
 
 # Proofs
-proof_dic = {}
-proof_dic['PREM_INTRO'] = CI(
+cons_dic['PROOF'] = {}
+cons_dic['PROOF']['PREM_INTRO'] = CI(
     args=[Mole(role='form', type_='WFF'),
           Atom(role='dep')],
-    rels=Rel('ISO',
-             lambda f: frozenset({f}), lambda d: list(d)[0],
-             'form', 'dep'))
+    rels=[Rel('ISO',
+              lambda f: frozenset({f}), lambda d: list(d)[0],
+              'form', 'dep')])
+
+cons_dic['PROOF']['&I'] = CI(
+    args=[Mole(role='left', type_='WFF'),
+          Mole(role='right', type_='WFF'),
+          Atom(role='dep')],
+    rels=Rel('UNION', 'left/dep', 'right/dep', 'dep'))
 
 
 
-#----------------------------TESTING----------------------------
+#----------------------------TEST TYPES----------------------------
 # Well-formed formulas testing
 cons_dic['WFF_TEST'] = {}
 cons_dic['WFF_TEST']['ATOM'] = CI(args=[Atom(role='text', vals=KSet({'P', 'Q'}))])
@@ -98,7 +104,7 @@ cons_dic['WFF_TEST']['CONDITIONAL'] = CI(
 cons_dic['UNI'] = {}
 cons_dic['UNI']['ONE'] = CI(
     args = [
-        Atom(role='sub0', vals=KConst.ANY.value),
+        Atom(role='sub0'),
         Atom(role='sub1', vals=KSet([frozenset({1,2,}), frozenset({3})])),
         Atom(role='uni', vals=KSet([frozenset({1,2,3}), frozenset({2,3,4})]))],
     rels = [Rel('UNION', 'sub0', 'sub1', 'uni')])
