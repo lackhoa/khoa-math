@@ -114,7 +114,7 @@ def form_p(root, max_dep, orig):
         else: con_orig.log('Good, there is no redundant components')
 
         for arg in args:
-            res.kattach(arg)
+            res.kattach(arg, mode='merge')
         con_orig.log('Attached all components')
         con_orig.log_t(res)
 
@@ -144,13 +144,11 @@ def _fun_rel(root, max_dep, rel, orig):
         orig.log_t(in_root)
 
     nl_ins = (kenum(root=i, max_dep=max_dep-1, orig=orig) for i in in_roots if not i.legit)
-    # What would happen if some of those inputs' roots aren't legit?
-    # Then we would yield nothing
     for in_legit in product(*nl_ins):
         m_in_orig = orig.branch(['Chosen a new input suit'])
         res = root.clone()
         for inp in in_legit:
-            res.kattach(inp.clone())
+            res.kattach(inp.clone(), mode='overwrite')
         m_in_orig.log('Attached input suit:'); m_in_orig.log_t(res)
 
         function = rel.get('fun')
@@ -159,7 +157,7 @@ def _fun_rel(root, max_dep, rel, orig):
         output = function(*arguments)
 
         out_atom = Atom(role=rcar(rel.get('out')), vals=KSet({output}))
-        res.kattach(node=out_atom, path=rcdr(rel.get('out')))
+        res.kattach(node=out_atom, path=rcdr(rel.get('out')), mode='merge')
         m_in_orig.log('Attached output:')
         m_in_orig.log_t(res)
         m_in_orig.log('Yielding!')
@@ -174,12 +172,12 @@ def _uni_rel(root, rel, max_dep, orig):
         for uni_legit in kenum(
                 root=super_root, max_dep=max_dep-1, orig=orig):
             rc = root.clone()
-            rc.kattach(uni_legit)
+            rc.kattach(uni_legit, mode='overwrite')
             uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_t(rc)
             uni_orig.log('Updating the subsets')
             for sub_path in subs_path[:-1]:
                 a = Atom(role=rcar(sub_path), vals=KSet(content=powerset(uni_legit.val)))
-                rc.kattach(a, path=rcdr(sub_path))
+                rc.kattach(a, path=rcdr(sub_path), mode='merge')
             uni_orig.log('Result is'); uni_orig.log_t(rc)
             uni_orig.log('Now we are ready to enumerate the subsets')
             subs_root = [rc.get_path(car(path)) for path in subs_path]  # We updated some of those
@@ -190,14 +188,14 @@ def _uni_rel(root, rel, max_dep, orig):
                 res = rc.clone()
                 for sub_root_legit in sub_roots_legit:
                     sub_orig.log('Attaching:'); sub_orig.log_t(sub_root_legit)
-                    res.kattach(sub_root_legit)
+                    res.kattach(sub_root_legit, mode='overwrite')
                 sub_orig.log('Attached those:'); sub_orig.log_t(res)
                 subsets_so_far = (res.get_path(path).val for path in subs_path[:-1])  # type: (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = uni_legit.val - union_so_far  # type: (frozen)set
                 val_for_last = KSet((leftover | x for x in powerset(union_so_far)))
                 last_atom = Atom(role=rcar(subs_path[-1]), vals=val_for_last)
-                res.kattach(last_atom, path=rcdr(subs_path[-1]))
+                res.kattach(last_atom, path=rcdr(subs_path[-1]), mode='merge')
                 sub_orig.log('Attached the union:'); sub_orig.log_t(res)
                 yield res
 
@@ -211,13 +209,13 @@ def _uni_rel(root, rel, max_dep, orig):
             sub_orig = orig.branch(['Chosen subsets'])
             res = root.clone()
             for sub_root_legit in sub_roots_legit:
-                res.kattach(sub_root_legit)
+                res.kattach(sub_root_legit, mode='overwrite')
             sub_orig.log('Attached those:')
             sub_orig.log_t(res)
             subsets = (res.get_path(path).val for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             super_atom = Atom(role=rcar(super_path), vals=KSet({superset}))
-            res.kattach(super_atom, path=rcdr(super_path))
+            res.kattach(super_atom, path=rcdr(super_path), mode='merge')
             sub_orig.log('Attached the union:'); sub_orig.log_t(res)
             yield(res)
 
@@ -248,8 +246,8 @@ def fin_p(root, max_dep, orig):
     for m_children_suit in m_children_suits:
         m_children_suit_orig = orig.branch(['Chosen a new children suit'])
         res = root.clone()
-        for n in m_children_suit:
-            res.kattach(n.clone())
+        for child in m_children_suit:
+            res.kattach(child.clone(), mode='overwrite')
         m_children_suit_orig.log('Attached children suit:')
         m_children_suit_orig.log_t(res)
         m_children_suit_orig.log('Let\'s yield!')
