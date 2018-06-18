@@ -10,7 +10,7 @@ from enum import auto
 
 
 class Rel:
-    def __init__(self, type_: RelT, *slots):
+    def __init__(self, type_: str, *slots):
         self.type = type_
         self.slots = slots
 
