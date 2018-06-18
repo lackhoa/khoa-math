@@ -133,15 +133,15 @@ def rel_p(root: Mole, max_dep, rel, orig):
     orig.log('#'*30); orig.log('Welcome to Relation Phase')
 
     orig.log('Working with relation \"{}\"'.format(rel))
-    if rel.type == RelT.FUN:
+    if rel.type == 'FUN':
         orig.log('It\'s a functional relation')
         for res in _fun_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
-    elif rel.type == RelT.UNION:
+    elif rel.type == 'UNION':
         orig.log('It\'s a union relation')
         for res in _uni_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
-    elif rel.type == RelT.ISO:
+    elif rel.type == 'ISO':
         orig.log('It\'s an isomorphic relation')
         for res in _iso_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
@@ -180,13 +180,13 @@ def _iso_rel(root, rel, max_dep, orig):
     Lr_fun, rL_fun = rel.slots[0], rel.slots[1]
     left,   right  = rel.slots[2], rel.slots[3]
     try:
-        Lr_rel = Rel(RelT.FUN, Lr_fun, left, right)
+        Lr_rel = Rel('FUN', Lr_fun, left, right)
         for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig):
             yield res
     except KEnumError:
         orig.log('Left to right did not work, how about right to left?')
         orig.log('Delegating work for the functional module')
-        rL_rel = Rel(RelT.FUN, rL_fun, right, left)
+        rL_rel = Rel('FUN', rL_fun, right, left)
         for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig):
             yield res
 

@@ -1,4 +1,4 @@
-from khoa_math import MathT, Atom, Mole
+from khoa_math import Atom, Mole
 from kset import KSet, KConst
 from rel import Rel, RelT
 
@@ -18,15 +18,15 @@ cons_dic = {}
 
 #----------------------------TYPES----------------------------
 # Well-formed Formulas
-cons_dic[MathT.WFF] = {}
-cons_dic[MathT.WFF]['ATOM'] = CI(args=[Atom(role='text', vals=KConst.STR.value)])
+cons_dic['WFF'] = {}
+cons_dic['WFF']['ATOM'] = CI(args=[Atom(role='text', vals=KConst.STR.value)])
 
-cons_dic[MathT.WFF]['NEGATION'] = CI(
+cons_dic['WFF']['NEGATION'] = CI(
         args=[Atom(role='text', vals=KConst.STR.value),
               Mole(role='body_f', type_='WFF'),],
         rels=[Rel(RelT.FUN, lambda s: '(~{})'.format(s), 'body_f/text', 'text')])
 
-cons_dic[MathT.WFF]['CONDITIONAL'] = CI(
+cons_dic['WFF']['CONDITIONAL'] = CI(
         args=[Mole(role='ante', type_='WFF'),
               Mole(role='conse', type_='WFF'),
               Atom(role = 'text', vals = KConst.STR.value),],
@@ -35,7 +35,7 @@ cons_dic[MathT.WFF]['CONDITIONAL'] = CI(
             lambda s1, s2: '({}->{})'.format(s1, s2),
             'ante/text', 'conse/text', 'text',)])
 
-cons_dic[MathT.WFF]['BICONDITIONAL'] = CI(
+cons_dic['WFF']['BICONDITIONAL'] = CI(
         args=[Mole(role='left', type_='WFF'),
               Mole(role='right', type_='WFF'),
               Atom(role = 'text', vals = KConst.STR.value),],
@@ -44,7 +44,7 @@ cons_dic[MathT.WFF]['BICONDITIONAL'] = CI(
             lambda s1, s2: '({}<->{})'.format(s1, s2),
             'left/text', 'right/text', 'text',)])
 
-cons_dic[MathT.WFF]['CONJUNCTION'] = CI(
+cons_dic['WFF']['CONJUNCTION'] = CI(
         args=[Mole(role='left', type_='WFF'),
               Mole(role='right', type_='WFF'),
               Atom(role = 'text', vals = KConst.STR.value),],
@@ -53,7 +53,7 @@ cons_dic[MathT.WFF]['CONJUNCTION'] = CI(
             lambda s1, s2: '({}&{})'.format(s1, s2),
             'left/text', 'right/text', 'text',)])
 
-cons_dic[MathT.WFF]['DISJUNCTION'] = CI(
+cons_dic['WFF']['DISJUNCTION'] = CI(
         args=[Mole(role='left', type_='WFF'),
               Mole(role='right', type_='WFF'),
               Atom(role = 'text', vals = KConst.STR.value),],

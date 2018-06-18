@@ -110,7 +110,7 @@ class Atom(MathObj):
 class Mole(MathObj):
     def __init__(self,
                  role: str,
-                 type_: Optional['MathT'],
+                 type_: Optional[str],
                  cons: KSet = KConst.STR.value,
                  con=None,
                  name: str='',
@@ -216,8 +216,3 @@ class Mole(MathObj):
         return hash((self.role, self.type, self.cons, self.children))
 
 ATMO = Union[Atom, Mole]
-
-
-class MathT(MyEnum):
-    WFF = auto()
-    PROOF = auto()
