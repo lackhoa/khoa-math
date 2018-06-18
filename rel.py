@@ -7,6 +7,7 @@ class RelT(MyEnum):
     EQ = auto()
     FUN = auto()  # (func input1 ... input_k output)
     UNION = auto()  # (subset_1 ... subset_k union)
+    ISO = auto()  # (left_right_fun, right_left_fun, left, right)
 
 
 class Rel:

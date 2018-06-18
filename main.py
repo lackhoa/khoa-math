@@ -156,7 +156,7 @@ def _fun_rel(root, max_dep, rel, orig):
         arguments = map(get_val_of_path, rel.get('in'))
         output = function(*arguments)
 
-        out_atom = Atom(role=rcar(rel.get('out')), vals=KSet({output}))
+        out_atom = Atom(role=rcar(rel.get('out')), val=output)
         res.kattach(node=out_atom, path=rcdr(rel.get('out')), mode='merge')
         m_in_orig.log('Attached output:')
         m_in_orig.log_t(res)
@@ -214,7 +214,7 @@ def _uni_rel(root, rel, max_dep, orig):
             sub_orig.log_t(res)
             subsets = (res.get_path(path).val for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
-            super_atom = Atom(role=rcar(super_path), vals=KSet({superset}))
+            super_atom = Atom(role=rcar(super_path), val=superset)
             res.kattach(super_atom, path=rcdr(super_path), mode='merge')
             sub_orig.log('Attached the union:'); sub_orig.log_t(res)
             yield(res)

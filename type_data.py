@@ -4,6 +4,7 @@ from kset import KSet, KConst
 from rel import Rel, RelT
 
 
+#----------------------------TYPES----------------------------
 # Well-formed Formulas
 wff_dic = {}
 wff_dic['ATOM'] = CI(args=[Atom(role='text', vals=KConst.STR.value)])
@@ -50,6 +51,18 @@ wff_dic['DISJUNCTION'] = CI(
             'left/text', 'right/text', 'text',)])
 
 
+# Proofs
+proof_dic = {}
+proof_dic['PREM_INTRO'] = CI(
+    args=[Mole(role='form', type_='WFF'),
+          Atom(role='dep')],
+    rels=Rel(RelT.ISO,
+             lambda f: frozenset({f}), lambda d: list(d)[0],
+             'form', 'dep'))
+
+
+
+#----------------------------TESTING----------------------------
 # Well-formed formulas testing
 wff_dic_test = {}
 wff_dic_test['ATOM'] = CI(args=[Atom(role='text', vals=KSet({'P', 'Q'}))])
@@ -79,6 +92,7 @@ uni_dic['ATOM'] = CI(
     rels = [Rel(RelT.UNION, 'sub0', 'sub1', 'uni')])
 
 
+#----------------------------DICTIONARY----------------------------
 # Constructor Dictionary
 cons_dic = {}
 

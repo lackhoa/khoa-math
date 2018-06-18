@@ -63,7 +63,10 @@ class MathObj(ABC, NodeMixin):
         pass
 
 class Atom(MathObj):
-    def __init__(self, role: str, vals: KSet, val=None, name: str=''):
+    def __init__(self, role: str,
+                 vals: KSet = KConst.ANY.value,
+                 val=None,
+                 name: str=''):
         super().__init__(role, name)
         self.vals = KSet(frozenset({val})) if val is not None else vals
         self.legit = False
@@ -105,9 +108,14 @@ class Atom(MathObj):
 
 
 class Mole(MathObj):
-    def __init__(self, role: str, type_: Optional['MathT'],
-                cons: KSet = KConst.STR.value, con=None,
-                 name: str='', parent=None, children: Iterable[Union[Atom, 'Mole']]=[]):
+    def __init__(self,
+                 role: str,
+                 type_: Optional['MathT'],
+                 cons: KSet = KConst.STR.value,
+                 con=None,
+                 name: str='',
+                 parent=None,
+                 children: Iterable[Union[Atom, 'Mole']]=[]):
         super().__init__(role, name)
         self.type = type_
         self.cons = KSet(frozenset({con})) if con is not None else cons
