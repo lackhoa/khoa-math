@@ -256,22 +256,24 @@ def fin_p(root, max_dep, orig):
         yield res
 
 
-start = Mole(role='root', type_ = 'UNI')
+def main():
+    LEVEL_CAP = 2
+    start_roots = [Mole(role='root0', type_ = 'WFF_TEST'),
+                   Mole(role='root1', type_ = 'UNI')]
+    debug_root = LogNode(['Start Debug'])  # For describing the program execution
+    info_root = LogNode(['Start Info'])  # For output
+    start_time = timeit.default_timer()
+    try:
+        for start in start_roots:
+            for count, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
+                t.name = str(count)
+                info_root.log('RETURNED:'); info_root.log_t(t)
+    finally:
+        # Write down logs even after failure
+        stop_time = timeit.default_timer()
+        logging.info("Program Executed in {} seconds".format(stop_time - start_time))
+        logging.debug(render_log(debug_root))
+        logging.info(render_log(info_root))
 
 
-LEVEL_CAP = 2
-debug_root = LogNode(['Start Debug'])  # For describing the program execution
-info_root = LogNode(['Start Info'])  # For output
-start_time = timeit.default_timer()
-try:
-    for t in kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root):
-        info_root.log('RETURNED:'); info_root.log_t(t)
-finally:
-    stop_time = timeit.default_timer()
-    # Writing logs
-    logging.info("Program Executed in {} seconds".format(stop_time - start_time))
-    logging.debug(render_log(debug_root))
-    logging.info(render_log(info_root))
-
-# Got some sick graphs, too:
-# anytree.exporter.DotExporter(debug_root).to_dotfile('logs/debug.dot')
+main()
