@@ -43,10 +43,10 @@ class Mole(dict):
     def con(self, value):
         self['_cons'] = KSet(frozenset({value}))
 
-    def get_path(self, path: str):
+    def __getitem__(self, path: str):
         if path == '': return self
-        elif car(path) == path: return self[path]
-        else: return self[car(path)].get_path(cdr(path))
+        elif car(path) == path: return super().__getitem__(path)
+        else: return super().__getitem__(car(path)).__getitem__(cdr(path))
 
     def has_path(self, path: str) -> bool:
         try: self.get_path(path); return True

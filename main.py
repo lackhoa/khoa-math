@@ -4,6 +4,7 @@ from khoa_math import *
 from type_data import *
 from rel import *
 from call_tree import *
+from glob import legits
 
 import anytree
 import timeit
@@ -53,7 +54,7 @@ def kenum(root: Union[Mole, KSet],
             if root.is_explicit():
                 for val in root:
                     orig.log('Yielding this value: {}'.format(val))
-                    yield KSet({val})
+                    yield ks(val)
             else:
                 orig.log('Can\'t get any value for it')
                 raise KEnumError(root)
@@ -63,7 +64,7 @@ def kenum(root: Union[Mole, KSet],
 
     elif type(root) == Mole:
         orig.log('It\'s a molecule')
-        if 'legit' in root:
+        if root in legits:
             orig.log('Molecule already legit, yielding!')
             yield root
 
@@ -85,7 +86,7 @@ def kenum(root: Union[Mole, KSet],
                     this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
                     this_fin_orig.log_m(finished)
                     this_fin_orig.log('All phases are complete, yielding from main')
-                    finished['legit'] = KSet({True})
+                    legits.add(finished)
                     yield finished
 
 
@@ -154,7 +155,7 @@ def _fun_rel(root, max_dep, rel, orig):
             res.merge(inp, path=in_roles[index])  # The index is preserved
         in_orig.log('Attached input suit:'); in_orig.log_m(res)
 
-        arguments = [res.get_path(path) for path in in_paths]
+        arguments = [res[path] for path in in_paths]
         output = rel['fun'](*arguments)
 
         res.merge(val=output, path=out_path)
@@ -225,7 +226,7 @@ def _uni_rel(root, rel, max_dep, orig):
             for index, sub_root_legit in enumerate(sub_roots_legit):
                 res.merge(sub_root_legit, path=subs_root[index])
             sub_orig.log('Attached those:'); sub_orig.log_m(res)
-            subsets = (res.get_path(path) for path in subs_path)  # type: list of (frozen)set
+            subsets = (res[path] for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             res.merge(superset, path=super_path)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res)
@@ -264,9 +265,9 @@ def fin_p(root, max_dep, orig):
         yield res
 
 
-def main():
-    p = Mole(type_='WFF', con='ATOM', _text=KSet({'P'}))
-    q = Mole(type_='WFF', con='ATOM', _text=KSet({'Q'}))
+def main_func():
+    p = Mole(type_='WFF', con='ATOM', _text=ks('P'))
+    q = Mole(type_='WFF', con='ATOM', _text=ks('Q'))
     and_intro_root = Mole(type_='PROOF', dep=KSet(frozenset({p, q})))
 
     LEVEL_CAP = 3
@@ -290,4 +291,4 @@ def main():
         logging.debug(render_log(debug_root))
         logging.info(render_log(info_root))
 
-main()
+main_func()

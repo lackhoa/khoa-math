@@ -113,10 +113,13 @@ class KConst(Enum):
     NONE = KSet(qualifier = lambda x: False, custom_repr='NONE')
     STR = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
 
+def ks(value):
+    """Help make a quick kset based on a single value"""
+    return KSet(content={value})
 
-class KSetError(Exception):
-    pass
-
-class KSetDataError(KSetError):
-    def __init__(self, msg):
-        self.message = msg
+def adapter(fun: Callable):
+    """
+    Wrap a function's inputs and output with kset
+    E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
+    """
+    return lambda s: ks(fun(s.only))

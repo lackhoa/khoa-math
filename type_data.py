@@ -1,5 +1,5 @@
 from khoa_math import Mole
-from kset import KSet, KConst
+from kset import KSet, KConst, adapter, ks
 from rel import Rel
 
 from typing import NamedTuple, Iterable, Union
@@ -87,7 +87,7 @@ cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q'})))
 cons_dic['WFF_TEST']['NEGATION'] = CI(
     form=Mole(_text=KConst.STR.value, body=Mole(type_='WFF_TEST')),
     rels=[Rel(type_ = 'FUN',
-              fun = lambda s: KSet({'(~{})'.format(s.only)}),
+              fun = adapter(lambda s: '(~{})'.format(s)),
               inp = ['body/_text'],
               out = '_text')])
 
