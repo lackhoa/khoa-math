@@ -7,36 +7,28 @@ from pprint import pformat
 
 class Mole(dict):
     def __init__(self,
-                 type_: KSet = KConst.STR.value,
-                 cons : KSet = KConst.STR.value,
+                 type_: str  = None,
                  con  : str  = None,
-                 dic  : dict = {})
+                 dic  : dict = {'types': KConst.STR.value, 'cons': KConst.STR.value}):
         """
-        Specify either `cons` (if has multiple constructors)
-        or `con`(if has one constructor)
+        If `type_` is set, the corresponding key `types`
+        in `dic` will be ignored. The same thing goes for `con`
         """
-        kelf.type = type_
-        self.cons = KSet(frozenset({con})) if con is not None else cons
         self.update(dic)
+        if type_ is not None: self.type = type_
+        if con is not None: self.con = con
 
     def __repr__(self) -> str:
         return pformat(self)
 
     @property
-    def cons(self):
-        return self['cons']
-
-    @cons.setter
-    def cons(self, value):
-        self['cons'] = value
-
-    @property:
     def type(self):
-        return self['type']
+        assert(self.types.is_singleton()), 'Types not a singleton'
+        return self.types[0]
 
-    @type.setter:
+    @type.setter
     def type(self, value):
-        self['type'] = value
+         self.types = KSet(frozenset({value}))
 
     @property
     def con(self):
@@ -45,10 +37,11 @@ class Mole(dict):
 
     @con.setter
     def con(self, value):
-         self.cons = KSet(frozenset({value}))
+        self.cons = KSet(frozenset({value}))
 
     def get_path(self, path: str):
         if path == '': return self
+        elif car(path) == path: return self[path]
         else: return self[car(path)].get_path(cdr(path))
 
     def has_path(self, path: str) -> bool:
@@ -69,13 +62,14 @@ class Mole(dict):
 
     def merge(self, val, path: str):
         """
-        Merge/attach `value` to this molecule, with optional path down the line
+        Merge/attach `value` to this molecule,
+        with optional path down the line
         """
         assert(path != ''), 'Empty path doesn\'t make sense'
         # When the path has many levels down
         if rcdr(path) != '':
             self.pave_way(rcdr(path))
-            self.get_path(rcdr(path)).attach(val=val, path=rcar(path), mode=mode)
+            self.get_path(rcdr(path)).merge(val=val, path=rcar(path))
         # When the path goes down only one level
         elif path not in self:
             self[path] = val
@@ -84,14 +78,15 @@ class Mole(dict):
                 self[path] = self[path] & val
             else:  # `val` is a molecule, do recursive merge
                 for key in val:
-                    self[path].merge(val=val[key], path=key, mode=mode)
+                    # We assume that `self[path]` must also be a molecule
+                    self[path].merge(val=val[key], path=key)
 
     def clone(self) -> 'Mole':
         res = Mole()
         for key in self:
-            # `self[key]` is either `KSet` or `Mole`
+            # `self[key]` is either a `KSet` or a `Mole`
             # which has `clone()`
-            clone[key] = self[key].clone()
+            res[key] = self[key].clone()
         return res
 
     def __eq__(self, other) -> bool:
