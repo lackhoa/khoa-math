@@ -9,35 +9,39 @@ class Mole(dict):
     def __init__(self,
                  type_: str  = None,
                  con  : str  = None,
-                 dic  : dict = {'types': KConst.STR.value, 'cons': KConst.STR.value}):
+                 **kwargs):
         """
-        If `type_` is set, the corresponding key `types`
-        in `dic` will be ignored. The same thing goes for `con`
+        If you provide `type_`, it will overwrite `types`,
+        Same with `con`.
+        If you don't provide anything, they will be initialized with STR.
         """
-        self.update(dic)
+        super().__init__(**kwargs)
         if type_ is not None: self.type = type_
+        elif 'type' not in self: self['_types'] = KConst.STR.value
         if con is not None: self.con = con
+        elif '_cons' not in self: self['_cons'] = KConst.STR.value
 
-    def __repr__(self) -> str:
-        return pformat(self)
+    def __setitem__(self, key, value):
+        assert(type(value) == Mole or type(value) == KSet), 'Watch the type!'
+        super().__setitem__(key, value)
 
     @property
     def type(self):
-        assert(self.types.is_singleton()), 'Types not a singleton'
-        return self.types[0]
+        assert(self['_types'].is_singleton()), 'Types not a singleton'
+        return self['_types'][0]
 
     @type.setter
     def type(self, value):
-         self.types = KSet(frozenset({value}))
+         self['_types'] = KSet(frozenset({value}))
 
     @property
     def con(self):
-        assert(self.cons.is_singleton()), 'Constructors not a singleton'
-        return self.cons[0]
+        assert(self['_cons'].is_singleton()), 'Constructors not a singleton'
+        return self['_cons'][0]
 
     @con.setter
     def con(self, value):
-        self.cons = KSet(frozenset({value}))
+        self['_cons'] = KSet(frozenset({value}))
 
     def get_path(self, path: str):
         if path == '': return self
@@ -60,14 +64,19 @@ class Mole(dict):
                 next_mole = self[car(path)]
             next_mole.pave_way(cdr(path))
 
-    def merge(self, val, path: str):
+    def merge(self, val: Union[KSet, 'Mole'], path: str = ''):
         """
         Merge/attach `value` to this molecule,
         with optional path down the line
         """
-        assert(path != ''), 'Empty path doesn\'t make sense'
+        # Empty path
+        if (path == ''):
+            # `val` has to be a molecule, it doesn't make sense
+            # to merge KSet to a molecule
+            for key in val:
+                self.merge(val=val[key], path=key)
         # When the path has many levels down
-        if rcdr(path) != '':
+        elif rcdr(path) != '':
             self.pave_way(rcdr(path))
             self.get_path(rcdr(path)).merge(val=val, path=rcar(path))
         # When the path goes down only one level
@@ -102,3 +111,13 @@ class Mole(dict):
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
         return hash(tuple(self.items()))
+
+
+# A bit of testing
+from pprint import pprint as pp
+if __name__ == '__main__':
+    atom1 = Mole(type_ = 'WFF', con = 'CONJUNCTION')
+    atom2 = Mole(type_ = 'WFF', con = 'CONJUNCTION')
+    atom3 = Mole(type='WFF', con='NEG', body=Mole())
+    atom4 = Mole(type='WFF', con='ATOM', text=KSet({'5'}))
+    pp(atom3, width=3)

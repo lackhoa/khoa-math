@@ -16,6 +16,11 @@ class KSet:
         self.qualifier, self.custom_repr = qualifier, custom_repr
 
     @property
+    def only(self):
+        assert(self.is_singleton()), 'This set is NOT a singleton'
+        return self[0]
+
+    @property
     def content(self):
         if self._content is None: return None
         else:
@@ -38,9 +43,12 @@ class KSet:
         return KSet(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
-        if self.custom_repr: return self.custom_repr
-        elif self.is_explicit(): return 'KS: {}'.format(str(list(self.content)))
-        else: return 'KS: {}'.format(str(self.qualifier))
+        left_sur, right_sur = '|< ', ' >|'
+        core: str
+        if self.custom_repr: core = self.custom_repr
+        elif self.is_explicit(): core = ', '.join(map(str, list(self.content)))
+        else: core = str(self.qualifier)
+        return '{}{}{}'.format(left_sur, core, right_sur)
 
     def __len__(self) -> int:
         if hasattr(self.content, '__len__'): return len(self.content)

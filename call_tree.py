@@ -1,4 +1,6 @@
 from anytree import *
+from khoa_math import Mole
+from pprint import pformat
 
 
 class LogNode(NodeMixin):
@@ -9,13 +11,13 @@ class LogNode(NodeMixin):
         """Add a new line"""
         self.lines.append(line)
 
-    def log_t(self, tree, style=DoubleStyle):
-        """Add a tree"""
-        for pre, fill, node in RenderTree(tree, style=style):
-            self.lines.append("%s%s" % (pre, node))
+    def log_m(self, mole):
+        """Add a molecule"""
+        for mole_line in pformat(mole, width=1).split('\n'):
+            self.lines.append(mole_line)
 
     def branch(self, lines=[]):
-        """Return the a child node with `branch_name`"""
+        """Return the a branch from this node"""
         return LogNode(lines=lines, parent=self)
 
 
@@ -36,9 +38,9 @@ if __name__ == '__main__':
         b(b_branch)
 
     def b(orig):
-        x = Node('x'); y = Node('y', parent=x)
-        branch = orig.branch(['Here\'s a tree inside a tree:'])
-        branch.log_t(x)
+        x = Mole(name = 'x'); y = Mole(name = 'y')
+        branch = orig.branch(['Here\'s a molecule inside a tree:'])
+        branch.log_m(x)
         branch.log('and something under that')
 
     a(root)
