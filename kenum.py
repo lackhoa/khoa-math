@@ -70,9 +70,8 @@ def kenum(root: Union[Mole, KSet],
             this_wf_orig.log('Let\'s go to Relation Phase')
 
             rels = cons_dic[well_formed.type][well_formed.con].rels
-            rel_iter_ = iter(rels)
             for relationed in repeat_rel_p(
-                    root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
+                    root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
                 this_rel_orig.log_m(relationed, lw=LW)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
@@ -138,7 +137,7 @@ def rel_p(root, max_dep, rel, orig):
 def _fun_rel(root, max_dep, rel, orig):
     in_paths, out_path = rel['inp'], rel['out']
     in_roles = [car(path) for path in in_paths]
-    orig.log('The inputs roots are: {}')
+    orig.log('The inputs\' roots are: {}')
     for role in in_roles:
         orig.log(root[role])
 
@@ -231,16 +230,20 @@ def _uni_rel(root, rel, max_dep, orig):
 def repeat_rel_p(root, max_dep, rel_iter, orig):
     try:
         this_rel = next(rel_iter)
-        for new_root in rel_p(
-                root=root, max_dep=max_dep, rel=this_rel, orig=orig):
-            choice_orig = orig.branch(['Chosen '])
-            choice_orig.log_m(new_root, lw=LW)
-            for res in repeat_rel_p(
-                root=new_root, max_dep=max_dep, rel_iter=rel_iter, orig=choice_orig):
-                yield res
     except StopIteration:
         orig.log('No more relations left, yielding')
         yield root
+        return
+
+    for new_root in rel_p(
+            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
+        choice_orig = orig.branch(['Chosen '])
+        choice_orig.log_m(new_root, lw=LW)
+        choice_orig.log('Moving on to the next relation')
+        rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
+        for res in repeat_rel_p(
+            root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
+            yield res
 
 def fin_p(root, max_dep, orig):
     """Enumerate all children that haven't been enumerated"""

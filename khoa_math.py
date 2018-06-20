@@ -49,7 +49,7 @@ class Mole(dict):
         else: return super().__getitem__(car(path)).__getitem__(cdr(path))
 
     def has_path(self, path: str) -> bool:
-        try: self.get_path(path); return True
+        try: self[path]; return True
         except KeyError: return False
 
     def pave_way(self, path: str):
@@ -78,7 +78,7 @@ class Mole(dict):
         # When the path has many levels down
         elif rcdr(path) != '':
             self.pave_way(rcdr(path))
-            self.get_path(rcdr(path)).merge(val=val, path=rcar(path))
+            self[rcdr(path)].merge(val=val, path=rcar(path))
         # When the path goes down only one level
         elif path not in self:
             self[path] = val
