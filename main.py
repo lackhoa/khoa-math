@@ -24,9 +24,9 @@ def main_func():
 
     LEVEL_CAP = 3
     start_roots = [Mole(type_ = 'WFF_TEST'),
-                   Mole(type_ = 'UNI'),]
+                   Mole(type_ = 'UNI'),
+                   Mole(type_ = 'ISO_TEST'),]
                    # Mole(type_ = 'PROOF_TEST'),
-                   # Mole(type_ = 'ISO_TEST'),
                    # and_intro_root]
     debug_root = LogNode(['Start Debug'])  # For describing the program execution
     info_root = LogNode(['Start Info'])  # For output

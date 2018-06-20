@@ -18,9 +18,9 @@ class LogNode(NodeMixin):
         to disable pretty formatting
         """
         if lw:
-            self.lines.extend([''] + [str(mole)] + [''])
+            self.lines.extend([str(mole)] + [''])
         else:
-            self.lines.extend([''] + pformat(mole).split('\n') + [''])
+            self.lines.extend(pformat(mole).split('\n') + [''])
 
     def branch(self, lines=[]):
         """Return the a branch from this node"""

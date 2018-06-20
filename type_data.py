@@ -131,8 +131,21 @@ cons_dic['UNI']['TWO'] = CI(
 #               lambda f: frozenset({f}), lambda d: list(d)[0],
 #               'form', 'dep')])
 
-# # Isomorphism testing
-# cons_dic['ISO_TEST'] = {}
-# cons_dic['ISO_TEST']['ONE'] = CI(
-#     args=[Atom(role='x'), Atom(role='y', vals=KSet({4, 5, 8}))],
-#     rels=[Rel('ISO', lambda y: y+1, lambda x: x-1, 'x', 'y')])
+# Isomorphism testing
+cons_dic['ISO_TEST'] = {}
+# Missing left
+cons_dic['ISO_TEST']['ONE'] = CI(
+    form = Mole(x = KConst.INT.value, y = KSet({4,5,8})),
+    rels = [Rel(type_ = 'ISO',
+            left   = 'x',
+            right  = 'y',
+            Lr_fun = adapter(lambda x: x+1),
+            rL_fun = adapter(lambda y: y-1))])
+# Missing right
+cons_dic['ISO_TEST']['TWO'] = CI(
+    form = Mole(x = KSet({4,5,8}), y = KConst.INT.value),
+    rels = [Rel(type_ = 'ISO',
+            left   = 'x',
+            right  = 'y',
+            Lr_fun = adapter(lambda x: x+1),
+            rL_fun = adapter(lambda y: y-1))])

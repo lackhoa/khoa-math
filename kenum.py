@@ -138,7 +138,7 @@ def rel_p(root, max_dep, rel, orig):
 def _fun_rel(root, max_dep, rel, orig):
     in_paths, out_path = rel['inp'], rel['out']
     in_roles = [car(path) for path in in_paths]
-    orig.log('The inputs needed are:')
+    orig.log('The inputs roots are: {}')
     for role in in_roles:
         orig.log(root[role])
 
@@ -166,13 +166,13 @@ def _iso_rel(root, rel, max_dep, orig):
     Lr_fun, rL_fun = rel['Lr_fun'], rel['rL_fun']
     left,   right  = rel['left'], rel['right']
     try:
-        Lr_rel = Rel('FUN', Lr_fun, left, right)
+        Lr_rel = Rel(type_='FUN', fun=Lr_fun, inp=[left], out=right)
         for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig):
             yield res
     except KEnumError:
         orig.log('Left to right did not work, how about right to left?')
         orig.log('Delegating work for the functional module')
-        rL_rel = Rel('FUN', rL_fun, right, left)
+        rL_rel = Rel(type_='FUN', fun=rL_fun, inp=[right], out=left)
         for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig):
             yield res
 
