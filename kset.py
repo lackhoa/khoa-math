@@ -43,7 +43,7 @@ class KSet:
         return KSet(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
-        left_sur, right_sur = '|< ', ' >|'
+        left_sur, right_sur = '<', '>'
         core: str
         if self.custom_repr: core = self.custom_repr
         elif self.is_explicit(): core = ', '.join(map(str, list(self.content)))

@@ -54,15 +54,16 @@ class Mole(dict):
 
     def pave_way(self, path: str):
         """
-        Keep attaching new molecules until `self.has_path(path)` is True
+        Keep attaching dummy molecules until `self.has_path(path)` is True
         """
         if not self.has_path(path):
             if car(path) not in self:
-                next_mole = Mole()  # a dummy molecule
+                dummy_mole = Mole()
                 self[car(path)] = next_mole 
+                dummy_mole.pave_way(cdr(path))
             else:
                 next_mole = self[car(path)]
-            next_mole.pave_way(cdr(path))
+                next_mole.pave_way(cdr(path))
 
     def merge(self, val: Union[KSet, 'Mole'], path: str = ''):
         """
@@ -71,8 +72,7 @@ class Mole(dict):
         """
         # Empty path
         if (path == ''):
-            # `val` has to be a molecule, it doesn't make sense
-            # to merge KSet to a molecule
+            assert(type(val) is Mole), 'It doesn\'t make sense to merge a KSet to a molecule'
             for key in val:
                 self.merge(val=val[key], path=key)
         # When the path has many levels down
@@ -85,9 +85,10 @@ class Mole(dict):
         else:
             if type(val) != Mole:  # `val` is a KSet
                 self[path] = self[path] & val
-            else:  # `val` is a molecule, do recursive merge
+            else:
+                assert(type(val) is Mole)
                 for key in val:
-                    # We assume that `self[path]` must also be a molecule
+                    assert(type(self[path]) is Mole)
                     self[path].merge(val=val[key], path=key)
 
     def clone(self) -> 'Mole':
