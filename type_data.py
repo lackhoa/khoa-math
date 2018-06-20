@@ -104,10 +104,19 @@ cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
 
 # Union testing
 cons_dic['UNI'] = {}
+# Missing one of the subsets
 cons_dic['UNI']['ONE'] = CI(
-    form = Mole(sub0 = KConst.ANY.value,
-                sub1 = KSet({frozenset({1,2}), frozenset({3})}),
-                super  = KSet({frozenset({1,2,3}), frozenset({2,3,4})})),
+    form = Mole(sub0  = KConst.SET.value,
+                sub1  = KSet({frozenset({1,2}), frozenset({3})}),
+                super = KSet({frozenset({1,2,3}), frozenset({2,3,4})})),
+    rels = [Rel(type_ = 'UNION',
+                subs  = ['sub0', 'sub1'],
+                sup   = 'super')])
+# Missing the superset
+cons_dic['UNI']['TWO'] = CI(
+    form = Mole(sub0  = KSet({frozenset({6,3,4})}),
+                sub1  = KSet({frozenset({1,2}), frozenset({3})}),
+                super = KConst.SET.value),
     rels = [Rel(type_ = 'UNION',
                 subs  = ['sub0', 'sub1'],
                 sup   = 'super')])

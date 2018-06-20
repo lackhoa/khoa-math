@@ -214,16 +214,16 @@ def _uni_rel(root, rel, max_dep, orig):
         orig.log('Well, that didn\'t work')
         orig.log('Then it must mean that the subsets are known')
         sub_roots_legit = (
-                kenum(root=s, max_dep=max_dep-1, orig=orig) for s in subs_root)
-        for sub_roots_legit in product(*sub_roots_legit):
+                kenum(root=root[r], max_dep=max_dep-1, orig=orig) for r in subs_role)
+        for rs in product(*sub_roots_legit):
             sub_orig = orig.branch(['Chosen subsets'])
             res = root.clone()
-            for index, v in enumerate(sub_roots_legit):
-                res.merge(v, path=subs_root[index])
+            for index, v in enumerate(rs):
+                res.merge(v, path=subs_path[index])
             sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
-            subsets = (res[path] for path in subs_path)  # type: list of (frozen)set
+            subsets = (res[path].only for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
-            res.merge(superset, path=super_path)
+            res.merge(ks(superset), path=super_path)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
             yield(res)
 
