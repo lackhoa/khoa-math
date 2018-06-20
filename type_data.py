@@ -84,12 +84,23 @@ cons_dic = {}
 # Well-formed formulas testing
 cons_dic['WFF_TEST'] = {}
 cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q'})))
+
 cons_dic['WFF_TEST']['NEGATION'] = CI(
     form=Mole(_text=KConst.STR.value, body=Mole(type_='WFF_TEST')),
     rels=[Rel(type_ = 'FUN',
               fun = adapter(lambda s: '(~{})'.format(s)),
               inp = ['body/_text'],
               out = '_text')])
+
+cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
+    form=Mole(_text = KConst.STR.value,
+              left  = Mole(type_='WFF_TEST'),
+              right = Mole(type_='WFF_TEST')),
+    rels=[Rel(type_ = 'FUN',
+              fun = adapter(lambda s1, s2: '({}&{})'.format(s1, s2)),
+              inp = ['left/_text', 'right/_text'],
+              out = '_text')])
+
 
 
 # Union testing

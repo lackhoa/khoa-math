@@ -122,4 +122,5 @@ def adapter(fun: Callable):
     Wrap a function's inputs and output with kset
     E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
     """
-    return lambda s: ks(fun(s.only))
+    take_only = lambda s: s.only
+    return lambda *args: ks(fun(*map(take_only, args)))
