@@ -61,6 +61,7 @@ def kenum(root: Union[Mole, KSet],
         if root in legits:
             orig.log('Molecule already legit, yielding!')
             yield root
+            return
 
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):

@@ -13,7 +13,7 @@ class LogNode(NodeMixin):
 
     def log_m(self, mole):
         """Add a molecule"""
-        for mole_line in pformat(mole, width=1).split('\n'):
+        for mole_line in pformat(mole).split('\n'):
             self.lines.append(mole_line)
 
     def branch(self, lines=[]):

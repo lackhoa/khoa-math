@@ -22,7 +22,7 @@ def main_func():
     q = Mole(type_='WFF', con='ATOM', _text=ks('Q'))
     and_intro_root = Mole(type_='PROOF', dep=KSet(frozenset({p, q})))
 
-    LEVEL_CAP = 3
+    LEVEL_CAP = 4
     start_roots = [Mole(type_ = 'WFF_TEST'),]
                    # Mole(type_ = 'UNI'),
                    # Mole(type_ = 'PROOF_TEST'),

@@ -99,19 +99,9 @@ class Mole(dict):
             res[key] = self[key].clone()
         return res
 
-    def __eq__(self, other) -> bool:
-        res = True
-        if len(self) == len(other):
-            for key in self:
-                if (key not in other) or (self[key] != other[key]):
-                    res = False; break
-        else:
-            res = False
-        return res
-
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
-        return hash(tuple(self.items()))
+        return hash(tuple(sorted(self.items(), key=lambda item: item[0])))
 
 
 # A bit of testing
@@ -122,3 +112,4 @@ if __name__ == '__main__':
     atom3 = Mole(type='WFF', con='NEG', body=Mole())
     atom4 = Mole(type='WFF', con='ATOM', text=KSet({'5'}))
     pp(atom3, width=3)
+    assert(atom1 == atom2)

@@ -25,7 +25,8 @@ class KSet:
         if self._content is None: return None
         else:
             save, res = tee(self._content)
-            self._content = save  # Iteration on the content won't affect the original save
+            # Iteration on the content property won't affect the original iterable
+            self._content = save
             return res
 
     @content.setter
@@ -33,10 +34,15 @@ class KSet:
         self._content = value
 
     def __eq__(self, other):
-        return self.content == other.content and self.qualifier == other.qualifier
+        if self.qualifier is None and other.qualifier is None:
+            return set(self.content) == set(other.content)
+        else:
+            return self.qualifier == other.qualifier
 
     def __hash__(self) -> int:
-        return hash((self.content, self.qualifier))
+        if self.content is not None:
+            return hash(frozenset(self.content))
+        else: return hash(self.qualifier)
 
     def clone(self) -> 'KSet':
         # Content is already a copy, qualifier and custom_repr are immutable
@@ -124,3 +130,8 @@ def adapter(fun: Callable):
     """
     take_only = lambda s: s.only
     return lambda *args: ks(fun(*map(take_only, args)))
+
+if __name__ == '__main__':
+    s1 = KSet({2,3,5,1,4})
+    s2 = KSet([1,2,3,4,5])
+    assert(s1 == s2)
