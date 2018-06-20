@@ -102,17 +102,15 @@ cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
               out = '_text')])
 
 
-
 # Union testing
-# cons_dic['UNI'] = {}
-# cons_dic['UNI']['ONE'] = CI(
-#     form = Mole(sub0 = KConst.ANY.value,
-#                 sub1 = KSet({frozenset({1,2}), frozenset({3})})),
-#                 sub2 = KSet({frozenset({1,2,3}), frozenset({3})}))
-#         Atom(role='sub0'),
-#         Atom(role='sub1', vals=KSet([frozenset({1,2,}), frozenset({3})])),
-#         Atom(role='uni', vals=KSet([frozenset({1,2,3}), frozenset({2,3,4})]))],
-#     rels = [Rel('UNION', 'sub0', 'sub1', 'uni')])
+cons_dic['UNI'] = {}
+cons_dic['UNI']['ONE'] = CI(
+    form = Mole(sub0 = KConst.ANY.value,
+                sub1 = KSet({frozenset({1,2}), frozenset({3})}),
+                super  = KSet({frozenset({1,2,3}), frozenset({2,3,4})})),
+    rels = [Rel(type_ = 'UNION',
+                subs  = ['sub0', 'sub1'],
+                sup   = 'super')])
 
 
 # # Proof testing

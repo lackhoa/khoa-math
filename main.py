@@ -22,9 +22,9 @@ def main_func():
     q = Mole(type_='WFF', con='ATOM', _text=ks('Q'))
     and_intro_root = Mole(type_='PROOF', dep=KSet(frozenset({p, q})))
 
-    LEVEL_CAP = 4
-    start_roots = [Mole(type_ = 'WFF_TEST'),]
-                   # Mole(type_ = 'UNI'),
+    LEVEL_CAP = 3
+    start_roots = [Mole(type_ = 'WFF_TEST'),
+                   Mole(type_ = 'UNI'),]
                    # Mole(type_ = 'PROOF_TEST'),
                    # Mole(type_ = 'ISO_TEST'),
                    # and_intro_root]
@@ -32,10 +32,10 @@ def main_func():
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[:]):
+        for i, start in enumerate(start_roots[1:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
-                info_root.log_m(t)
+                info_root.log_m(t, lw=False)
     finally:
         # Write down logs even after failure
         stop_time = timeit.default_timer()

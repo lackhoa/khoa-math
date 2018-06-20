@@ -26,8 +26,8 @@ console_handler.setLevel(logging.INFO)
 # Configure the root logger
 logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
 
-
-def rt(t): return str(anytree.RenderTree(t))
+# Light-weight logging:
+LW = False
 
 
 class KEnumError(Exception):
@@ -40,7 +40,7 @@ def kenum(root: Union[Mole, KSet],
           max_dep: int,
           orig: LogNode):
     orig.log(30*'#'); orig.log('Welcome to kenum!')
-    orig.log('The root is:'); orig.log_m(root)
+    orig.log('The root is:'); orig.log_m(root, lw=LW)
 
     if type(root) == KSet:
         orig.log('It\'s an atom')
@@ -66,7 +66,7 @@ def kenum(root: Union[Mole, KSet],
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
             this_wf_orig = orig.branch(['Chosen this from Formation phase'])
-            this_wf_orig.log_m(well_formed)
+            this_wf_orig.log_m(well_formed, lw=LW)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
             rels = cons_dic[well_formed.type][well_formed.con].rels
@@ -74,12 +74,12 @@ def kenum(root: Union[Mole, KSet],
             for relationed in repeat_rel_p(
                     root=well_formed, rel_iter=rel_iter_, max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
-                this_rel_orig.log_m(relationed)
+                this_rel_orig.log_m(relationed, lw=LW)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
                 for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
                     this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
-                    this_fin_orig.log_m(finished)
+                    this_fin_orig.log_m(finished, lw=LW)
                     this_fin_orig.log('All phases are complete, yielding from main')
                     legits.add(finished)
                     yield finished
@@ -110,7 +110,7 @@ def form_p(root, max_dep, orig):
 
         res.merge(form)
         con_orig.log('Attached all components')
-        con_orig.log_m(res)
+        con_orig.log_m(res, lw=LW)
 
         con_orig.log('Yielding from constructor phase')
         yield res
@@ -148,14 +148,14 @@ def _fun_rel(root, max_dep, rel, orig):
         res = root.clone()
         for index, inp in enumerate(legit_in):
             res.merge(inp, path=in_roles[index])  # The index is preserved
-        in_orig.log('Attached input suit:'); in_orig.log_m(res)
+        in_orig.log('Attached input suit:'); in_orig.log_m(res, lw=LW)
 
         arguments = [res[path] for path in in_paths]
         output = rel['fun'](*arguments)
 
         res.merge(val=output, path=out_path)
         in_orig.log('Attached output:')
-        in_orig.log_m(res)
+        in_orig.log_m(res, lw=LW)
         in_orig.log('Yielding!')
         yield res
 
@@ -179,18 +179,18 @@ def _iso_rel(root, rel, max_dep, orig):
 
 def _uni_rel(root, rel, max_dep, orig):
     orig.log('Try enumerating the superset part')
-    super_path, subs_path = rel['uni'], rel['subs']
+    super_path, subs_path = rel['sup'], rel['subs']
     super_role, subs_role = car(super_path), [car(path) for path in subs_path]
     try:
         for uni_legit in kenum(
                 root=root[super_role], max_dep=max_dep-1, orig=orig):
             rc = root.clone()
-            rc.merge(uni_legit, path=[super_role])
-            uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc)
+            rc.merge(uni_legit, path=super_role)
+            uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc, lw=LW)
             for sub_path in subs_path[:-1]:
-                rc.merge(powerset(uni_legit), path=sub_path)
+                rc.merge(KSet(powerset(uni_legit.only)), path=sub_path)
             uni_orig.log('Updated the subsets')
-            uni_orig.log('Result is'); uni_orig.log_m(rc)
+            uni_orig.log('Result is'); uni_orig.log_m(rc, lw=LW)
 
             uni_orig.log('Now we are ready to enumerate the subsets')
             legit_subs = (
@@ -200,14 +200,14 @@ def _uni_rel(root, rel, max_dep, orig):
                 sub_orig = uni_orig.branch(['Chosen subsets (except for the last)'])
                 res = rc.clone()
                 for i, v in enumerate(sub_suit):
-                    res.merge(sub_root_legit, path=subs_role[i])
-                sub_orig.log('Attached those:'); sub_orig.log_m(res)
-                subsets_so_far = (res[role] for role in subs_path[:-1])  # type: (frozen)set
+                    res.merge(v, path=subs_role[i])
+                sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
+                subsets_so_far = (res[role].only for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
-                leftover = uni_legit - union_so_far  # type: (frozen)set
+                leftover = uni_legit.only - union_so_far  # type: (frozen)set
                 val_for_last = KSet((leftover | x for x in powerset(union_so_far)))
                 res.merge(val_for_last, path=subs_path[-1])
-                sub_orig.log('Attached the union:'); sub_orig.log_m(res)
+                sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
                 yield res
 
     except KEnumError:
@@ -218,13 +218,13 @@ def _uni_rel(root, rel, max_dep, orig):
         for sub_roots_legit in product(*sub_roots_legit):
             sub_orig = orig.branch(['Chosen subsets'])
             res = root.clone()
-            for index, sub_root_legit in enumerate(sub_roots_legit):
-                res.merge(sub_root_legit, path=subs_root[index])
-            sub_orig.log('Attached those:'); sub_orig.log_m(res)
+            for index, v in enumerate(sub_roots_legit):
+                res.merge(v, path=subs_root[index])
+            sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
             subsets = (res[path] for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             res.merge(superset, path=super_path)
-            sub_orig.log('Attached the union:'); sub_orig.log_m(res)
+            sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
             yield(res)
 
 
@@ -234,7 +234,7 @@ def repeat_rel_p(root, max_dep, rel_iter, orig):
         for new_root in rel_p(
                 root=root, max_dep=max_dep, rel=this_rel, orig=orig):
             choice_orig = orig.branch(['Chosen '])
-            choice_orig.log_m(new_root)
+            choice_orig.log_m(new_root, lw=LW)
             for res in repeat_rel_p(
                 root=new_root, max_dep=max_dep, rel_iter=rel_iter, orig=choice_orig):
                 yield res
@@ -255,6 +255,6 @@ def fin_p(root, max_dep, orig):
         for index, child in enumerate(m_children_suit):
             res[all_keys[index]] = child
         m_children_suit_orig.log('Attached children suit:')
-        m_children_suit_orig.log_m(res)
+        m_children_suit_orig.log_m(res, lw=LW)
         m_children_suit_orig.log('Let\'s yield!')
         yield res

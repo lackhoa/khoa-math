@@ -11,10 +11,16 @@ class LogNode(NodeMixin):
         """Add a new line"""
         self.lines.append(line)
 
-    def log_m(self, mole):
-        """Add a molecule"""
-        for mole_line in pformat(mole).split('\n'):
-            self.lines.append(mole_line)
+    def log_m(self, mole, lw=True):
+        """
+        Add a molecule
+        :param `lw`: light-weight logging, set True
+        to disable pretty formatting
+        """
+        if lw:
+            self.lines.extend([''] + [str(mole)] + [''])
+        else:
+            self.lines.extend([''] + pformat(mole).split('\n') + [''])
 
     def branch(self, lines=[]):
         """Return the a branch from this node"""
