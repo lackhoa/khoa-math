@@ -188,7 +188,7 @@ def _uni_rel(root, rel, max_dep, orig):
             rc.merge(uni_legit, path=super_role)
             uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc, lw=LW)
             for sub_path in subs_path[:-1]:
-                rc.merge(KSet(powerset(uni_legit.only)), path=sub_path)
+                rc.merge(KSet(content=powerset(uni_legit.only)), path=sub_path)
             uni_orig.log('Updated the subsets')
             uni_orig.log('Result is'); uni_orig.log_m(rc, lw=LW)
 
@@ -205,7 +205,7 @@ def _uni_rel(root, rel, max_dep, orig):
                 subsets_so_far = (res[role].only for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = uni_legit.only - union_so_far  # type: (frozen)set
-                val_for_last = KSet((leftover | x for x in powerset(union_so_far)))
+                val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
                 res.merge(val_for_last, path=subs_path[-1])
                 sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
                 yield res
