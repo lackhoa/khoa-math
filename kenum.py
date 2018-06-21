@@ -48,7 +48,7 @@ def kenum(root: Union[Mole, KSet],
             if root.is_explicit():
                 for val in root:
                     orig.log('Yielding this value: {}'.format(val))
-                    yield ks(val)
+                    yield wr(val)
             else:
                 orig.log('Can\'t get any value for it')
                 raise KEnumError(root)
@@ -69,7 +69,7 @@ def kenum(root: Union[Mole, KSet],
             this_wf_orig.log_m(well_formed, lw=LW)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            rels = cons_dic[well_formed.type][well_formed.con].rels
+            rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
             for relationed in repeat_rel_p(
                     root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
@@ -87,14 +87,15 @@ def kenum(root: Union[Mole, KSet],
 def form_p(root, max_dep, orig):
     """Assure that the root is well-formed"""
     orig.log('#'*30); orig.log('Welcome to Formation Phase')
-    cons = root['_cons'] & KSet(cons_dic[root.type].keys())
+    assert(root['_types'].is_singleton())
+    cons = root['_cons'] & KSet(cons_dic[only(root['_types'])].keys())
     orig.log('Possible constructors after unified are: {}'.format(cons))
     orig.log('Exploring all constructors')
     for con in cons:
         con_orig = orig.branch(['Chosen constructor {}'.format(con)])
         res = root.clone()
-        res.con = con
-        form, rels = cons_dic[root.type][con]
+        res['_cons'] = wr(con)
+        form, rels = cons_dic[only(root['_types'])][con]
 
         if max_dep == 1 and any(map(lambda x: type(x) is Mole, form.values())):
             con_orig.log('Out of level, try another constructor')
@@ -187,7 +188,7 @@ def _uni_rel(root, rel, max_dep, orig):
             rc.merge(uni_legit, path=super_role)
             uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc, lw=LW)
             for sub_path in subs_path[:-1]:
-                rc.merge(KSet(content=powerset(uni_legit.only)), path=sub_path)
+                rc.merge(KSet(content=powerset(only(uni_legit))), path=sub_path)
             uni_orig.log('Updated the subsets')
             uni_orig.log('Result is'); uni_orig.log_m(rc, lw=LW)
 
@@ -201,9 +202,9 @@ def _uni_rel(root, rel, max_dep, orig):
                 for i, v in enumerate(sub_suit):
                     res.merge(v, path=subs_role[i])
                 sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
-                subsets_so_far = (res[role].only for role in subs_path[:-1])  # type: list (frozen)set
+                subsets_so_far = (only(res[role]) for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
-                leftover = uni_legit.only - union_so_far  # type: (frozen)set
+                leftover = only(uni_legit) - union_so_far  # type: (frozen)set
                 val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
                 res.merge(val_for_last, path=subs_path[-1])
                 sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
@@ -220,9 +221,9 @@ def _uni_rel(root, rel, max_dep, orig):
             for index, v in enumerate(rs):
                 res.merge(v, path=subs_path[index])
             sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
-            subsets = (res[path].only for path in subs_path)  # type: list of (frozen)set
+            subsets = (only(res[path]) for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
-            res.merge(ks(superset), path=super_path)
+            res.merge(wr(superset), path=super_path)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
             yield(res)
 

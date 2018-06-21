@@ -18,22 +18,22 @@ sys.excepthook = custom_traceback
 
 
 def main_func():
-    p = Mole(type_='WFF', con='ATOM', _text=ks('P'))
-    q = Mole(type_='WFF', con='ATOM', _text=ks('Q'))
-    and_intro_root = Mole(type_ = 'PROOF', dep = ks(frozenset({p, q})))
+    p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
+    q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
+    and_intro_root = Mole(_types = wr('PROOF'), dep = wr(frozenset({p, q})))
 
     LEVEL_CAP = 3
-    start_roots = [Mole(type_ = 'WFF_TEST'),
-                   Mole(type_ = 'UNI'),
-                   Mole(type_ = 'ISO_TEST'),
-                   Mole(type_ = 'PROOF_TEST'),
-                   Mole(type_ = 'MULTI'),
+    start_roots = [Mole(_types = wr('WFF_TEST')),
+                   Mole(_types = wr('UNI')),
+                   Mole(_types = wr('ISO_TEST')),
+                   Mole(_types = wr('PROOF_TEST')),
+                   Mole(_types = wr('MULTI')),
                    and_intro_root,]
     debug_root = LogNode(['Start Debug'])  # For describing the program execution
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[5:]):
+        for i, start in enumerate(start_roots[0:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
                 info_root.log_m(t, lw=False)

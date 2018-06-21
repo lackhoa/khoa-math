@@ -16,11 +16,6 @@ class KSet:
         self.qualifier, self.custom_repr = qualifier, custom_repr
 
     @property
-    def only(self):
-        assert(self.is_singleton()), 'This set is NOT a singleton'
-        return self[0]
-
-    @property
     def content(self):
         if self._content is None: return None
         else:
@@ -49,10 +44,10 @@ class KSet:
         return KSet(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
-        left_sur, right_sur = '<', '>'
+        left_sur, right_sur = '{', '}'
         core: str
         if self.custom_repr: core = self.custom_repr
-        elif self.is_explicit(): core = ', '.join(map(str, list(self.content)))
+        elif self.is_explicit(): core = ' | '.join(map(str, list(self.content)))
         else: core = str(self.qualifier)
         return '{}{}{}'.format(left_sur, core, right_sur)
 
@@ -114,26 +109,13 @@ class KSet:
 
 
 # Some handy ksets
-class KConst(Enum):
-    ANY  = KSet(qualifier = lambda x: True, custom_repr='ANY')
-    NONE = KSet(qualifier = lambda x: False, custom_repr='NONE')
-    STR  = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
-    SET  = KSet(qualifier = lambda x: type(x) is set or type(x) is frozenset,
-                custom_repr='SET')
-    INT  = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
+ANY  = KSet(qualifier = lambda x: True, custom_repr='ANY')
+NONE = KSet(qualifier = lambda x: False, custom_repr='NONE')
+STR  = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
+SET  = KSet(qualifier = lambda x: type(x) is set or type(x) is frozenset,
+            custom_repr='SET')
+INT  = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
     
-
-def ks(value):
-    """Help make a quick kset based on a single value"""
-    return KSet(content={value})
-
-def adapter(fun: Callable):
-    """
-    Wrap a function's inputs and output with kset
-    E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
-    """
-    take_only = lambda s: s.only
-    return lambda *args: ks(fun(*map(take_only, args)))
 
 if __name__ == '__main__':
     s1 = KSet({2,3,5,1,4})

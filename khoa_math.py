@@ -1,47 +1,23 @@
 from misc import MyEnum, car, cdr, rcar, rcdr
-from kset import KSet, KConst
+from kset import *
 
 from typing import *
 from pprint import pformat
 
 
 class Mole(dict):
-    def __init__(self,
-                 type_: str  = None,
-                 con  : str  = None,
-                 **kwargs):
+    def __init__(self, **kwargs):
         """
-        If you provide `type_`, it will overwrite `types`,
-        Same with `con`.
-        If you don't provide anything, they will be initialized with STR.
+        If you don't provide _types of _cons,
+        they will be initialized with STR.
         """
         super().__init__(**kwargs)
-        if type_ is not None: self.type = type_
-        elif 'type' not in self: self['_types'] = KConst.STR.value
-        if con is not None: self.con = con
-        elif '_cons' not in self: self['_cons'] = KConst.STR.value
+        if '_types' not in self: self['_types'] = STR
+        if '_cons' not in self: self['_cons'] = STR
 
     def __setitem__(self, key, value):
         assert(type(value) == Mole or type(value) == KSet), 'Watch the type!'
         super().__setitem__(key, value)
-
-    @property
-    def type(self):
-        assert(self['_types'].is_singleton()), 'Types not a singleton'
-        return self['_types'][0]
-
-    @type.setter
-    def type(self, value):
-         self['_types'] = KSet(frozenset({value}))
-
-    @property
-    def con(self):
-        assert(self['_cons'].is_singleton()), 'Constructors not a singleton'
-        return self['_cons'][0]
-
-    @con.setter
-    def con(self, value):
-        self['_cons'] = KSet(frozenset({value}))
 
     def __getitem__(self, path: str):
         if path == '': return self
@@ -104,12 +80,33 @@ class Mole(dict):
         return hash(tuple(sorted(self.items(), key=lambda item: item[0])))
 
 
+def wr(value):
+    """Stands for 'wrap'"""
+    return value if type(value) is Mole else KSet(content={value})
+
+
+def only(singleton: Union[KSet, Mole]):
+    if type(singleton) is Mole:
+        return singleton
+    else:
+        assert(singleton.is_singleton()), 'This set is NOT a singleton'
+        return singleton[0]
+
+
+def adapter(fun: Callable):
+    """
+    E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
+    """
+    return lambda *args: wr(fun(*map(lambda s: only(s), args)))
+
+
+
 # A bit of testing
 from pprint import pprint as pp
 if __name__ == '__main__':
-    atom1 = Mole(type_ = 'WFF', con = 'CONJUNCTION')
-    atom2 = Mole(type_ = 'WFF', con = 'CONJUNCTION')
-    atom3 = Mole(type='WFF', con='NEG', body=Mole())
-    atom4 = Mole(type='WFF', con='ATOM', text=KSet({'5'}))
+    atom1 = Mole(_types = wr( 'WFF'), _cons = wr( 'CONJUNCTION'))
+    atom2 = Mole(_types = wr( 'WFF'), _cons = wr( 'CONJUNCTION'))
+    atom3 = Mole(_types = wr('WFF'), _cons = wr('NEG'), body=Mole())
+    atom4 = Mole(_types = wr('WFF'), _cons = wr('ATOM'), _text=KSet({'5'}))
     pp(atom3, width=3)
     assert(atom1 == atom2)
