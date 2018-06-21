@@ -31,7 +31,7 @@ def main_func():
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[5:]):
+        for i, start in enumerate(start_roots[:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
                 info_root.log_m(t, lw=False)

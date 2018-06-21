@@ -105,9 +105,10 @@ def form_p(root, max_dep, orig):
         res &= form
         con_orig.log('Attached all components')
         con_orig.log_m(res, lw=LW)
-
-        con_orig.log('Yielding from constructor phase')
-        yield res
+        if not res.is_inconsistent():
+            con_orig.log('Consistent, yielding from constructor phase')
+            yield res
+        else: con_orig.log('Inconsistent')
 
 
 def rel_p(root, max_dep, rel, orig):
@@ -150,8 +151,11 @@ def _fun_rel(root, max_dep, rel, orig):
         res[out_path] &= output
         in_orig.log('Attached output:')
         in_orig.log_m(res, lw=LW)
-        in_orig.log('Yielding!')
-        yield res
+        if not res.is_inconsistent():
+            in_orig.log('Yielding!')
+            yield res
+        else:
+            in_orig.log('Inconsistent')
 
 
 def _iso_rel(root, rel, max_dep, orig):
@@ -202,7 +206,11 @@ def _uni_rel(root, rel, max_dep, orig):
                 val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
                 res[subs_path[-1]] &= val_for_last
                 sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
-                yield res
+                if not res.is_inconsistent():
+                    sub_orig.log('Yielding')
+                    yield res
+                else:
+                    sub_orig.log('Inconsistent')
 
     except KEnumError:
         orig.log('Well, that didn\'t work')
@@ -219,7 +227,11 @@ def _uni_rel(root, rel, max_dep, orig):
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             res[super_path] &= wr(superset)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
-            yield(res)
+            if not res.is_inconsistent():
+                sub_orig.log('Yielding')
+                yield res
+            else:
+                sub_orig.log('Inconsistent')
 
 
 def repeat_rel_p(root, max_dep, rel_iter, orig):
