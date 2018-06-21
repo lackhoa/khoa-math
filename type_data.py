@@ -1,5 +1,5 @@
 from khoa_math import *
-from rel import Rel
+from rel import *
 
 from typing import *
 
@@ -52,13 +52,13 @@ cons_dic['PROOF']['&I'] = CI(
                 left_p  = Mole(_types = wr('PROOF')),
                 right_p = Mole(_types = wr('PROOF')),
                 dep     = SET),
-    rels = [Rel(type_ = 'FUN',
-                fun   = lambda l, r: Mole(left_f = l, right_f = r),
-                inp   = ['left_p/formu', 'right_p/formu'],
-                out   = 'formu'),
+    rels = [eq(left  = 'left_p/formu',
+                right = 'formu/left_f'),
+            eq(left  = 'right_p/formu',
+                right = 'formu/right_f'),
             Rel(type_  = 'UNION',
                 subs   = ['left_p/dep', 'right_p/dep'],
-                sup    = 'dep'),])
+                sup    = 'dep')])
 
 
 #----------------------------TEST TYPES----------------------------

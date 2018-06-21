@@ -18,7 +18,9 @@ sys.excepthook = custom_traceback
 def main_func():
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
-    and_intro_root = Mole(_types = wr('PROOF'), dep = wr(frozenset({p, q})))
+    and_intro_root = Mole(_types = wr('PROOF'),
+                          dep = wr(frozenset({p, q})),
+                          formu = Mole(left_f = p))
 
     LEVEL_CAP = 3
     start_roots = [Mole(_types = wr('WFF_TEST')),
