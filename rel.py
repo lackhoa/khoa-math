@@ -1,5 +1,4 @@
 from misc import MyEnum
-from enum import auto
 
 
 # Relation types:

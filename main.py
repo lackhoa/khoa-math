@@ -1,5 +1,4 @@
 from kenum import *
-from kset import *
 from misc import *
 from khoa_math import *
 from type_data import *
@@ -9,7 +8,6 @@ from call_tree import *
 import anytree
 import timeit
 import sys, logging, traceback
-
 
 
 def custom_traceback(exc, val, tb):
@@ -33,7 +31,7 @@ def main_func():
     info_root = LogNode(['Start Info'])  # For output
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[0:]):
+        for i, start in enumerate(start_roots[5:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
                 info_root.log_m(t, lw=False)

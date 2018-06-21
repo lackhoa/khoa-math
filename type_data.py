@@ -1,8 +1,7 @@
 from khoa_math import *
-from kset import *
 from rel import Rel
 
-from typing import NamedTuple, Iterable, Union
+from typing import *
 
 
 #---------------Stuff to interface with the typing modules------------
@@ -65,7 +64,7 @@ cons_dic['PROOF']['&I'] = CI(
 #----------------------------TEST TYPES----------------------------
 # Well-formed formulas testing
 cons_dic['WFF_TEST'] = {}
-cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q'})))
+cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text = KSet({'P', 'Q'})))
 
 cons_dic['WFF_TEST']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF_TEST'))),

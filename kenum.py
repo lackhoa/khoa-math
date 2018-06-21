@@ -1,4 +1,3 @@
-from kset import *
 from misc import *
 from khoa_math import *
 from type_data import *
@@ -7,7 +6,7 @@ from call_tree import *
 from glob import legits
 
 import anytree
-from typing import Set, Iterable, FrozenSet, Union
+from typing import *
 from itertools import product, starmap
 from functools import partial, reduce
 import sys, logging, traceback
@@ -102,13 +101,8 @@ def form_p(root, max_dep, orig):
             continue
 
         con_orig.log('Alright! We still have enough level for this molecule')
-        ill_formed = False
-        if (res.keys()-form.keys()) != set():
-            con_orig.log('This molecule does not fit to this constructor')
-            continue
-        else: con_orig.log('Good, there is no redundant keys')
 
-        res.merge(form)
+        res &= form
         con_orig.log('Attached all components')
         con_orig.log_m(res, lw=LW)
 
@@ -147,13 +141,13 @@ def _fun_rel(root, max_dep, rel, orig):
         in_orig = orig.branch(['Chosen a new input suit'])
         res = root.clone()
         for index, inp in enumerate(legit_in):
-            res.merge(inp, path=in_roles[index])  # The index is preserved
+            res[in_roles[index]] &= inp
         in_orig.log('Attached input suit:'); in_orig.log_m(res, lw=LW)
 
         arguments = [res[path] for path in in_paths]
         output = rel['fun'](*arguments)
 
-        res.merge(val=output, path=out_path)
+        res[out_path] &= output
         in_orig.log('Attached output:')
         in_orig.log_m(res, lw=LW)
         in_orig.log('Yielding!')
@@ -185,10 +179,10 @@ def _uni_rel(root, rel, max_dep, orig):
         for uni_legit in kenum(
                 root=root[super_role], max_dep=max_dep-1, orig=orig):
             rc = root.clone()
-            rc.merge(uni_legit, path=super_role)
+            rc[super_role] &= uni_legit
             uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc, lw=LW)
             for sub_path in subs_path[:-1]:
-                rc.merge(KSet(content=powerset(only(uni_legit))), path=sub_path)
+                rc[sub_path] &= KSet(content=powerset(only(uni_legit)))
             uni_orig.log('Updated the subsets')
             uni_orig.log('Result is'); uni_orig.log_m(rc, lw=LW)
 
@@ -200,13 +194,13 @@ def _uni_rel(root, rel, max_dep, orig):
                 sub_orig = uni_orig.branch(['Chosen subsets (except for the last)'])
                 res = rc.clone()
                 for i, v in enumerate(sub_suit):
-                    res.merge(v, path=subs_role[i])
+                    res[subs_role[i]] &= v
                 sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
                 subsets_so_far = (only(res[role]) for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = only(uni_legit) - union_so_far  # type: (frozen)set
                 val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
-                res.merge(val_for_last, path=subs_path[-1])
+                res[subs_path[-1]] &= val_for_last
                 sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
                 yield res
 
@@ -219,11 +213,11 @@ def _uni_rel(root, rel, max_dep, orig):
             sub_orig = orig.branch(['Chosen subsets'])
             res = root.clone()
             for index, v in enumerate(rs):
-                res.merge(v, path=subs_path[index])
+                res[subs_path[index]] &= v
             sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
             subsets = (only(res[path]) for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
-            res.merge(wr(superset), path=super_path)
+            res[super_path] &= wr(superset)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
             yield(res)
 
