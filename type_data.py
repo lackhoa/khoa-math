@@ -52,13 +52,19 @@ cons_dic['PROOF']['&I'] = CI(
                 left_p  = Mole(_types = wr('PROOF')),
                 right_p = Mole(_types = wr('PROOF')),
                 dep     = SET),
-    rels = [eq(left  = 'left_p/formu',
-                right = 'formu/left_f'),
-            eq(left  = 'right_p/formu',
-                right = 'formu/right_f'),
+    rels = [eq(left  = 'left_p/formu', right = 'formu/left_f'),
+            eq(left  = 'right_p/formu', right = 'formu/right_f'),
             Rel(type_  = 'UNION',
                 subs   = ['left_p/dep', 'right_p/dep'],
                 sup    = 'dep')])
+
+cons_dic['PROOF']['&E1'] = CI(
+    form = Mole(formu  = Mole(_types = wr('WFF')),
+                conj_p = Mole(_types = wr('PROOF'),
+                              formu  = Mole(_cons = wr('CONJUNCTION')),
+                dep    = SET)),
+    rels = [eq(left = 'conj_p/formu/left_f', right = 'formu'),
+            eq(left = 'conj_p/dep', right = 'dep')])
 
 
 #----------------------------TEST TYPES----------------------------

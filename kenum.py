@@ -26,7 +26,7 @@ console_handler.setLevel(logging.INFO)
 logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
 
 # Light-weight logging:
-LW = True
+LW = False
 
 
 class KEnumError(Exception):
@@ -237,8 +237,8 @@ def _uni_rel(root, rel, max_dep, orig):
             sub_orig = orig.branch(['Chosen subsets'])
             res = root.clone()
             for index, v in enumerate(rs):
-                res[subs_path[index]] &= v
-            sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
+                res[subs_role[index]] &= v
+            sub_orig.log('Attached those subsets:'); sub_orig.log_m(res, lw=LW)
             subsets = (only(res[path]) for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             res[super_path] &= wr(superset)

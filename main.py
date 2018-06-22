@@ -16,11 +16,29 @@ sys.excepthook = custom_traceback
 
 
 def main_func():
+    debug_root = LogNode(['Start Debug'])  # For describing the program execution
+    info_root = LogNode(['Start Info'])  # For output
+    
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
+    pq = Mole(_types=wr('WFF'), _cons=wr('CONJUNCTION'), left_f=p, right_f=q)
+    setup_roots = [p, q, pq]
+    
+    for i, sr in enumerate(setup_roots):
+        res = nth(kenum(root=sr, max_dep=10, orig=debug_root), 0)
+        setup_roots[i] = res
+        info_root.log('{}. SETUP OUTPUT:'.format(i))
+        info_root.log_m(res, lw=False)
+
+    # Setup variables
+    p,q,pq = setup_roots
+
+    # Main roots
     and_intro_root = Mole(_types = wr('PROOF'),
                           dep = wr(frozenset({p, q})),
                           formu = Mole(left_f = p))
+    and_elim1_root = Mole(_types = wr('PROOF'),
+                          dep = wr(frozenset({pq})))
 
     LEVEL_CAP = 3
     start_roots = [Mole(_types = wr('WFF_TEST')),
@@ -28,12 +46,11 @@ def main_func():
                    Mole(_types = wr('ISO_TEST')),
                    Mole(_types = wr('PROOF_TEST')),
                    Mole(_types = wr('MULTI')),
-                   and_intro_root,]
-    debug_root = LogNode(['Start Debug'])  # For describing the program execution
-    info_root = LogNode(['Start Info'])  # For output
+                   and_intro_root,
+                   and_elim1_root]
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[1:2]):
+        for i, start in enumerate(start_roots[6:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
                 info_root.log_m(t, lw=False)
