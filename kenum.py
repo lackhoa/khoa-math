@@ -26,7 +26,7 @@ console_handler.setLevel(logging.INFO)
 logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
 
 # Light-weight logging:
-LW = False
+LW = True
 
 
 class KEnumError(Exception):
@@ -101,7 +101,6 @@ def form_p(root, max_dep, orig):
             continue
 
         con_orig.log('Alright! We still have enough level for this molecule')
-
         res &= form
         con_orig.log('Attached all components')
         con_orig.log_m(res, lw=LW)
@@ -129,6 +128,23 @@ def rel_p(root, max_dep, rel, orig):
         for res in _iso_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
 
+def repeat_rel_p(root, max_dep, rel_iter, orig):
+    try:
+        this_rel = next(rel_iter)
+    except StopIteration:
+        orig.log('No more relations left, yielding')
+        yield root
+        return
+
+    for new_root in rel_p(
+            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
+        choice_orig = orig.branch(['Chosen '])
+        choice_orig.log_m(new_root, lw=LW)
+        choice_orig.log('Moving on to the next relation')
+        rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
+        for res in repeat_rel_p(
+            root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
+            yield res
 
 def _fun_rel(root, max_dep, rel, orig):
     in_paths, out_path = rel['inp'], rel['out']
@@ -232,25 +248,6 @@ def _uni_rel(root, rel, max_dep, orig):
                 yield res
             else:
                 sub_orig.log('Inconsistent')
-
-
-def repeat_rel_p(root, max_dep, rel_iter, orig):
-    try:
-        this_rel = next(rel_iter)
-    except StopIteration:
-        orig.log('No more relations left, yielding')
-        yield root
-        return
-
-    for new_root in rel_p(
-            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
-        choice_orig = orig.branch(['Chosen '])
-        choice_orig.log_m(new_root, lw=LW)
-        choice_orig.log('Moving on to the next relation')
-        rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
-        for res in repeat_rel_p(
-            root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
-            yield res
 
 def fin_p(root, max_dep, orig):
     """Enumerate all children that haven't been enumerated"""

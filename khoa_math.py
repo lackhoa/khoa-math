@@ -50,10 +50,19 @@ class KSet:
         return KSet(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
+        def recur(thing):
+            if type(thing) is Mole:
+                try: return only(thing['_text'])
+                except: return str(thing)
+            elif type(thing) in (set, frozenset, list, tuple):
+                return '{{{0}}}'.format(', '.join(recur(item) for item in thing))
+            else:
+                return str(thing)
+                    
         left_sur, right_sur = '<', '>'
         core: str
         if self.custom_repr: core = self.custom_repr
-        elif self.is_explicit(): core = ' | '.join(map(str, list(self.content)))
+        elif self.is_explicit(): core = ' | '.join(map(recur, self.content))
         else: core = str(self.qualifier)
         return '{}{}{}'.format(left_sur, core, right_sur)
 
@@ -160,7 +169,7 @@ class Mole(dict):
         return hash(tuple(sorted(self.items(), key=lambda item: item[0])))
     
     def __and__(self, other: ['Mole', KSet, MObj]):
-        if type(other) == MObj.UNIT:
+        if other is MObj.UNIT:
             return self
         elif type(other) == KSet:
             return NONE
