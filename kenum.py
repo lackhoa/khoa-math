@@ -25,9 +25,6 @@ console_handler.setLevel(logging.INFO)
 # Configure the root logger
 logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
 
-# Light-weight logging:
-LW = False
-
 
 class KEnumError(Exception):
     def __init__(self, thing: Union[Mole, KSet]):
@@ -39,7 +36,7 @@ def kenum(root: Union[Mole, KSet],
           max_dep: int,
           orig: LogNode):
     orig.log(30*'#'); orig.log('Welcome to kenum!')
-    orig.log('The root is:'); orig.log_m(root, lw=LW)
+    orig.log('The root is:'); orig.log_m(root)
 
     if type(root) == KSet:
         orig.log('It\'s an atom')
@@ -65,19 +62,19 @@ def kenum(root: Union[Mole, KSet],
         orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(root=root, max_dep=max_dep, orig=orig):
             this_wf_orig = orig.branch(['Chosen this from Formation phase'])
-            this_wf_orig.log_m(well_formed, lw=LW)
+            this_wf_orig.log_m(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
             rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
             for relationed in repeat_rel_p(
                     root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig):
                 this_rel_orig = this_wf_orig.branch(['Chosen this from Relation Phase:'])
-                this_rel_orig.log_m(relationed, lw=LW)
+                this_rel_orig.log_m(relationed)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
                 for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig):
                     this_fin_orig = this_rel_orig.branch(['Chosen this from Finishing Phase:'])
-                    this_fin_orig.log_m(finished, lw=LW)
+                    this_fin_orig.log_m(finished)
                     this_fin_orig.log('All phases are complete, yielding from main')
                     legits.add(finished)
                     yield finished
@@ -103,7 +100,7 @@ def form_p(root, max_dep, orig):
         con_orig.log('Alright! We still have enough level for this molecule')
         res &= form
         con_orig.log('Attached all components')
-        con_orig.log_m(res, lw=LW)
+        con_orig.log_m(res)
         if not res.is_inconsistent():
             con_orig.log('Consistent, yielding from constructor phase')
             yield res
@@ -139,7 +136,7 @@ def repeat_rel_p(root, max_dep, rel_iter, orig):
     for new_root in rel_p(
             root=root, max_dep=max_dep, rel=this_rel, orig=orig):
         choice_orig = orig.branch(['Chosen '])
-        choice_orig.log_m(new_root, lw=LW)
+        choice_orig.log_m(new_root)
         choice_orig.log('Moving on to the next relation')
         rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
         for res in repeat_rel_p(
@@ -159,14 +156,14 @@ def _fun_rel(root, max_dep, rel, orig):
         res = root.clone()
         for index, inp in enumerate(legit_in):
             res[in_roles[index]] &= inp
-        in_orig.log('Attached input suit:'); in_orig.log_m(res, lw=LW)
+        in_orig.log('Attached input suit:'); in_orig.log_m(res)
 
         arguments = [res[path] for path in in_paths]
         output = rel['fun'](*arguments)
 
         res[out_path] &= output
         in_orig.log('Attached output:')
-        in_orig.log_m(res, lw=LW)
+        in_orig.log_m(res)
         if not res.is_inconsistent():
             in_orig.log('Yielding!')
             yield res
@@ -200,11 +197,11 @@ def _uni_rel(root, rel, max_dep, orig):
                 root=root[super_role], max_dep=max_dep-1, orig=orig):
             rc = root.clone()
             rc[super_role] &= uni_legit
-            uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc, lw=LW)
+            uni_orig = orig.branch(['Chosen the superset part:']); uni_orig.log_m(rc)
             for sub_path in subs_path[:-1]:
                 rc[sub_path] &= KSet(content=powerset(only(uni_legit)))
             uni_orig.log('Updated the subsets')
-            uni_orig.log('Result is'); uni_orig.log_m(rc, lw=LW)
+            uni_orig.log('Result is'); uni_orig.log_m(rc)
 
             uni_orig.log('Now we are ready to enumerate the subsets')
             legit_subs = (
@@ -215,13 +212,13 @@ def _uni_rel(root, rel, max_dep, orig):
                 res = rc.clone()
                 for i, v in enumerate(sub_suit):
                     res[subs_role[i]] &= v
-                sub_orig.log('Attached those:'); sub_orig.log_m(res, lw=LW)
+                sub_orig.log('Attached those:'); sub_orig.log_m(res)
                 subsets_so_far = (only(res[role]) for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = only(uni_legit) - union_so_far  # type: (frozen)set
                 val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
                 res[subs_path[-1]] &= val_for_last
-                sub_orig.log('Attached the superset:'); sub_orig.log_m(res, lw=LW)
+                sub_orig.log('Attached the superset:'); sub_orig.log_m(res)
                 if not res.is_inconsistent():
                     sub_orig.log('Yielding')
                     yield res
@@ -238,11 +235,11 @@ def _uni_rel(root, rel, max_dep, orig):
             res = root.clone()
             for index, v in enumerate(rs):
                 res[subs_role[index]] &= v
-            sub_orig.log('Attached those subsets:'); sub_orig.log_m(res, lw=LW)
+            sub_orig.log('Attached those subsets:'); sub_orig.log_m(res)
             subsets = (only(res[path]) for path in subs_path)  # type: list of (frozen)set
             superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
             res[super_path] &= wr(superset)
-            sub_orig.log('Attached the union:'); sub_orig.log_m(res, lw=LW)
+            sub_orig.log('Attached the union:'); sub_orig.log_m(res)
             if not res.is_inconsistent():
                 sub_orig.log('Yielding')
                 yield res
@@ -262,6 +259,6 @@ def fin_p(root, max_dep, orig):
         for index, child in enumerate(m_children_suit):
             res[all_keys[index]] = child
         m_children_suit_orig.log('Attached children suit:')
-        m_children_suit_orig.log_m(res, lw=LW)
+        m_children_suit_orig.log_m(res)
         m_children_suit_orig.log('Let\'s yield!')
         yield res

@@ -16,8 +16,9 @@ sys.excepthook = custom_traceback
 
 
 def main_func():
-    debug_root = LogNode(['Start Debug'])  # For describing the program execution
-    info_root = LogNode(['Start Info'])  # For output
+    LW = False
+    debug_root = LogNode(['Start Debug'], lw=LW)  # For describing the program execution
+    info_root = LogNode(['Start Info'], lw=False)  # For output
     
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
@@ -28,7 +29,7 @@ def main_func():
         res = nth(kenum(root=sr, max_dep=10, orig=debug_root), 0)
         setup_roots[i] = res
         info_root.log('{}. SETUP OUTPUT:'.format(i))
-        info_root.log_m(res, lw=False)
+        info_root.log_m(res)
 
     # Setup variables
     p,q,pq = setup_roots
@@ -53,7 +54,7 @@ def main_func():
         for i, start in enumerate(start_roots[6:]):
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
-                info_root.log_m(t, lw=False)
+                info_root.log_m(t)
     finally:
         # Write down logs even after failure
         stop_time = timeit.default_timer()
