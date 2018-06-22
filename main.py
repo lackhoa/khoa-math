@@ -18,40 +18,52 @@ sys.excepthook = custom_traceback
 def main_func():
     LW = False
     debug_root = LogNode(['Start Debug'], lw=LW)  # For describing the program execution
+    setup_root = LogNode(['Start Setup'], lw=LW)  # For describing the debug execution
+
     info_root = LogNode(['Start Info'], lw=False)  # For output
     
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
+    r = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('R'))
     pq = Mole(_types=wr('WFF'), _cons=wr('CONJUNCTION'), left_f=p, right_f=q)
-    setup_roots = [p, q, pq]
-    
-    for i, sr in enumerate(setup_roots):
-        res = nth(kenum(root=sr, max_dep=10, orig=debug_root), 0)
-        setup_roots[i] = res
-        info_root.log('{}. SETUP OUTPUT:'.format(i))
-        info_root.log_m(res)
+    qr = Mole(_types=wr('WFF'), _cons=wr('CONJUNCTION'), left_f=q, right_f=r)
+    pq_r = Mole(_types=wr('WFF'), _cons=wr('CONJUNCTION'), left_f=pq, right_f=r)
 
-    # Setup variables
-    p,q,pq = setup_roots
+    setup_vars, new_setup_vars = [p, q, r, pq, qr, pq_r], []
+    for i, sr in enumerate(setup_vars):
+        debug_root.log('Current setup job: {}'.format(i))
+        sr = list(kenum(root=sr, max_dep=10, orig=setup_root))[0]
+        new_setup_vars.append(sr)
+        info_root.log('{}. SETUP OUTPUT:'.format(i))
+        info_root.log_m(sr)
+
+    p, q, r, pq, qr, pq_r = new_setup_vars
 
     # Main roots
     and_intro_root = Mole(_types = wr('PROOF'),
-                          dep = wr(frozenset({p, q})),
-                          formu = Mole(left_f = p))
-    and_elim1_root = Mole(_types = wr('PROOF'),
-                          dep = wr(frozenset({pq})))
+                          dep    = wr(frozenset({p,q})),
+                          _cons  = wr('&I'),
+                          formu  = pq)
+    and_elim_root = Mole(_types = wr('PROOF'),  # Focus on this one
+                         dep    = wr(frozenset({pq})),
+                         _cons  = KSet({'&E1'}),
+                         formu  = p)
+    both_root = Mole(_types = wr('PROOF'),
+                     formu  = pq_r,
+                     dep    = wr(frozenset({qr, p})))
 
-    LEVEL_CAP = 3
+    LEVEL_CAP = 4
     start_roots = [Mole(_types = wr('WFF_TEST')),
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
-                   Mole(_types = wr('PROOF_TEST')),
                    Mole(_types = wr('MULTI')),
                    and_intro_root,
-                   and_elim1_root]
+                   and_elim_root,
+                   both_root]
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[6:]):
+        for i, start in enumerate(start_roots[5:6]):
+            debug_root.log('Current main job: {}'.format(i))
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
                 info_root.log_m(t)

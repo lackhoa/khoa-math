@@ -43,17 +43,21 @@ def kenum(root: Union[Mole, KSet],
         if max_dep >= 0:
             if root.is_explicit():
                 for val in root:
-                    orig.log('Yielding this value: {}'.format(val))
+                    orig.log('Yielding this value: {}'.format(wr(val)))
                     yield wr(val)
             else:
-                orig.log('Can\'t get any value for it')
-                raise KEnumError(root)
+                if root == STR:
+                    yield wr('X')
+                else:
+                    orig.log('Can\'t get any value for it')
+                    raise KEnumError(root)
         else:
             orig.log('But we do not have enough level left (how did it happen?)')
             return
 
     elif type(root) == Mole:
         orig.log('It\'s a molecule')
+        assert(root['_types'].is_singleton()), 'How come the type is unknown?'
         if root in legits:
             orig.log('Molecule already legit, yielding!')
             yield root
@@ -79,12 +83,12 @@ def kenum(root: Union[Mole, KSet],
                     legits.add(finished)
                     yield finished
 
-
 def form_p(root, max_dep, orig):
     """Assure that the root is well-formed"""
     orig.log('#'*30); orig.log('Welcome to Formation Phase')
     assert(root['_types'].is_singleton())
     cons = root['_cons'] & KSet(cons_dic[only(root['_types'])].keys())
+    orig.log('Current constructor is: {}'.format(root['_cons']))
     orig.log('Possible constructors after unified are: {}'.format(cons))
     orig.log('Exploring all constructors')
     for con in cons:
@@ -143,12 +147,13 @@ def repeat_rel_p(root, max_dep, rel_iter, orig):
             root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
             yield res
 
+
 def _fun_rel(root, max_dep, rel, orig):
     in_paths, out_path = rel['inp'], rel['out']
     in_roles = [car(path) for path in in_paths]
-    orig.log('The inputs\' roots are: {}')
+    orig.log('The inputs\' roots are:')
     for role in in_roles:
-        orig.log(root[role])
+        orig.log_m(root[role])
 
     legit_ins = [kenum(root=root[role], max_dep=max_dep-1, orig=orig) for role in in_roles]
     for legit_in in product(*legit_ins):

@@ -18,7 +18,8 @@ cons_dic = {}
 #----------------------------TYPES----------------------------
 # Well-formed Formulas
 cons_dic['WFF'] = {}
-cons_dic['WFF']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q'})))
+# cons_dic['WFF']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q', 'R'})))
+cons_dic['WFF']['ATOM'] = CI(form=Mole(_text=STR))
 
 cons_dic['WFF']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF'))),
@@ -61,10 +62,20 @@ cons_dic['PROOF']['&I'] = CI(
 cons_dic['PROOF']['&E1'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 conj_p = Mole(_types = wr('PROOF'),
-                              formu  = Mole(_cons = wr('CONJUNCTION')),
+                              formu  = Mole(_types = wr('WFF'),
+                                            _cons  = wr('CONJUNCTION')),
                 dep    = SET)),
-    rels = [eq(left = 'conj_p/formu/left_f', right = 'formu'),
-            eq(left = 'conj_p/dep', right = 'dep')])
+    rels = [eq('conj_p/dep', 'dep'),
+            eq('conj_p/formu/left_f', 'formu')])
+
+cons_dic['PROOF']['&E2'] = CI(
+    form = Mole(formu  = Mole(_types = wr('WFF')),
+                conj_p = Mole(_types = wr('PROOF'),
+                              formu  = Mole(_types = wr('WFF'),
+                                            _cons  = wr('CONJUNCTION')),
+                dep    = SET)),
+    rels = [eq('conj_p/dep', 'dep'),
+            eq('conj_p/formu/right_f', 'formu')])
 
 
 #----------------------------TEST TYPES----------------------------
@@ -108,17 +119,6 @@ cons_dic['UNI']['TWO'] = CI(
                 subs  = ['sub0', 'sub1'],
                 sup   = 'super')])
 
-
-# Proof testing
-cons_dic['PROOF_TEST'] = {}
-cons_dic['PROOF_TEST']['PREM_INTRO'] = CI(
-    form = Mole(formu  = Mole(_types = wr('WFF_TEST')),
-                dep    = SET),
-    rels = [Rel(type_  = 'ISO',
-                Lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
-                rL_fun = lambda d: list(only(d))[0],
-                left   = 'formu',
-                right  = 'dep')])
 
 # Isomorphism testing
 cons_dic['ISO_TEST'] = {}

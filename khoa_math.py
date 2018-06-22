@@ -51,19 +51,19 @@ class KSet:
 
     def __repr__(self) -> str:
         def recur(thing):
-            if type(thing) is Mole:
+            if type(thing) is str:
+                return thing
+            elif type(thing) is Mole:
                 try: return only(thing['_text'])
                 except: return str(thing)
-            elif type(thing) in (set, frozenset, list, tuple):
-                return '{{{0}}}'.format(', '.join(recur(item) for item in thing))
             else:
-                return str(thing)
-                    
+                try: return '{{{0}}}'.format(', '.join(recur(item) for item in thing))
+                except TypeError: return str(thing)
         left_sur, right_sur = '<', '>'
         core: str
         if self.custom_repr: core = self.custom_repr
         elif self.is_explicit(): core = ' | '.join(map(recur, self.content))
-        else: core = str(self.qualifier)
+        else: core = '?' + str(self.qualifier) + '?'
         return '{}{}{}'.format(left_sur, core, right_sur)
 
     def __len__(self) -> int:
@@ -109,30 +109,24 @@ class KSet:
                         # Special treatment for types that implements union
                         res = KSet(content = self.content & other.content)
                     except TypeError:
-                        unified_len = min(len(self), len(other))
                         res = KSet(content = filter(other, self))
                 else:
                     # Only `self` is explicit: result is explicit
-                    unified_len = min(len(self), len(other)) if other.is_explicit() else len(self)
                     res = KSet(content = filter(other, self))
             elif e2:
                 # Only `other` is explicit: result is explicit
-                unified_len = min(len(self), len(other)) if self.is_explicit() else len(other)
                 res = KSet(content = filter(self, other))
             else:
                 # Either is explicit: result is implicit
-                unified_len = min(len(self), len(other))\
-                              if (self.is_explicit() and other.is_explicit())\
-                              else None
                 res = KSet(qualifier = lambda x: self(x) and other(x))
             return res
 
 
 # Some handy ksets
 ANY  = KSet(qualifier = lambda x: True, custom_repr='ANY')
-NONE = KSet(qualifier = lambda x: False, custom_repr='NONE')
+NONE = KSet(content   = set(), custom_repr='NONE')
 STR  = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
-SET  = KSet(qualifier = lambda x: type(x) is set or type(x) is frozenset,
+SET  = KSet(qualifier = lambda x: type(x) in [set, frozenset],
             custom_repr='SET')
 INT  = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
 
@@ -171,9 +165,9 @@ class Mole(dict):
     def __and__(self, other: ['Mole', KSet, MObj]):
         if other is MObj.UNIT:
             return self
-        elif type(other) == KSet:
+        elif type(other) is KSet:
             return NONE
-        elif type(other) == Mole:
+        elif type(other) is Mole:
             res = Mole()
             for key in self.keys() | other.keys():
                 res[key] = self[key] & other[key]
