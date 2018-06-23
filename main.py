@@ -54,11 +54,9 @@ def main_func():
     # Main roots
     and_intro_root = Mole(_types = wr('PROOF'),
                           dep    = wr(frozenset({p,q})),
-                          _cons  = wr('&I'),
                           formu  = pq)
     and_elim_root = Mole(_types = wr('PROOF'),  # Focus on this one
                          dep    = wr(frozenset({pq})),
-                         _cons  = KSet({'&E1'}),
                          formu  = p)
     both_root = Mole(_types = wr('PROOF'),
                      formu  = pq_r,

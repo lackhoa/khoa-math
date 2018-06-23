@@ -41,7 +41,7 @@ cons_dic['WFF']['CONJUNCTION'] = CI(
 cons_dic['PROOF'] = {}
 cons_dic['PROOF']['PREM_INTRO'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
-                dep    = SET),
+                dep    = SINGLETON),
     rels = [Rel(type_  = 'ISO',
                 Lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
                 rL_fun = lambda d: list(only(d))[0],
@@ -63,8 +63,8 @@ cons_dic['PROOF']['&E1'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 conj_p = Mole(_types = wr('PROOF'),
                               formu  = Mole(_types = wr('WFF'),
-                                            _cons  = wr('CONJUNCTION')),
-                dep    = SET)),
+                                            _cons  = wr('CONJUNCTION'))),
+                dep    = SET),
     rels = [eq('conj_p/dep', 'dep'),
             eq('conj_p/formu/left_f', 'formu')])
 
@@ -72,8 +72,8 @@ cons_dic['PROOF']['&E2'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 conj_p = Mole(_types = wr('PROOF'),
                               formu  = Mole(_types = wr('WFF'),
-                                            _cons  = wr('CONJUNCTION')),
-                dep    = SET)),
+                                            _cons  = wr('CONJUNCTION'))),
+                dep    = SET),
     rels = [eq('conj_p/dep', 'dep'),
             eq('conj_p/formu/right_f', 'formu')])
 

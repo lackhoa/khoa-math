@@ -123,12 +123,13 @@ class KSet:
 
 
 # Some handy ksets
-ANY  = KSet(qualifier = lambda x: True, custom_repr='ANY')
-NONE = KSet(content   = set(), custom_repr='NONE')
-STR  = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
-SET  = KSet(qualifier = lambda x: type(x) in [set, frozenset],
+ANY       = KSet(qualifier = lambda x: True, custom_repr='ANY')
+NONE      = KSet(content   = set(), custom_repr='NONE')
+STR       = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
+SET       = KSet(qualifier = lambda x: type(x) in [set, frozenset],
             custom_repr='SET')
-INT  = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
+INT       = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
+SINGLETON = KSet(qualifier = lambda x: type(x) in [set, frozenset] and len(x) == 1)
 
 
 class Mole(dict):

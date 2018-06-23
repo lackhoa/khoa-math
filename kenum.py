@@ -12,9 +12,15 @@ from functools import partial, reduce
 
 
 class KEnumError(Exception):
-    def __init__(self, thing: Union[Mole, KSet]):
-        self.message = 'Cannot enumerate this thing'
-        self.thing = thing
+    pass
+class UnknownAtomError(KEnumError):
+    def __init__(self, atom: KSet):
+        self.message = 'Cannot enumerate this atom'
+        self.atom = atom
+class RelationError(KEnumError):
+    def __init__(self, rels):
+        self.message = 'Cannot checked these relations'
+        self.rels = rels
 
 
 def kenum(root: Union[Mole, KSet],
@@ -32,7 +38,7 @@ def kenum(root: Union[Mole, KSet],
                     yield wr(val)
             else:
                 orig.log('Can\'t get any value for it')
-                raise KEnumError(root)
+                raise UnknownAtomError(root)
         else:
             orig.log('But we do not have enough level left (how did it happen?)')
             return
@@ -53,8 +59,8 @@ def kenum(root: Union[Mole, KSet],
             this_wf_orig.log('Let\'s go to Relation Phase')
 
             rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
-            for relationed in repeat_rel_p(
-                    root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig.sub()):
+            for relationed in cycle_rel_p(
+                    root=well_formed, rels=rels, max_dep=max_dep, orig=this_wf_orig.sub()):
                 this_rel_orig = this_wf_orig.branch()
                 this_rel_orig.log('Chosen this from Relation Phase:')
                 this_rel_orig.log_m(relationed)
@@ -78,15 +84,20 @@ def form_p(root, max_dep, orig):
     orig.log('Exploring all constructors')
     for con in cons:
         con_orig = orig.branch(); con_orig.log('Chosen constructor {}'.format(con))
-        res = root.clone()
-        res['_cons'] = wr(con)
         form, rels = cons_dic[only(root['_types'])][con]
-
+        
         if max_dep == 1 and any(map(lambda x: type(x) is Mole, form.values())):
             con_orig.log('Out of level, try another constructor')
             continue
-
         con_orig.log('Alright! We still have enough level for this molecule')
+        redundant = root.keys() - (form.keys() | {'_cons', '_types'})
+        if redundant:
+            con_orig.log('Got some redundant components: ({}), no good'.format(redundant))
+            continue
+
+        con_orig.log('No redundant components, good!')
+        res = root.clone()
+        res['_cons'] = wr(con)
         res &= form
         con_orig.log('Attached all components')
         con_orig.log_m(res)
@@ -94,7 +105,6 @@ def form_p(root, max_dep, orig):
             con_orig.log('Consistent, yielding from constructor phase')
             yield res
         else: con_orig.log('Inconsistent')
-
 
 def rel_p(root, max_dep, rel, orig):
     """Apply relation `rel` to aid in enumeration"""
@@ -114,24 +124,53 @@ def rel_p(root, max_dep, rel, orig):
         for res in _iso_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
 
+def cycle_rel_p(root, max_dep, rels, orig):
+    for new_root, unchecked_rels in repeat_rel_p(
+            root=root, max_dep=max_dep, rel_iter=iter(rels), orig=orig):
+        new_orig = orig.branch()
+        new_orig.log('Chosen from `repeat_rel_p`:'); new_orig.log_m(new_root)
+        if new_root == root:
+            new_orig.log('`repeat_rel_p` didn\'t do anything')
+            if unchecked_rels:
+                new_orig.log('There are unchecked relations, which is bad')
+                raise RelationError(unchecked_rels)
+            else:
+                new_orig.log('All relations checked! Yielding this:'); new_orig.log_m(root)
+                yield root
+        else:
+            new_orig.log('Got some new information')
+            if unchecked_rels:
+                new_orig.log('Still got some relations, going to the next cycle')
+                for res in cycle_rel_p(
+                        root=new_root, max_dep=max_dep, rels=unchecked_rels, orig=new_orig):
+                    yield res
+            else:
+                new_orig.log('No more relations left, yielding this:'); new_orig.log_m(new_root)
+                yield new_root
+
 def repeat_rel_p(root, max_dep, rel_iter, orig):
     try:
         this_rel = next(rel_iter)
     except StopIteration:
         orig.log('No more relations left, yielding')
-        yield root
+        yield (root, ())
         return
-
-    for new_root in rel_p(
-            root=root, max_dep=max_dep, rel=this_rel, orig=orig):
-        choice_orig = orig.branch()
-        choice_orig.log('Chosen '); choice_orig.log_m(new_root)
-        choice_orig.log('Moving on to the next relation')
-        rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
-        for res in repeat_rel_p(
-            root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
-            yield res
-
+    try:
+        for new_root in rel_p(
+                root=root, max_dep=max_dep, rel=this_rel, orig=orig):
+            choice_orig = orig.branch()
+            choice_orig.log('Chosen '); choice_orig.log_m(new_root)
+            choice_orig.log('Moving on to the next relation')
+            rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
+            for res, unchecked_rels in repeat_rel_p(
+                root=new_root, max_dep=max_dep, rel_iter=new_rel_iter, orig=choice_orig):
+                yield (res, unchecked_rels)
+    except KEnumError:
+        orig.log('Cannot apply this relation (right now)')
+        orig.log('Moving on to the next relation anyways')
+        for res, unchecked_rels in repeat_rel_p(
+                root=root, max_dep=max_dep, rel_iter=rel_iter, orig=orig):
+            yield (res, (this_rel,)+unchecked_rels)
 
 def _fun_rel(root, max_dep, rel, orig):
     in_paths, out_path = rel['inp'], rel['out']
@@ -161,7 +200,6 @@ def _fun_rel(root, max_dep, rel, orig):
         else:
             in_orig.log('Inconsistent')
 
-
 def _iso_rel(root, rel, max_dep, orig):
     orig.log('Try left to right first')
     orig.log('Delegating work for the functional module')
@@ -177,7 +215,6 @@ def _iso_rel(root, rel, max_dep, orig):
         rL_rel = Rel(type_='FUN', fun=rL_fun, inp=[right], out=left)
         for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig.sub()):
             yield res
-
 
 def _uni_rel(root, rel, max_dep, orig):
     orig.log('Try enumerating the superset part')
