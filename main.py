@@ -9,6 +9,18 @@ import anytree
 import timeit
 import sys, logging, traceback
 
+# Handler that writes debugs to a file
+debug_handler = logging.FileHandler(filename='logs/debug.log', mode='w+')
+debug_handler.setFormatter(logging.Formatter('%(message)s'))
+debug_handler.setLevel(logging.DEBUG)
+
+# Handler that writes info messages or higher to the sys.stderr
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(message)s'))
+console_handler.setLevel(logging.INFO)
+
+# Configure the root logger
+logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
 
 def custom_traceback(exc, val, tb):
     print('\n'.join(traceback.format_exception(exc, val, tb)), file=sys.stderr)
@@ -17,10 +29,10 @@ sys.excepthook = custom_traceback
 
 def main_func():
     LW = False
-    debug_root = LogNode(['Start Debug'], lw=LW)  # For describing the program execution
-    setup_root = LogNode(['Start Setup'], lw=LW)  # For describing the debug execution
+    debug_root = LogNode(lw=LW); debug_root.log('Describing the program execution')
+    setup_root = LogNode(lw=LW); setup_root.log('Describing the setup')
 
-    info_root = LogNode(['Start Info'], lw=False)  # For output
+    info_root = LogNode(lw=False); info_root.log('The output:')
     
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))

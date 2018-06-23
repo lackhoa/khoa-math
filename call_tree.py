@@ -1,15 +1,15 @@
-from anytree import *
 from khoa_math import Mole
 from pprint import pformat
 
 
-class LogNode(NodeMixin):
-    def __init__(self, lines=[], lw=False, parent=None):
-        self.lines, self.lw, self.parent = lines, lw, parent
+class LogNode:
+    def __init__(self, lw=False, prefix=''):
+        self.lw, self.prefix = lw, prefix
+        self.lines, self.counter, self.children = [], 0, []
 
     def log(self, line):
         """Add a new line"""
-        self.lines.append(line)
+        self.lines.append('({}): {}'.format(self.prefix, line))
 
     def log_m(self, mole):
         """
@@ -17,37 +17,47 @@ class LogNode(NodeMixin):
         :param `lw`: light-weight logging, set True
         to disable pretty formatting
         """
+        self.lines.append('({}):'.format(self.prefix))
         if self.lw:
-            self.lines.extend([str(mole)] + [''])
+            self.lines.extend([str(mole)])
         else:
-            self.lines.extend(pformat(mole).split('\n') + [''])
+            self.lines.extend(pformat(mole).split('\n'))
 
-    def branch(self, lines=[]):
+    def branch(self):
         """Return the a branch from this node"""
-        return LogNode(lines=lines, lw=self.lw, parent=self)
+        res = LogNode(lw=self.lw, prefix=self.prefix + str(self.counter))
+        self.counter+=1
+        self.children.append(res)
+        return res
 
+    def sub(self, name):
+        """I don't know what it does yet"""
+        res = LogNode(lw=self.lw, prefix=self.prefix + name)
+        self.children.append(res)
+        return res
 
-def render_log(root: LogNode, main_style=ContStyle, sub_style=DoubleStyle):
-    lines = []
-    for pre, fill, node in RenderTree(root):
-        lines.append("%s%s" % (pre, node.lines[0]))
-        for line in node.lines[1:]:
-            lines.append("%s%s" % (fill, line))
-    return '\n'.join(lines)
+def render_log(root: LogNode):
+    res = '\n'.join(root.lines)
+    for child in root.children:
+        res += '\n' + render_log(child)
+    return res
 
 
 if __name__ == '__main__':
-    root = LogNode(['Start'])
+    root = LogNode(); root.log('Start')
     def a(orig):
         orig.log('do something')
-        b_branch = orig.branch(['Call b'])
-        b(b_branch)
+        orig.log('Calling b'); b_branch = orig.branch(); b(b_branch)
+        orig.log('Calling c'); c_branch = orig.branch(); c(c_branch)
 
     def b(orig):
+        orig.log('b reporting for action')
         x = Mole(name = 'x'); y = Mole(name = 'y')
-        branch = orig.branch(['Here\'s a molecule inside a tree:'])
-        branch.log_m(x)
-        branch.log('and something under that')
+        orig.log('Here\'s a molecule inside a tree:'); orig.log_m(x)
+        orig.log('and something under that')
+
+    def c(orig):
+        orig.log('This is c, I have nothing to say')
 
     a(root)
     print(render_log(root))
