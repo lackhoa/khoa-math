@@ -5,7 +5,7 @@ from pprint import pformat
 class LogNode:
     def __init__(self, lw=False, prefix=''):
         self.lw, self.prefix = lw, prefix
-        self.lines, self.counter, self.children = [], 0, []
+        self.lines, self.choice, self.phase, self.children = [], 0, 0, []
 
     def log(self, line):
         """Add a new line"""
@@ -25,14 +25,15 @@ class LogNode:
 
     def branch(self):
         """Return the a branch from this node"""
-        res = LogNode(lw=self.lw, prefix=self.prefix + str(self.counter))
-        self.counter+=1
+        res = LogNode(lw=self.lw, prefix=self.prefix + str(self.choice))
+        self.choice+=1
         self.children.append(res)
         return res
 
-    def sub(self, name):
+    def sub(self):
         """I don't know what it does yet"""
-        res = LogNode(lw=self.lw, prefix=self.prefix + name)
+        res = LogNode(lw=self.lw, prefix=self.prefix + chr(97+self.phase))
+        self.phase += 1
         self.children.append(res)
         return res
 
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     root = LogNode(); root.log('Start')
     def a(orig):
         orig.log('do something')
-        orig.log('Calling b'); b_branch = orig.branch(); b(b_branch)
+        orig.log('Calling b'); b_branch = orig.sub(); b(b_branch)
         orig.log('Calling c'); c_branch = orig.branch(); c(c_branch)
 
     def b(orig):

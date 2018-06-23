@@ -46,7 +46,7 @@ def kenum(root: Union[Mole, KSet],
             return
 
         orig.log('Let\'s go to Formation Phase')
-        for well_formed in form_p(root=root, max_dep=max_dep, orig=orig.sub('f')):
+        for well_formed in form_p(root=root, max_dep=max_dep, orig=orig.sub()):
             this_wf_orig = orig.branch()
             this_wf_orig.log('Chosen this from Formation phase')
             this_wf_orig.log_m(well_formed)
@@ -54,13 +54,13 @@ def kenum(root: Union[Mole, KSet],
 
             rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
             for relationed in repeat_rel_p(
-                    root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig.sub('r')):
+                    root=well_formed, rel_iter=iter(rels), max_dep=max_dep, orig=this_wf_orig.sub()):
                 this_rel_orig = this_wf_orig.branch()
                 this_rel_orig.log('Chosen this from Relation Phase:')
                 this_rel_orig.log_m(relationed)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
-                for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig.sub('i')):
+                for finished in fin_p(root=relationed, max_dep=max_dep, orig=this_rel_orig.sub()):
                     this_fin_orig = this_rel_orig.branch()
                     this_fin_orig.log('Chosen this from Finishing Phase:')
                     this_fin_orig.log_m(finished)
@@ -140,7 +140,7 @@ def _fun_rel(root, max_dep, rel, orig):
     for role in in_roles:
         orig.log_m(root[role])
 
-    legit_ins = [kenum(root=root[role], max_dep=max_dep-1, orig=orig.sub('k')) for role in in_roles]
+    legit_ins = [kenum(root=root[role], max_dep=max_dep-1, orig=orig.sub()) for role in in_roles]
     for legit_in in product(*legit_ins):
         in_orig = orig.branch()
         in_orig.log('Chosen a new input suit')
@@ -169,13 +169,13 @@ def _iso_rel(root, rel, max_dep, orig):
     left,   right  = rel['left'], rel['right']
     try:
         Lr_rel = Rel(type_='FUN', fun=Lr_fun, inp=[left], out=right)
-        for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig.sub('a')):
+        for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig.sub()):
             yield res
     except KEnumError:
         orig.log('Left to right did not work, how about right to left?')
         orig.log('Delegating work for the functional module')
         rL_rel = Rel(type_='FUN', fun=rL_fun, inp=[right], out=left)
-        for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig.sub('b')):
+        for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig.sub()):
             yield res
 
 
@@ -185,7 +185,7 @@ def _uni_rel(root, rel, max_dep, orig):
     super_role, subs_role = car(super_path), [car(path) for path in subs_path]
     try:
         for uni_legit in kenum(
-                root=root[super_role], max_dep=max_dep-1, orig=orig.sub('k')):
+                root=root[super_role], max_dep=max_dep-1, orig=orig.sub()):
             rc = root.clone()
             rc[super_role] &= uni_legit
             uni_orig = orig.branch()
@@ -197,7 +197,7 @@ def _uni_rel(root, rel, max_dep, orig):
 
             uni_orig.log('Now we are ready to enumerate the subsets')
             legit_subs = (
-                kenum(root=rc[sub_role], max_dep=max_dep-1, orig=orig.sub('j'))\
+                kenum(root=rc[sub_role], max_dep=max_dep-1, orig=orig.sub())\
                 for sub_role in subs_role[:-1])
             for sub_suit in product(*legit_subs):
                 sub_orig = uni_orig.branch()
@@ -222,7 +222,7 @@ def _uni_rel(root, rel, max_dep, orig):
         orig.log('Well, that didn\'t work')
         orig.log('Then it must mean that the subsets are known')
         sub_roots_legit = (
-                kenum(root=root[r], max_dep=max_dep-1, orig=orig.sub('k')) for r in subs_role)
+                kenum(root=root[r], max_dep=max_dep-1, orig=orig.sub()) for r in subs_role)
         for rs in product(*sub_roots_legit):
             sub_orig = orig.branch()
             sub_orig.log(['Chosen subsets'])
@@ -245,7 +245,7 @@ def fin_p(root, max_dep, orig):
     orig.log('#'*30); orig.log('We are now in the Finishing Phase')
     all_keys = list(root.keys())
     m_children_enum = [
-        kenum(root=root[key], max_dep=max_dep-1, orig=orig.sub('k')) for key in all_keys]
+        kenum(root=root[key], max_dep=max_dep-1, orig=orig.sub()) for key in all_keys]
     m_children_suits = product(*m_children_enum)
     for m_children_suit in m_children_suits:
         m_children_suit_orig = orig.branch()
