@@ -42,19 +42,18 @@ cons_dic['PROOF'] = {}
 cons_dic['PROOF']['PREM_INTRO'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 dep    = SINGLETON),
-    rels = [Rel(type_  = 'ISO',
-                Lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
-                rL_fun = lambda d: list(only(d))[0],
-                left   = 'formu',
-                right  = 'dep')])
+    rels = [*iso(lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
+                 rl_fun = lambda d: list(only(d))[0],
+                 left   = 'formu',
+                 right  = 'dep')])
 
 cons_dic['PROOF']['&I'] = CI(
     form = Mole(formu   = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION')),
                 left_p  = Mole(_types = wr('PROOF')),
                 right_p = Mole(_types = wr('PROOF')),
                 dep     = SET),
-    rels = [eq(left  = 'left_p/formu', right = 'formu/left_f'),
-            eq(left  = 'right_p/formu', right = 'formu/right_f'),
+    rels = [*eq('left_p/formu', 'formu/left_f'),
+            *eq('right_p/formu', 'formu/right_f'),
             Rel(type_  = 'UNION',
                 subs   = ['left_p/dep', 'right_p/dep'],
                 sup    = 'dep')])
@@ -65,8 +64,8 @@ cons_dic['PROOF']['&E1'] = CI(
                               formu  = Mole(_types = wr('WFF'),
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
-    rels = [eq('conj_p/dep', 'dep'),
-            eq('conj_p/formu/left_f', 'formu')])
+    rels = [*eq('conj_p/dep', 'dep'),
+            *eq('conj_p/formu/left_f', 'formu')])
 
 cons_dic['PROOF']['&E2'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
@@ -74,8 +73,8 @@ cons_dic['PROOF']['&E2'] = CI(
                               formu  = Mole(_types = wr('WFF'),
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
-    rels = [eq('conj_p/dep', 'dep'),
-            eq('conj_p/formu/right_f', 'formu')])
+    rels = [*eq('conj_p/dep', 'dep'),
+            *eq('conj_p/formu/right_f', 'formu')])
 
 
 #----------------------------TEST TYPES----------------------------
@@ -125,29 +124,26 @@ cons_dic['ISO_TEST'] = {}
 # Missing left
 cons_dic['ISO_TEST']['ONE'] = CI(
     form = Mole(x = INT, y = KSet({4,5,8})),
-    rels = [Rel(type_ = 'ISO',
-            left   = 'x',
-            right  = 'y',
-            Lr_fun = adapter(lambda x: x+1),
-            rL_fun = adapter(lambda y: y-1))])
+    rels = [*iso(left   = 'x',
+                 right  = 'y',
+                 lr_fun = adapter(lambda x: x+1),
+                 rl_fun = adapter(lambda y: y-1))])
 # Missing right
 cons_dic['ISO_TEST']['TWO'] = CI(
     form = Mole(x = KSet({4,5,8}), y = INT),
-    rels = [Rel(type_ = 'ISO',
-            left   = 'x',
-            right  = 'y',
-            Lr_fun = adapter(lambda x: x+1),
-            rL_fun = adapter(lambda y: y-1))])
+    rels = [*iso(left   = 'x',
+                 right  = 'y',
+                 lr_fun = adapter(lambda x: x+1),
+                 rl_fun = adapter(lambda y: y-1))])
 
 # Multiple relations testing
 cons_dic['MULTI'] = {}
 cons_dic['MULTI']['ONE'] = CI(
     form = Mole(x = INT, y = KSet({4,5,8}), z = INT),
-    rels = [Rel(type_ = 'ISO',
-                left   = 'x',
-                right  = 'y',
-                Lr_fun = adapter(lambda x: x+1),
-                rL_fun = adapter(lambda y: y-1)),
+    rels = [*iso(left   = 'x',
+                 right  = 'y',
+                 lr_fun = adapter(lambda x: x+1),
+                 rl_fun = adapter(lambda y: y-1)),
             Rel(type_ = 'FUN',
                 fun   = adapter(lambda x: x),
                 inp   = ['x'],

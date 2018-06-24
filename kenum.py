@@ -119,10 +119,7 @@ def rel_p(root, max_dep, rel, orig):
         orig.log('It\'s a union relation')
         for res in _uni_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
             yield res
-    elif rel.type == 'ISO':
-        orig.log('It\'s an isomorphic relation')
-        for res in _iso_rel(root=root, max_dep=max_dep, rel=rel, orig=orig):
-            yield res
+
 
 def cycle_rel_p(root, max_dep, rels, orig):
     for new_root, unchecked_rels in repeat_rel_p(
@@ -200,21 +197,6 @@ def _fun_rel(root, max_dep, rel, orig):
         else:
             in_orig.log('Inconsistent')
 
-def _iso_rel(root, rel, max_dep, orig):
-    orig.log('Try left to right first')
-    orig.log('Delegating work for the functional module')
-    Lr_fun, rL_fun = rel['Lr_fun'], rel['rL_fun']
-    left,   right  = rel['left'], rel['right']
-    try:
-        Lr_rel = Rel(type_='FUN', fun=Lr_fun, inp=[left], out=right)
-        for res in _fun_rel(root=root, rel=Lr_rel, max_dep=max_dep, orig=orig.sub()):
-            yield res
-    except KEnumError:
-        orig.log('Left to right did not work, how about right to left?')
-        orig.log('Delegating work for the functional module')
-        rL_rel = Rel(type_='FUN', fun=rL_fun, inp=[right], out=left)
-        for res in _fun_rel(root=root, rel=rL_rel, max_dep=max_dep, orig=orig.sub()):
-            yield res
 
 def _uni_rel(root, rel, max_dep, orig):
     orig.log('Try enumerating the superset part')

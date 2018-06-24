@@ -4,7 +4,6 @@ from misc import MyEnum
 # Relation types:
 # FUN: (fun inp out)
 # UNION: (subs sup)
-# ISO: (Lr_fun, rL_fun, left, right)
 
 
 class Rel(dict):
@@ -20,7 +19,11 @@ class Rel(dict):
         elif self.type == 'ISO':
             return '{} <-> {}'.format(self['left'], self['right'])
 
+def iso(lr_fun, rl_fun, left, right):
+    return (Rel(type_='FUN', fun=lr_fun, inp=[left], out=right),
+            Rel(type_='FUN', fun=rl_fun, inp=[right], out=left))
+
 def eq(left, right):
     iden = lambda x: x
-    return Rel(type_='ISO', Lr_fun=iden, rL_fun=iden, left=left, right=right)
+    return iso(lr_fun=iden, rl_fun=iden, left=left, right=right)
 

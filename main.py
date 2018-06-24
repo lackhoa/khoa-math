@@ -28,7 +28,7 @@ sys.excepthook = custom_traceback
 
 
 def main_func():
-    LW = False
+    LW = True
     debug_root = LogNode(lw=LW); debug_root.log('Describing the program execution')
     setup_root = LogNode(lw=LW); setup_root.log('Describing the setup')
 
@@ -63,7 +63,7 @@ def main_func():
                      dep    = wr(frozenset({qr, p})))
 
     LEVEL_CAP = 4
-    start_roots = [Mole(_types = wr('WFF_TEST')),
+    start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
                    Mole(_types = wr('MULTI')),
@@ -72,7 +72,7 @@ def main_func():
                    both_root]
     start_time = timeit.default_timer()
     try:
-        for i, start in enumerate(start_roots[5:6]):
+        for i, start in enumerate(start_roots[6:7]):
             debug_root.log('Current main job: {}'.format(i))
             for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
                 info_root.log('{}. RETURNED ({}):'.format(i, j))
