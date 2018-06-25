@@ -141,7 +141,7 @@ class Mole(dict):
 
     @property
     def root(self):
-        if self.parent is None: return self.parent
+        if self.parent is None: return self
         else: return self.parent.root
 
     @property
@@ -244,4 +244,4 @@ if __name__ == '__main__':
     print('Atom 3\'s complexity: {}'.format(atom3.complexity))
     print('Atom 5\'s complexity: {}'.format(atom5.complexity))
     print('Atom 8\'s complexity: {}'.format(atom8.complexity))
-    assert(atom3['body'].parent == atom3)
+    assert(atom3['body'].parent == atom3 == atom3.root)
