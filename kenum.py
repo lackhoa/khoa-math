@@ -78,11 +78,14 @@ def form_p(root, max_dep, orig):
     """Assure that the root is well-formed"""
     orig.log('#'*30); orig.log('Welcome to Formation Phase')
     assert(root['_types'].is_singleton())
-    cons = root['_cons'] & KSet(cons_dic[only(root['_types'])].keys())
+    root_type = only(root['_types'])
+    cons = list(root['_cons'] & KSet(cons_dic[only(root['_types'])].keys()))
     orig.log('Current constructor is: {}'.format(root['_cons']))
     orig.log('Possible constructors after unified are: {}'.format(cons))
-    orig.log('Exploring all constructors')
-    for con in cons:
+    orig.log('Exploring all constructors, from non-recursive to recursive')
+    recur_num_key  = lambda c: _recur_num(type_ = root_type, con = c)
+    sorted_cons    = sorted(cons, key=recur_num_key)
+    for con in sorted_cons:
         con_orig = orig.branch(); con_orig.log('Chosen constructor {}'.format(con))
         form, rels = cons_dic[only(root['_types'])][con]
         
@@ -100,6 +103,14 @@ def form_p(root, max_dep, orig):
             con_orig.log('Consistent, yielding from formation phase')
             yield res
         else: con_orig.log('Inconsistent')
+    
+
+def _recur_num(type_, con):
+    pred = lambda x: type(x) is Mole\
+                     and x['_types'] == wr(type_)
+    form = cons_dic[type_][con].form
+    return len(list(filter(pred, form.values())))
+
 
 def rel_p(root, max_dep, rel, orig):
     """Apply relation `rel` to aid in enumeration"""

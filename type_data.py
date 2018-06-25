@@ -5,7 +5,7 @@ from typing import *
 
 
 #---------------Stuff to interface with the typing modules------------
-class CI(NamedTuple):
+class CI(NamedTuple):         # Constructor item
     form: Mole                # The model of the constructor
     rels: Iterable[Rel] = []  # The relations between different parts
 
@@ -18,24 +18,21 @@ cons_dic = {}
 #----------------------------TYPES----------------------------
 # Well-formed Formulas
 cons_dic['WFF'] = {}
-# cons_dic['WFF']['ATOM'] = CI(form=Mole(_text=KSet({'P', 'Q', 'R'})))
 cons_dic['WFF']['ATOM'] = CI(form=Mole(_text=STR))
 
 cons_dic['WFF']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF'))),
-    rels=[Rel(type_ = 'FUN',
-              fun = adapter(lambda s: '(~{})'.format(s)),
-              inp = ['body/_text'],
-              out = '_text')])
+    rels=[kfun(fun = lambda s: '(~{})'.format(s),
+               inp = ['body/_text'],
+               out = '_text')])
 
 cons_dic['WFF']['CONJUNCTION'] = CI(
     form=Mole(_text   = STR,
               left_f  = Mole(_types= wr('WFF')),
               right_f = Mole(_types= wr('WFF'))),
-    rels=[Rel(type_ = 'FUN',
-              fun = adapter(lambda s1, s2: '({}&{})'.format(s1, s2)),
-              inp = ['left_f/_text', 'right_f/_text'],
-              out = '_text')])
+    rels=[kfun(fun   = (lambda s1, s2: '({}&{})'.format(s1, s2)),
+               inp   = ['left_f/_text', 'right_f/_text'],
+               out   = '_text')])
 
 # Proofs
 cons_dic['PROOF'] = {}
@@ -95,10 +92,9 @@ cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text = KSet({'P', 'Q'})))
 
 cons_dic['WFF_TEST']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF_TEST'))),
-    rels=[Rel(type_ = 'FUN',
-              fun = adapter(lambda s: '(~{})'.format(s)),
-              inp = ['body/_text'],
-              out = '_text')])
+    rels=[kfun(fun = lambda s: '(~{})'.format(s),
+               inp = ['body/_text'],
+               out = '_text')])
 
 cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
     form=Mole(_text   = STR,
