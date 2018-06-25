@@ -135,15 +135,28 @@ SINGLETON = KSet(qualifier = lambda x: type(x) in [set, frozenset] and len(x) ==
 class Mole(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.parent = None
+        for m in filter(lambda x: type(x) is Mole, self.values()):
+            m.parent = self
+
+    @property
+    def root(self):
+        if self.parent is None: return self.parent
+        else: return self.parent.root
+
+    @property
+    def complexity(self):
+        return 1 + sum(k.complexity for k in self.values() if type(k) is Mole)
 
     def __setitem__(self, path: str, value):
         """Set whatever key you want, down whatever path you want"""
-        assert(type(value) == Mole or type(value) == KSet),\
+        assert(type(value) in [Mole, KSet]),\
                 'Watch the type!'
         assert(path != ''),\
                 'You don\'t have to do this! You don\'t need to do this!'
         if car(path) == path:
             super().__setitem__(path, value)
+            if type(value) is Mole: value.parent = self
         else:
             if car(path) in self:
                 self[car(path)][cdr(path)] = value
@@ -228,3 +241,7 @@ if __name__ == '__main__':
     s1 = KSet({2,3,5,1,4})
     s2 = KSet([1,2,3,4,5])
     assert(s1 == s2)
+    print('Atom 3\'s complexity: {}'.format(atom3.complexity))
+    print('Atom 5\'s complexity: {}'.format(atom5.complexity))
+    print('Atom 8\'s complexity: {}'.format(atom8.complexity))
+    assert(atom3['body'].parent == atom3)
