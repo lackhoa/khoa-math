@@ -38,7 +38,7 @@ info_node   = LogNode(info_logger)
 
 # Switches to turn off the nodes
 setup_node.on = False
-debug_node.on = False
+# debug_node.on = False
 
 
 def custom_traceback(exc, val, tb):
@@ -74,7 +74,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    LEVEL_CAP = 4
+    LEVEL_CAP = 6
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
@@ -83,12 +83,13 @@ def main_func():
                    and_elim_root,
                    both_root]
     start_time = timeit.default_timer()
-    for i, start in enumerate(start_roots[1:6]):
+    for i, start in enumerate(start_roots[6:7]):
         for j, t in enumerate(
                 kenum(root=start, max_dep=LEVEL_CAP, orig=debug_node)):
             info_node.log('{}. RETURNED ({}):'.format(i, j))
             info_node.log_m(t)
     stop_time = timeit.default_timer()
     info_node.log("Program Executed in {} seconds".format(stop_time - start_time))
+    info_node.log("The number of cache hits: {}".format(glob.cache_hits))
 
 main_func()

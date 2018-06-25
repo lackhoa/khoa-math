@@ -1,1 +1,3 @@
-legits = set()
+legits     = set()
+cache      = {}
+cache_hits = 0

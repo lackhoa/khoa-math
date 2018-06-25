@@ -3,7 +3,7 @@ from khoa_math import *
 from type_data import *
 from rel import *
 from call_tree import *
-from glob import legits
+import glob
 
 import anytree
 from typing import *
@@ -40,13 +40,23 @@ def kenum(root: Union[Mole, KSet],
                 orig.log('Can\'t get any value for it')
                 raise UnknownAtomError(root)
         else:
-            orig.log('But we do not have enough level left (how did it happen?)', level=20)
+            orig.log('But we do not have enough level left (how did it happen?)')
             return
 
     elif type(root) == Mole:
+        CACHE_DEP = 0
         orig.log('It\'s a molecule')
-        assert(root['_types'].is_singleton()), 'How come the type is unknown?'
-        if root in legits:
+        if max_dep == CACHE_DEP:
+            if root in glob.cache:
+                orig.log('Great! This molecule is in cache, no work needed')
+                glob.cache_hits += 1
+                for cached_val in glob.cache[root]:
+                    yield cached_val
+                return
+            else:
+                storage = []
+
+        if root in glob.legits:
             orig.log('Molecule already legit, yielding!')
             yield root
             return
@@ -70,14 +80,20 @@ def kenum(root: Union[Mole, KSet],
                     this_fin_orig = this_rel_orig.branch()
                     this_fin_orig.log('Chosen this from Finishing Phase:')
                     this_fin_orig.log_m(finished)
-                    this_fin_orig.log('All phases are complete, yielding from main')
-                    legits.add(finished)
+                    glob.legits.add(finished)
+                    if max_dep == CACHE_DEP: storage.append(finished)
+                    this_fin_orig.log('All phases are complete, yielding from kenum')
                     yield finished
+
+        if max_dep == CACHE_DEP:
+            orig.log('Finally: let\'s save to the result to cache')
+            glob.cache[root] = storage
+
 
 def form_p(root, max_dep, orig):
     """Assure that the root is well-formed"""
     orig.log('#'*30); orig.log('Welcome to Formation Phase')
-    assert(root['_types'].is_singleton())
+    assert(root['_types'].is_singleton()), 'How come the type is unknown?'
     root_type = only(root['_types'])
     cons = list(root['_cons'] & KSet(cons_dic[only(root['_types'])].keys()))
     orig.log('Current constructor is: {}'.format(root['_cons']))
