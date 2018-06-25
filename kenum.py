@@ -90,19 +90,14 @@ def form_p(root, max_dep, orig):
             con_orig.log('Out of level, try another constructor')
             continue
         con_orig.log('Alright! We still have enough level for this molecule')
-        redundant = root.keys() - (form.keys() | {'_cons', '_types'})
-        if redundant:
-            con_orig.log('Got some redundant components: ({}), no good'.format(redundant))
-            continue
 
-        con_orig.log('No redundant components, good!')
         res = root.clone()
         res['_cons'] = wr(con)
         res &= form
         con_orig.log('Attached all components')
         con_orig.log_m(res)
         if not res.is_inconsistent():
-            con_orig.log('Consistent, yielding from constructor phase')
+            con_orig.log('Consistent, yielding from formation phase')
             yield res
         else: con_orig.log('Inconsistent')
 
@@ -262,16 +257,17 @@ def _uni_rel(root, rel, max_dep, orig):
 def fin_p(root, max_dep, orig):
     """Enumerate all children that haven't been enumerated"""
     orig.log('#'*30); orig.log('We are now in the Finishing Phase')
-    all_keys = list(root.keys())
+    form = cons_dic[only(root['_types'])][only(root['_cons'])].form
+    needed_keys = list(form.keys())
     m_children_enum = [
-        kenum(root=root[key], max_dep=max_dep-1, orig=orig.sub()) for key in all_keys]
+        kenum(root=root[key], max_dep=max_dep-1, orig=orig.sub()) for key in needed_keys]
     m_children_suits = product(*m_children_enum)
     for m_children_suit in m_children_suits:
         m_children_suit_orig = orig.branch()
         m_children_suit_orig.log('Chosen a new children suit')
         res = root.clone()
         for index, child in enumerate(m_children_suit):
-            res[all_keys[index]] = child
+            res[needed_keys[index]] = child
         m_children_suit_orig.log('Attached children suit:')
         m_children_suit_orig.log_m(res)
         m_children_suit_orig.log('Let\'s yield!')

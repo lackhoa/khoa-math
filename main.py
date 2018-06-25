@@ -74,7 +74,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    LEVEL_CAP = 6
+    LEVEL_CAP = 4
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
@@ -83,7 +83,7 @@ def main_func():
                    and_elim_root,
                    both_root]
     start_time = timeit.default_timer()
-    for i, start in enumerate(start_roots[6:7]):
+    for i, start in enumerate(start_roots[1:6]):
         for j, t in enumerate(
                 kenum(root=start, max_dep=LEVEL_CAP, orig=debug_node)):
             info_node.log('{}. RETURNED ({}):'.format(i, j))
