@@ -41,11 +41,13 @@ cons_dic['WFF']['CONJUNCTION'] = CI(
 cons_dic['PROOF'] = {}
 cons_dic['PROOF']['PREM_INTRO'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
-                dep    = SINGLETON),
+                dep    = SINGLETON,
+                _text  = STR),
     rels = [*iso(lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
                  rl_fun = lambda d: list(only(d))[0],
                  left   = 'formu',
-                 right  = 'dep')])
+                 right  = 'dep'),
+            *keq('_text', 'formu/_text')])
 
 cons_dic['PROOF']['&I'] = CI(
     form = Mole(formu   = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION')),
@@ -56,7 +58,10 @@ cons_dic['PROOF']['&I'] = CI(
             *eq('right_p/formu', 'formu/right_f'),
             Rel(type_  = 'UNION',
                 subs   = ['left_p/dep', 'right_p/dep'],
-                sup    = 'dep')])
+                sup    = 'dep'),
+            kfun(fun = lambda l, r: '(&I {} {})'.format(l, r),
+                 inp = ['left_p/_text', 'right_p/_text'],
+                 out = '_text')])
 
 cons_dic['PROOF']['&E1'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
@@ -65,7 +70,10 @@ cons_dic['PROOF']['&E1'] = CI(
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
     rels = [*eq('conj_p/dep', 'dep'),
-            *eq('conj_p/formu/left_f', 'formu')])
+            *eq('conj_p/formu/left_f', 'formu'),
+            kfun(fun = lambda x: '(&E1 {})'.format(x),
+                 inp = ['conj_p/_text'],
+                 out = '_text')])
 
 cons_dic['PROOF']['&E2'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
@@ -74,7 +82,10 @@ cons_dic['PROOF']['&E2'] = CI(
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
     rels = [*eq('conj_p/dep', 'dep'),
-            *eq('conj_p/formu/right_f', 'formu')])
+            *eq('conj_p/formu/right_f', 'formu'),
+            kfun(fun = lambda x: '(&E2 {})'.format(x),
+                 inp = ['conj_p/_text'],
+                 out = '_text')])
 
 
 #----------------------------TEST TYPES----------------------------
@@ -93,10 +104,9 @@ cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
     form=Mole(_text   = STR,
               left_f  = Mole(_types= wr('WFF_TEST')),
               right_f = Mole(_types= wr('WFF_TEST'))),
-    rels=[Rel(type_ = 'FUN',
-              fun   = adapter(lambda s1, s2: '({}&{})'.format(s1, s2)),
-              inp   = ['left_f/_text', 'right_f/_text'],
-              out   = '_text')])
+    rels=[funo(fun   = adapter(lambda s1, s2: '({}&{})'.format(s1, s2)),
+               inp   = ['left_f/_text', 'right_f/_text'],
+               out   = '_text')])
 
 
 # Union testing
@@ -144,7 +154,6 @@ cons_dic['MULTI']['ONE'] = CI(
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),
                  rl_fun = adapter(lambda y: y-1)),
-            Rel(type_ = 'FUN',
-                fun   = adapter(lambda x: x),
-                inp   = ['x'],
-                out   = 'z')])
+            funo(fun   = adapter(lambda x: x),
+                 inp   = ['x'],
+                 out   = 'z')])

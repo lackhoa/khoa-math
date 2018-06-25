@@ -204,13 +204,6 @@ def only(singleton: Union[KSet, Mole]):
         return singleton[0]
 
 
-def adapter(fun: Callable):
-    """
-    E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
-    """
-    return lambda *args: wr(fun(*map(lambda s: only(s), args)))
-
-
 # A bit of testing
 from pprint import pprint as pp
 if __name__ == '__main__':

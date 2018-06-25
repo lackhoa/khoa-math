@@ -23,10 +23,13 @@ setup_logger = logging.getLogger('setup')
 setup_logger.addHandler(setup_handler)
 
 # Logger-Handler that writes info messages or higher to the sys.stderr
-output_handler = logging.StreamHandler()
-output_handler.setFormatter(logging.Formatter('%(message)s'))
+output_handler_csl = logging.StreamHandler()
+output_handler_csl.setFormatter(logging.Formatter('%(message)s'))
+output_handler_file = logging.FileHandler(filename='logs/output.log', mode='w+')
+output_handler_file.setFormatter(logging.Formatter('%(message)s'))
 info_logger = logging.getLogger('output')
-info_logger.addHandler(output_handler)
+info_logger.addHandler(output_handler_csl)
+info_logger.addHandler(output_handler_file)
 
 # Adding on top of that my logging layer
 setup_node  = LogNode(setup_logger)
@@ -34,9 +37,8 @@ debug_node  = LogNode(debug_logger)
 info_node   = LogNode(info_logger)
 
 # Switches to turn off the nodes
-# setup_node.on = False
+setup_node.on = False
 debug_node.on = False
-# info_node.on  = False
 
 
 def custom_traceback(exc, val, tb):
@@ -72,7 +74,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    LEVEL_CAP = 3
+    LEVEL_CAP = 6
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
@@ -81,7 +83,7 @@ def main_func():
                    and_elim_root,
                    both_root]
     start_time = timeit.default_timer()
-    for i, start in enumerate(start_roots[0:1]):
+    for i, start in enumerate(start_roots[6:7]):
         for j, t in enumerate(
                 kenum(root=start, max_dep=LEVEL_CAP, orig=debug_node)):
             info_node.log('{}. RETURNED ({}):'.format(i, j))
