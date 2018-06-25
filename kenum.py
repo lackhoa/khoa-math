@@ -40,7 +40,7 @@ def kenum(root: Union[Mole, KSet],
                 orig.log('Can\'t get any value for it')
                 raise UnknownAtomError(root)
         else:
-            orig.log('But we do not have enough level left (how did it happen?)')
+            orig.log('But we do not have enough level left (how did it happen?)', level=20)
             return
 
     elif type(root) == Mole:

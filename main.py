@@ -9,18 +9,35 @@ import anytree
 import timeit
 import sys, logging, traceback
 
-# Handler that writes debugs to a file
+
+# Logger-handler pair that writes debugs to a file
 debug_handler = logging.FileHandler(filename='logs/debug.log', mode='w+')
 debug_handler.setFormatter(logging.Formatter('%(message)s'))
-debug_handler.setLevel(logging.DEBUG)
+debug_logger = logging.getLogger('debug')
+debug_logger.addHandler(debug_handler)
 
-# Handler that writes info messages or higher to the sys.stderr
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter('%(message)s'))
-console_handler.setLevel(logging.INFO)
+# Logger-Handler that writes setup logic to a separate file
+setup_handler = logging.FileHandler(filename='logs/setup.log', mode='w+')
+setup_handler.setFormatter(logging.Formatter('%(message)s'))
+setup_logger = logging.getLogger('setup')
+setup_logger.addHandler(setup_handler)
 
-# Configure the root logger
-logging.basicConfig(handlers = [console_handler, debug_handler], level = logging.DEBUG)
+# Logger-Handler that writes info messages or higher to the sys.stderr
+output_handler = logging.StreamHandler()
+output_handler.setFormatter(logging.Formatter('%(message)s'))
+info_logger = logging.getLogger('output')
+info_logger.addHandler(output_handler)
+
+# Adding on top of that my logging layer
+setup_node  = LogNode(setup_logger)
+debug_node  = LogNode(debug_logger)
+info_node   = LogNode(info_logger)
+
+# Switches to turn off the nodes
+# setup_node.on = False
+debug_node.on = False
+# info_node.on  = False
+
 
 def custom_traceback(exc, val, tb):
     print('\n'.join(traceback.format_exception(exc, val, tb)), file=sys.stderr)
@@ -28,12 +45,6 @@ sys.excepthook = custom_traceback
 
 
 def main_func():
-    LW = True
-    debug_root = LogNode(lw=LW); debug_root.log('Describing the program execution')
-    setup_root = LogNode(lw=LW); setup_root.log('Describing the setup')
-
-    info_root = LogNode(lw=False); info_root.log('The output:')
-    
     p = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('P'))
     q = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('Q'))
     r = Mole(_types=wr('WFF'), _cons=wr('ATOM'), _text=wr('R'))
@@ -43,11 +54,10 @@ def main_func():
 
     setup_vars, new_setup_vars = [p, q, r, pq, qr, pq_r], []
     for i, sr in enumerate(setup_vars):
-        debug_root.log('Current setup job: {}'.format(i))
-        sr = list(kenum(root=sr, max_dep=10, orig=setup_root))[0]
+        sr = list(kenum(root=sr, max_dep=10, orig=setup_node))[0]
         new_setup_vars.append(sr)
-        info_root.log('{}. SETUP OUTPUT:'.format(i))
-        info_root.log_m(sr)
+        setup_node.log('{}. SETUP OUTPUT:'.format(i))
+        setup_node.log_m(sr)
 
     p, q, r, pq, qr, pq_r = new_setup_vars
 
@@ -62,7 +72,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    LEVEL_CAP = 4
+    LEVEL_CAP = 3
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
@@ -71,17 +81,12 @@ def main_func():
                    and_elim_root,
                    both_root]
     start_time = timeit.default_timer()
-    try:
-        for i, start in enumerate(start_roots[6:7]):
-            debug_root.log('Current main job: {}'.format(i))
-            for j, t in enumerate(kenum(root=start, max_dep=LEVEL_CAP, orig=debug_root)):
-                info_root.log('{}. RETURNED ({}):'.format(i, j))
-                info_root.log_m(t)
-    finally:
-        # Write down logs even after failure
-        stop_time = timeit.default_timer()
-        logging.info("Program Executed in {} seconds".format(stop_time - start_time))
-        logging.debug(render_log(debug_root))
-        logging.info(render_log(info_root))
+    for i, start in enumerate(start_roots[0:1]):
+        for j, t in enumerate(
+                kenum(root=start, max_dep=LEVEL_CAP, orig=debug_node)):
+            info_node.log('{}. RETURNED ({}):'.format(i, j))
+            info_node.log_m(t)
+    stop_time = timeit.default_timer()
+    info_node.log("Program Executed in {} seconds".format(stop_time - start_time))
 
 main_func()
