@@ -44,17 +44,7 @@ def kenum(root: Union[Mole, KSet],
             return
 
     elif type(root) == Mole:
-        CACHE_DEP = 0
         orig.log('It\'s a molecule')
-        if max_dep == CACHE_DEP:
-            if root in glob.cache:
-                orig.log('Great! This molecule is in cache, no work needed')
-                glob.cache_hits += 1
-                for cached_val in glob.cache[root]:
-                    yield cached_val
-                return
-            else:
-                storage = []
 
         if root in glob.legits:
             orig.log('Molecule already legit, yielding!')
@@ -81,13 +71,8 @@ def kenum(root: Union[Mole, KSet],
                     this_fin_orig.log('Chosen this from Finishing Phase:')
                     this_fin_orig.log_m(finished)
                     glob.legits.add(finished)
-                    if max_dep == CACHE_DEP: storage.append(finished)
                     this_fin_orig.log('All phases are complete, yielding from kenum')
                     yield finished
-
-        if max_dep == CACHE_DEP:
-            orig.log('Finally: let\'s save to the result to cache')
-            glob.cache[root] = storage
 
 
 def form_p(root, max_dep, orig):
