@@ -27,15 +27,15 @@ class State:
     def __init__(self,
                  node: Union[Mole, KSet],
                  max_dep: int,
-                 s.orig: LogNode,
-                 deadline: float):
-        self.node, max_dep, s.orig, deadline = node, max_dep, s.orig, deadline
+                 orig: LogNode,
+                 deadline: float = None):
+        self.node, self.max_dep, self.orig, self.deadline = node, max_dep, orig, deadline
 
     def clone(self, **kwargs):
         """Offer a shallow copy with modification"""
         res = State(self.node, self.max_dep, self.orig, self.deadline)
         for k in kwargs:
-            setattr(c, k, kwargs[k])
+            setattr(res, k, kwargs[k])
         return res
 
 
@@ -68,13 +68,13 @@ def kenum(s: State):
             this_wf_orig.log_m(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            for relationed in cycle_rel_p(s.clone(node=well_formed)):
+            for partial_ in cycle_rel_p(s.clone(node=well_formed)):
                 this_rel_orig = this_wf_orig.branch()
                 this_rel_orig.log('Chosen this from Relation Phase:')
-                this_rel_orig.log_m(relationed)
+                this_rel_orig.log_m(partial_)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
-                for finished in fin_p(s.clone(node=relationed)):
+                for finished in fin_p(s.clone(node=partial_)):
                     this_fin_orig = this_rel_orig.branch()
                     this_fin_orig.log('Chosen this from Finishing Phase:')
                     this_fin_orig.log_m(finished)
@@ -137,7 +137,7 @@ def cycle_rel_p(s: State):
                 yield new_node
 
 
-def repeat_rel_p(s: State):
+def repeat_rel_p(s: State, rel_iter):
     try:
         this_rel = next(rel_iter)
     except StopIteration:
@@ -146,12 +146,12 @@ def repeat_rel_p(s: State):
         return
     try:
         for new_node in rel_p(s, this_rel):
-            choice_s.orig = s.orig.branch()
-            choice_s.orig.log('Chosen '); choice_s.orig.log_m(new_node)
-            choice_s.orig.log('Moving on to the next relation')
+            choice_orig = s.orig.branch()
+            choice_orig.log('Chosen '); choice_orig.log_m(new_node)
+            choice_orig.log('Moving on to the next relation')
             rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
             for res, unchecked_rels in repeat_rel_p(
-                s.node=new_node, rel_iter=new_rel_iter, s.max_dep, s.orig=choice_s.orig):
+                    s.clone(node=new_node, orig=choice_orig), new_rel_iter):
                 yield (res, unchecked_rels)
     except KEnumError:
         s.orig.log('Cannot apply this relation (right now)')
@@ -213,7 +213,7 @@ def _uni_rel(s: State):
     try:
         for uni_legit in kenum(s.clone(node    = s.node[super_role],
                                        max_dep = s.max_dep-1,
-                                       orig    = s.orig.sub()))
+                                       orig    = s.orig.sub())):
             rc = s.node.clone()
             rc[super_role] &= uni_legit
             uni_orig = s.orig.branch()
@@ -262,8 +262,8 @@ def _uni_rel(s: State):
             for index, v in enumerate(rs):
                 res[subs_role[index]] &= v
             sub_orig.log('Attached those subsets:'); sub_orig.log_m(res)
-            subsets = (only(res[path]) for path in subs_path)  # type: list of (frozen)set
-            superset = reduce(lambda x, y: x | y, subsets)  # type: (frozen)set
+            subsets: Iterable[set] = (only(res[path]) for path in subs_path)
+            superset: Set = reduce(lambda x, y: x | y, subsets)
             res[super_path] &= wr(superset)
             sub_orig.log('Attached the union:'); sub_orig.log_m(res)
             if not res.is_inconsistent():
@@ -277,18 +277,18 @@ def fin_p(s: State):
     s.orig.log('#'*30); s.orig.log('We are now in the Finishing Phase')
     form = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].form
     needed_keys = list(form.keys())
-    m_children_enum = [kenum(s.clone(node    = s.node[key],
-                                     max_dep = s.max_dep-1,
-                                     orig    = s.orig.sub()))
-                       for key in needed_keys]
-    m_children_suits = product(*m_children_enum)
-    for m_children_suit in m_children_suits:
-        m_children_suit_s.orig = s.orig.branch()
-        m_children_suit_s.orig.log('Chosen a new children suit')
+    mc_e = [kenum(s.clone(node = s.node[key],
+                          max_dep = s.max_dep-1,
+                          orig    = s.orig.sub()))
+                  for key in needed_keys]
+    mcs_s = product(*mc_e)
+    for mcs in mcs_s:
+        mcs_orig = s.orig.branch()
+        mcs_orig.log('Chosen a new children suit')
         res = s.node.clone()
-        for index, child in enumerate(m_children_suit):
+        for index, child in enumerate(mcs):
             res[needed_keys[index]] = child
-        m_children_suit_orig.log('Attached children suit:')
-        m_children_suit_orig.log_m(res)
-        m_children_suit_orig.log('Let\'s yield!')
+        mcs_orig.log('Attached children suit:')
+        mcs_orig.log_m(res)
+        mcs_orig.log('Let\'s yield!')
         yield res
