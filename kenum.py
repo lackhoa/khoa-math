@@ -68,7 +68,8 @@ def kenum(s: State):
             this_wf_orig.log_m(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
-            for partial_ in cycle_rel_p(s.clone(node=well_formed)):
+            rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
+            for partial_ in cycle_rel_p(s.clone(node=well_formed), rels):
                 this_rel_orig = this_wf_orig.branch()
                 this_rel_orig.log('Chosen this from Relation Phase:')
                 this_rel_orig.log_m(partial_)
@@ -113,8 +114,7 @@ def form_p(s: State):
         else: con_orig.log('Inconsistent')
 
 
-def cycle_rel_p(s: State):
-    rels = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].rels
+def cycle_rel_p(s: State, rels):
     for new_node, unchecked_rels in repeat_rel_p(s, iter(rels)):
         new_orig = s.orig.branch()
         new_orig.log('Chosen from `repeat_rel_p`:'); new_orig.log_m(new_node)
@@ -206,7 +206,7 @@ def _fun_rel(s: State, rel):
             in_orig.log('Inconsistent')
 
 
-def _uni_rel(s: State):
+def _uni_rel(s: State, rel):
     s.orig.log('Try enumerating the superset part')
     super_path, subs_path = rel['sup'], rel['subs']
     super_role, subs_role = car(super_path), [car(path) for path in subs_path]
@@ -225,8 +225,8 @@ def _uni_rel(s: State):
 
             uni_orig.log('Now we are ready to enumerate the subsets')
             legit_subs = (kenum(s.clone(node    = rc[sub_role],
-                                        max_dep = max_dep-1,
-                                        orig    = orig.sub()))
+                                        max_dep = s.max_dep-1,
+                                        orig    = s.orig.sub()))
                           for sub_role in subs_role[:-1])
             for sub_suit in product(*legit_subs):
                 sub_orig = uni_orig.branch()
@@ -277,7 +277,7 @@ def fin_p(s: State):
     s.orig.log('#'*30); s.orig.log('We are now in the Finishing Phase')
     form = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].form
     needed_keys = list(form.keys())
-    mc_e = [kenum(s.clone(node = s.node[key],
+    mc_e = [kenum(s.clone(node    = s.node[key],
                           max_dep = s.max_dep-1,
                           orig    = s.orig.sub()))
                   for key in needed_keys]
