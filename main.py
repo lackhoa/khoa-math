@@ -38,7 +38,7 @@ info_node   = LogNode(info_logger)
 
 # Switches to turn off the nodes
 setup_node.on = False
-debug_node.on = False
+# debug_node.on = False
 
 
 def custom_traceback(exc, val, tb):
@@ -74,7 +74,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    DEP_CAP = 4 
+    DEP_CAP = 4
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),

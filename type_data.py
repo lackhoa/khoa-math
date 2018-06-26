@@ -46,20 +46,6 @@ cons_dic['PROOF']['PREM_INTRO'] = CI(
                  right  = 'dep'),
             *keq('_text', 'formu/_text')])
 
-cons_dic['PROOF']['&I'] = CI(
-    form = Mole(formu   = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION')),
-                left_p  = Mole(_types = wr('PROOF')),
-                right_p = Mole(_types = wr('PROOF')),
-                dep     = SET),
-    rels = [*eq('left_p/formu', 'formu/left_f'),
-            *eq('right_p/formu', 'formu/right_f'),
-            Rel(type_  = 'UNION',
-                subs   = ['left_p/dep', 'right_p/dep'],
-                sup    = 'dep'),
-            kfun(fun = lambda l, r: '(&I {} {})'.format(l, r),
-                 inp = ['left_p/_text', 'right_p/_text'],
-                 out = '_text')])
-
 cons_dic['PROOF']['&E1'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 conj_p = Mole(_types = wr('PROOF'),
@@ -82,6 +68,20 @@ cons_dic['PROOF']['&E2'] = CI(
             *eq('conj_p/formu/right_f', 'formu'),
             kfun(fun = lambda x: '(&E2 {})'.format(x),
                  inp = ['conj_p/_text'],
+                 out = '_text')])
+
+cons_dic['PROOF']['&I'] = CI(
+    form = Mole(formu   = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION')),
+                left_p  = Mole(_types = wr('PROOF')),
+                right_p = Mole(_types = wr('PROOF')),
+                dep     = SET),
+    rels = [*eq('left_p/formu', 'formu/left_f'),
+            *eq('right_p/formu', 'formu/right_f'),
+            Rel(type_  = 'UNION',
+                subs   = ['left_p/dep', 'right_p/dep'],
+                sup    = 'dep'),
+            kfun(fun = lambda l, r: '(&I {} {})'.format(l, r),
+                 inp = ['left_p/_text', 'right_p/_text'],
                  out = '_text')])
 
 

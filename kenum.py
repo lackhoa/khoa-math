@@ -9,6 +9,7 @@ import anytree
 from typing import *
 from itertools import product, starmap
 from functools import partial, reduce
+import time
 
 
 class KEnumError(Exception):
@@ -21,6 +22,10 @@ class RelationError(KEnumError):
     def __init__(self, rels):
         self.message = 'Cannot checked these relations'
         self.rels = rels
+class OutOfTimeError(KEnumError):
+    def __init__(self, node):
+        self.message = 'Out of time while enumerating this thing'.format(node)
+        self.node = node
 
 
 class State:
@@ -42,6 +47,13 @@ class State:
 def kenum(s: State):
     s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
     s.orig.log('The s.node is:'); s.orig.log_m(s.node)
+    
+    if s.deadline is not None:
+        if time.time() > s.deadline:
+            s.orig.log('We\'ve run out of time')
+            raise OutOfTimeError(s.node)
+        else:
+            s.orig.log('Time until deadline: {}'.format(s.deadline - time.time()))
 
     if type(s.node) == KSet:
         s.orig.log('It\'s an atom')
@@ -114,50 +126,67 @@ def form_p(s: State):
         else: con_orig.log('Inconsistent')
 
 
-def cycle_rel_p(s: State, rels):
-    for new_node, unchecked_rels in repeat_rel_p(s, iter(rels)):
+def cycle_rel_p(s: State, rels, time_lim = None):
+    MS = 0.001  # One millisecond
+    INIT_TIME_LIM = 10*MS
+    COEF = 10  # The amount to multiply the previous time limit
+    if time_lim is None: time_lim = INIT_TIME_LIM
+    for new_node, unchecked_rels, timeout in repeat_rel_p(
+            s, iter(rels), time_lim):
         new_orig = s.orig.branch()
         new_orig.log('Chosen from `repeat_rel_p`:'); new_orig.log_m(new_node)
         if new_node == s.node:
             new_orig.log('`repeat_rel_p` didn\'t do anything')
             if unchecked_rels:
                 new_orig.log('There are unchecked relations, which is bad')
-                raise RelationError(unchecked_rels)
+                if timeout:
+                    new_orig.log('Got a timeout, increase time limit and try again')
+                    time_lim = COEF*time_lim
+                    for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels, time_lim):
+                        yield res
+                else:
+                    new_orig.log('But that wasn\'t due to a timeout')
+                    raise RelationError(unchecked_rels)
             else:
                 new_orig.log('All relations checked! Yielding this:'); new_orig.log_m(s.node)
                 yield s.node
         else:
-            new_orig.log('Got some new information')
+            new_orig.log('Got new information!')
             if unchecked_rels:
                 new_orig.log('Still got some relations, going to the next cycle')
-                for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels):
+                for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels, time_lim):
                     yield res
             else:
                 new_orig.log('No more relations left, yielding this:'); new_orig.log_m(new_node)
                 yield new_node
 
 
-def repeat_rel_p(s: State, rel_iter):
+def repeat_rel_p(s: State, rel_iter, time_lim):
     try:
         this_rel = next(rel_iter)
     except StopIteration:
         s.orig.log('No more relations left, yielding')
-        yield (s.node, ())
+        yield (s.node, (), False)
         return
     try:
-        for new_node in rel_p(s, this_rel):
+        for new_node in rel_p(s.clone(deadline=time.time()+time_lim), this_rel):
             choice_orig = s.orig.branch()
             choice_orig.log('Chosen '); choice_orig.log_m(new_node)
             choice_orig.log('Moving on to the next relation')
             rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
-            for res, unchecked_rels in repeat_rel_p(
-                    s.clone(node=new_node, orig=choice_orig), new_rel_iter):
-                yield (res, unchecked_rels)
-    except KEnumError:
-        s.orig.log('Cannot apply this relation (right now)')
+            for res, unchecked_rels, timeout in repeat_rel_p(
+                    s.clone(node=new_node, orig=choice_orig), new_rel_iter, time_lim):
+                yield (res, unchecked_rels, timeout)
+    except KEnumError as e:
+        if type(e) is OutOfTimeError:
+            got_timeout = True
+            s.orig.log('We ran out of time for this relation')
+        else:
+            got_timeout = False
+            s.orig.log('Cannot apply this relation (right now)')
         s.orig.log('Moving on to the next relation anyways')
-        for res, unchecked_rels in repeat_rel_p(s, rel_iter):
-            yield (res, (this_rel,)+unchecked_rels)
+        for res, unchecked_rels, will_timeout in repeat_rel_p(s, rel_iter, time_lim):
+            yield (res, (this_rel,)+unchecked_rels, got_timeout or will_timeout)
 
 
 def rel_p(s: State, rel: Rel):
