@@ -56,7 +56,7 @@ def main_func():
 
     setup_vars, new_setup_vars = [p, q, r, pq, qr, pq_r], []
     for i, sr in enumerate(setup_vars):
-        sr = list(kenum(root=sr, orig=setup_node))[0]
+        sr = list(kenum(node=sr, max_dep=10, orig=setup_node))[0]
         new_setup_vars.append(sr)
         setup_node.log('{}. SETUP OUTPUT:'.format(i))
         setup_node.log_m(sr)
@@ -74,7 +74,7 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    glob.MAX_CPLEX = 5
+    DEP_CAP = 3 
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
                    Mole(_types = wr('UNI')),
                    Mole(_types = wr('ISO_TEST')),
@@ -85,7 +85,7 @@ def main_func():
     start_time = timeit.default_timer()
     for i, start in enumerate(start_roots[0:1]):
         for j, t in enumerate(
-                kenum(root=start, orig=debug_node)):
+                kenum(node=start, max_dep=DEP_CAP, orig=debug_node)):
             info_node.log('{}. RETURNED ({}):'.format(i, j))
             info_node.log_m(t)
     stop_time = timeit.default_timer()
