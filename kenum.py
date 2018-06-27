@@ -8,6 +8,7 @@ import glob
 import anytree
 from typing import *
 from itertools import product, starmap
+
 from functools import partial, reduce
 import time
 
@@ -44,17 +45,24 @@ class State:
         return res
 
 
+def check_time(original_function):
+    def new_function(*args,**kwargs):
+        s = args[0]; assert type(s) is State
+        if s.deadline is not None:
+            if time.time() > s.deadline:
+                s.orig.log('We\'re late by: {} s'.format(time.time()-s.deadline))
+                raise OutOfTimeError(s.node)
+            else:
+                s.orig.log('Time until deadline: {}'.format(s.deadline-time.time()))
+        res = original_function(*args,**kwargs)
+        return res
+    return new_function
+
+
+@check_time
 def kenum(s: State):
     s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
-    s.orig.log('The s.node is:'); s.orig.log_m(s.node)
-    
-    if s.deadline is not None:
-        if time.time() > s.deadline:
-            s.orig.log('We\'ve run out of time')
-            raise OutOfTimeError(s.node)
-        else:
-            s.orig.log('Time until deadline: {}'.format(s.deadline - time.time()))
-
+    s.orig.log('The node is:'); s.orig.log_m(s.node)
     if type(s.node) == KSet:
         s.orig.log('It\'s an atom')
         if s.node.is_explicit():
@@ -126,11 +134,14 @@ def form_p(s: State):
         else: con_orig.log('Inconsistent')
 
 
+@check_time
 def cycle_rel_p(s: State, rels, time_lim = None):
     MS = 0.001  # One millisecond
     INIT_TIME_LIM = 10*MS
     COEF = 10  # The amount to multiply the previous time limit
-    if time_lim is None: time_lim = INIT_TIME_LIM
+    if time_lim is None:  # If this is the first cycle
+        time_lim = INIT_TIME_LIM
+
     for new_node, unchecked_rels, timeout in repeat_rel_p(
             s, iter(rels), time_lim):
         new_orig = s.orig.branch()
@@ -140,8 +151,8 @@ def cycle_rel_p(s: State, rels, time_lim = None):
             if unchecked_rels:
                 new_orig.log('There are unchecked relations, which is bad')
                 if timeout:
-                    new_orig.log('Got a timeout, increase time limit and try again')
                     time_lim = COEF*time_lim
+                    new_orig.log('Got a timeout, next time limit is: {}'.format(time_lim))
                     for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels, time_lim):
                         yield res
                 else:
@@ -161,6 +172,7 @@ def cycle_rel_p(s: State, rels, time_lim = None):
                 yield new_node
 
 
+@check_time
 def repeat_rel_p(s: State, rel_iter, time_lim):
     try:
         this_rel = next(rel_iter)
@@ -169,7 +181,8 @@ def repeat_rel_p(s: State, rel_iter, time_lim):
         yield (s.node, (), False)
         return
     try:
-        for new_node in rel_p(s.clone(deadline=time.time()+time_lim), this_rel):
+        new_deadline = time.time() + time_lim
+        for new_node in rel_p(s.clone(deadline=new_deadline), this_rel):
             choice_orig = s.orig.branch()
             choice_orig.log('Chosen '); choice_orig.log_m(new_node)
             choice_orig.log('Moving on to the next relation')
@@ -203,10 +216,11 @@ def rel_p(s: State, rel: Rel):
         for res in _uni_rel(s, rel):
             yield res
 
+
 def _fun_rel(s: State, rel):
     in_paths, out_path = rel['inp'], rel['out']
     in_roles = [car(path) for path in in_paths]
-    s.orig.log('The inputs\' s.nodes are:')
+    s.orig.log('The inputs\' nodes are:')
     for role in in_roles:
         s.orig.log_m(s.node[role])
 

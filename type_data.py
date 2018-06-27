@@ -52,8 +52,8 @@ cons_dic['PROOF']['&E1'] = CI(
                               formu  = Mole(_types = wr('WFF'),
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
-    rels = [*eq('conj_p/dep', 'dep'),
-            *eq('conj_p/formu/left_f', 'formu'),
+    rels = [*eq('conj_p/formu/left_f', 'formu'),
+            *eq('conj_p/dep', 'dep'),
             kfun(fun = lambda x: '(&E1 {})'.format(x),
                  inp = ['conj_p/_text'],
                  out = '_text')])
@@ -64,8 +64,8 @@ cons_dic['PROOF']['&E2'] = CI(
                               formu  = Mole(_types = wr('WFF'),
                                             _cons  = wr('CONJUNCTION'))),
                 dep    = SET),
-    rels = [*eq('conj_p/dep', 'dep'),
-            *eq('conj_p/formu/right_f', 'formu'),
+    rels = [*eq('conj_p/formu/right_f', 'formu'),
+            *eq('conj_p/dep', 'dep'),
             kfun(fun = lambda x: '(&E2 {})'.format(x),
                  inp = ['conj_p/_text'],
                  out = '_text')])
