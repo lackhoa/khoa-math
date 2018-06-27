@@ -1,4 +1,4 @@
-from khoa_math import Mole
+from khoa_math import Mole, only
 from pprint import pformat
 import logging
 
@@ -18,9 +18,9 @@ class LogNode:
         """
         Log a molecule
         """
-        # If the level is too low, don't even let pformat run
+        # If the switch is off, don't let anything run
         if self.on:
-            msg = '{}\n'.format(pformat(mole))
+            msg = '{}\n'.format(str(mole))
             self.logger.log(msg=msg, level=level)
 
     def branch(self):

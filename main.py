@@ -38,7 +38,7 @@ info_node   = LogNode(info_logger)
 
 # Switches to turn off the nodes
 setup_node.on = False
-debug_node.on = False
+# debug_node.on = False
 
 
 def custom_traceback(exc, val, tb):

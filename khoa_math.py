@@ -2,6 +2,7 @@ from misc import *
 
 from typing import *
 from enum import Enum
+from pprint import pformat
 
 
 class MObj(Enum):
@@ -51,11 +52,8 @@ class KSet:
 
     def __repr__(self) -> str:
         def recur(thing):
-            if type(thing) is str:
-                return thing
-            elif type(thing) is Mole:
-                try: return only(thing['_text'])
-                except: return str(thing)
+            if type(thing) in [str, Mole]:
+                return str(thing)
             else:
                 try: return '{{{0}}}'.format(', '.join(recur(item) for item in thing))
                 except TypeError: return str(thing)
@@ -175,7 +173,26 @@ class Mole(dict):
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
         return hash(tuple(sorted(self.items(), key=lambda item: item[0])))
-    
+
+    def __repr__(self) -> str:
+        def normalize(self):
+            res = {}
+            for key in self:
+                if type(self[key]) is Mole:
+                    res[key] = normalize(self[key])
+                else:
+                    res[key] = self[key]
+            return res
+        def prune(d):
+            if '_text' in d and d['_text'].is_singleton():
+                d = '^^{}^^'.format(only(d['_text']))
+            else:
+                for key in d:
+                    if type(d[key]) is dict:
+                        d[key] = prune(d[key])
+            return d
+        return pformat(prune(normalize(self)))
+
     def __and__(self, other: ['Mole', KSet, MObj]):
         if other is MObj.UNIT:
             return self
@@ -227,7 +244,9 @@ if __name__ == '__main__':
     pp(atom3, width=3)
     atom3['body/name'] = wr('Greese')
     atom4['body/blood_type'] = wr('A')
-    print('Atom 3'); pp(atom3)
+    atom4['_text'] = wr('tasty')
+    atom3['body']['_text'] = wr('gross')
+    print('Atom 3'); print(str(atom3))
     atom5 = atom3 & atom4
     print('Atom 5'); pp(atom5)
     atom6 = wr('A KSet')
