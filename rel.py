@@ -38,7 +38,7 @@ def eq(left, right):
 
 def adapter(fun: Callable):
     """
-    E.g: if f(a) = b then adapter(f)(KSet({a})) = KSet({b})
+    E.g: if f(a) = b then adapter(f)(Atom({a})) = Atom({b})
     """
     return lambda *args: wr(fun(*map(lambda s: only(s), args)))
 

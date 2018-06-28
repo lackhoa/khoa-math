@@ -40,7 +40,7 @@ cons_dic['PROOF']['PREM_INTRO'] = CI(
     form = Mole(formu  = Mole(_types = wr('WFF')),
                 dep    = SINGLETON,
                 _text  = STR),
-    rels = [*iso(lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a KSet
+    rels = [*iso(lr_fun = lambda f: wr(frozenset({f})),  # f is a molecule, d is a Atom
                  rl_fun = lambda d: list(only(d))[0],
                  left   = 'formu',
                  right  = 'dep'),
@@ -88,7 +88,7 @@ cons_dic['PROOF']['&I'] = CI(
 #----------------------------TEST TYPES----------------------------
 # Well-formed formulas testing
 cons_dic['WFF_TEST'] = {}
-cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text = KSet({'P', 'Q'})))
+cons_dic['WFF_TEST']['ATOM'] = CI(form=Mole(_text = Atom({'P', 'Q'})))
 
 cons_dic['WFF_TEST']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF_TEST'))),
@@ -110,15 +110,15 @@ cons_dic['UNI'] = {}
 # Missing one of the subsets
 cons_dic['UNI']['ONE'] = CI(
     form = Mole(sub0  = SET,
-                sub1  = KSet({frozenset({1,2}), frozenset({3})}),
-                super = KSet({frozenset({1,2,3}), frozenset({2,3,4})})),
+                sub1  = Atom({frozenset({1,2}), frozenset({3})}),
+                super = Atom({frozenset({1,2,3}), frozenset({2,3,4})})),
     rels = [Rel(type_ = 'UNION',
                 subs  = ['sub0', 'sub1'],
                 sup   = 'super')])
 # Missing the superset
 cons_dic['UNI']['TWO'] = CI(
-    form = Mole(sub0  = KSet({frozenset({6,3,4})}),
-                sub1  = KSet({frozenset({1,2}), frozenset({3})}),
+    form = Mole(sub0  = Atom({frozenset({6,3,4})}),
+                sub1  = Atom({frozenset({1,2}), frozenset({3})}),
                 super = SET),
     rels = [Rel(type_ = 'UNION',
                 subs  = ['sub0', 'sub1'],
@@ -129,14 +129,14 @@ cons_dic['UNI']['TWO'] = CI(
 cons_dic['ISO_TEST'] = {}
 # Missing left
 cons_dic['ISO_TEST']['ONE'] = CI(
-    form = Mole(x = INT, y = KSet({4,5,8})),
+    form = Mole(x = INT, y = Atom({4,5,8})),
     rels = [*iso(left   = 'x',
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),
                  rl_fun = adapter(lambda y: y-1))])
 # Missing right
 cons_dic['ISO_TEST']['TWO'] = CI(
-    form = Mole(x = KSet({4,5,8}), y = INT),
+    form = Mole(x = Atom({4,5,8}), y = INT),
     rels = [*iso(left   = 'x',
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),
@@ -145,7 +145,7 @@ cons_dic['ISO_TEST']['TWO'] = CI(
 # Multiple relations testing
 cons_dic['MULTI'] = {}
 cons_dic['MULTI']['ONE'] = CI(
-    form = Mole(x = INT, y = KSet({4,5,8}), z = INT),
+    form = Mole(x = INT, y = Atom({4,5,8}), z = INT),
     rels = [*iso(left   = 'x',
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),

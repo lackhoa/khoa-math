@@ -15,23 +15,23 @@ import time
 
 class KEnumError(Exception):
     pass
-class UnknownAtomError(KEnumError):
-    def __init__(self, atom: KSet):
-        self.message = 'Cannot enumerate this atom'
-        self.atom = atom
+class InfinityError(KEnumError):
+    def __init__(self, node):
+        self.message = 'Cannot enumerate this atom: {}'.format(node)
+        self.node = node
 class RelationError(KEnumError):
     def __init__(self, rels):
         self.message = 'Cannot checked these relations'
         self.rels = rels
 class OutOfTimeError(KEnumError):
     def __init__(self, node):
-        self.message = 'Out of time while enumerating this thing'.format(node)
+        self.message = 'Out of time while enumerating this node'.format(node)
         self.node = node
 
 
 class State:
     def __init__(self,
-                 node: Union[Mole, KSet],
+                 node: Union[Mole, Atom],
                  max_dep: int,
                  orig: LogNode,
                  deadline: float = None):
@@ -63,7 +63,7 @@ def check_time(original_function):
 def kenum(s: State):
     s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
     s.orig.log('The node is:'); s.orig.log_m(s.node)
-    if type(s.node) == KSet:
+    if type(s.node) == Atom:
         s.orig.log('It\'s an atom')
         if s.node.is_explicit():
             for val in s.node:
@@ -71,7 +71,7 @@ def kenum(s: State):
                 yield wr(val)
         else:
             s.orig.log('Can\'t get any value for it')
-            raise UnknownAtomError(s.node)
+            raise InfinityError(s.node)
 
     elif type(s.node) == Mole:
         s.orig.log('It\'s a molecule')
@@ -109,7 +109,7 @@ def form_p(s: State):
     s.orig.log('#'*30); s.orig.log('Welcome to Formation Phase')
     assert(s.node['_types'].is_singleton()), 'How come the type is unknown?'
     s.node_type = only(s.node['_types'])
-    cons = s.node['_cons'] & KSet(cons_dic[only(s.node['_types'])].keys())
+    cons = s.node['_cons'] & Atom(cons_dic[only(s.node['_types'])].keys())
     s.orig.log('Current constructor is: {}'.format(s.node['_cons']))
     s.orig.log('Possible constructors after unified are: {}'.format(cons))
     s.orig.log('Exploring all constructors')
@@ -262,7 +262,7 @@ def _uni_rel(s: State, rel):
             uni_orig = s.orig.branch()
             uni_orig.log('Chosen the superset part:'); uni_orig.log_m(rc)
             for sub_path in subs_path[:-1]:
-                rc[sub_path] &= KSet(content=powerset(only(uni_legit)))
+                rc[sub_path] &= Atom(content=powerset(only(uni_legit)))
             uni_orig.log('Updated the subsets')
             uni_orig.log('Result is'); uni_orig.log_m(rc)
 
@@ -281,7 +281,7 @@ def _uni_rel(s: State, rel):
                 subsets_so_far = (only(res[role]) for role in subs_path[:-1])  # type: list (frozen)set
                 union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
                 leftover = only(uni_legit) - union_so_far  # type: (frozen)set
-                val_for_last = KSet(content=(leftover | x for x in powerset(union_so_far)))
+                val_for_last = Atom(content=(leftover | x for x in powerset(union_so_far)))
                 res[subs_path[-1]] &= val_for_last
                 sub_orig.log('Attached the superset:'); sub_orig.log_m(res)
                 if not res.is_inconsistent():

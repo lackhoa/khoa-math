@@ -7,11 +7,11 @@ from pprint import pformat
 
 class MObj(Enum):
     UNIT = 'UNIT'
-    def __and__(self, other: Union['MObj', 'KSet', 'Mole']):
-        return other
+    def __and__(self, other: Union['MObj', 'Atom', 'Mole']):
+        return MObj.UNIT if other is MObj.UNIT else other
 
 
-class KSet:
+class Atom:
     def __init__(self,
                  content: Optional[Iterable] = None,
                  qualifier: Optional[Callable[..., bool]] = None,
@@ -46,9 +46,9 @@ class KSet:
             return hash(frozenset(self.content))
         else: return hash(self.qualifier)
 
-    def clone(self) -> 'KSet':
+    def clone(self) -> 'Atom':
         # Content is already a copy, qualifier and custom_repr are immutable
-        return KSet(self.content, self.qualifier, self.custom_repr)
+        return Atom(self.content, self.qualifier, self.custom_repr)
 
     def __repr__(self) -> str:
         def recur(thing):
@@ -72,17 +72,17 @@ class KSet:
         return (self.content is not None)
 
     def __getitem__(self, index: int):
-        """For explicit ksets only."""
+        """For explicit atoms only."""
         res = nth(self.content, index)
         if res is not None: return res
         else: raise IndexError
 
     def __iter__(self):
-        """For explicit ksets only."""
+        """For explicit atoms only."""
         return iter(self.content)
 
     def __call__(self, val):
-        """Usable for all ksets."""
+        """Usable for all atoms."""
         if self.is_explicit(): return (val in self.content)
         else: return self.qualifier(val)
 
@@ -92,69 +92,59 @@ class KSet:
     def is_singleton(self):
         return (len(self) == 1) if self.is_explicit() else False
 
-    def __and__(self, other: Union['KSet', 'Mole', 'MObj']):
+    def __and__(self, other: Union['Atom', 'Mole', 'MObj']):
         if other is MObj.UNIT:
             return self
         elif type(other) is Mole:
             return NONE
-        elif type(other) is KSet:
-            res: 'KSet'
+        elif type(other) is Atom:
+            res: 'Atom'
             e1, e2 = self.is_explicit(), other.is_explicit()
             if e1:
                 if e2:
                     # Both are explicit: result is explicit
                     try:
                         # Special treatment for types that implements union
-                        res = KSet(content = self.content & other.content)
+                        res = Atom(content = self.content & other.content)
                     except TypeError:
-                        res = KSet(content = filter(other, self))
+                        res = Atom(content = filter(other, self))
                 else:
                     # Only `self` is explicit: result is explicit
-                    res = KSet(content = filter(other, self))
+                    res = Atom(content = filter(other, self))
             elif e2:
                 # Only `other` is explicit: result is explicit
-                res = KSet(content = filter(self, other))
+                res = Atom(content = filter(self, other))
             else:
                 # Either is explicit: result is implicit
-                res = KSet(qualifier = lambda x: self(x) and other(x))
+                res = Atom(qualifier = lambda x: self(x) and other(x))
             return res
 
 
-# Some handy ksets
-ANY       = KSet(qualifier = lambda x: True, custom_repr='ANY')
-NONE      = KSet(content   = set(), custom_repr='NONE')
-STR       = KSet(qualifier = lambda x: type(x) is str, custom_repr='STR')
-SET       = KSet(qualifier = lambda x: type(x) in [set, frozenset],
+# Some handy atoms
+ANY       = Atom(qualifier = lambda x: True, custom_repr='ANY')
+NONE      = Atom(content   = set(), custom_repr='NONE')
+STR       = Atom(qualifier = lambda x: type(x) is str, custom_repr='STR')
+SET       = Atom(qualifier = lambda x: type(x) in [set, frozenset],
             custom_repr='SET')
-INT       = KSet(qualifier = lambda x: type(x) is int, custom_repr='INT')
-SINGLETON = KSet(qualifier = lambda x: type(x) in [set, frozenset] and len(x) == 1)
+INT       = Atom(qualifier = lambda x: type(x) is int, custom_repr='INT')
+SINGLETON = Atom(qualifier = lambda x: type(x) in [set, frozenset] and len(x) == 1)
 
 
 class Mole(dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.parent = None
-        for m in filter(lambda x: type(x) is Mole, self.values()):
-            m.parent = self
-
-    @property
-    def root(self):
-        if self.parent is None: return self
-        else: return self.parent.root
 
     @property
     def complexity(self):
         return 1 + sum(k.complexity for k in self.values() if type(k) is Mole)
 
     def __setitem__(self, path: str, value):
-        """Set whatever key you want, down whatever path you want"""
-        assert(type(value) in [Mole, KSet]),\
+        assert(type(value) in [Mole, Atom]),\
                 'Watch the type!'
         assert(path != ''),\
                 'You don\'t have to do this! You don\'t need to do this!'
         if car(path) == path:
             super().__setitem__(path, value)
-            if type(value) is Mole: value.parent = self
         else:
             if car(path) in self:
                 self[car(path)][cdr(path)] = value
@@ -185,7 +175,7 @@ class Mole(dict):
             return res
         def prune(d):
             if '_text' in d and d['_text'].is_singleton():
-                d = '^^{}^^'.format(only(d['_text']))
+                d = '^{}^'.format(only(d['_text']))
             else:
                 for key in d:
                     if type(d[key]) is dict:
@@ -193,10 +183,10 @@ class Mole(dict):
             return d
         return pformat(prune(normalize(self)))
 
-    def __and__(self, other: ['Mole', KSet, MObj]):
+    def __and__(self, other: ['Mole', Atom, MObj]):
         if other is MObj.UNIT:
             return self
-        elif type(other) is KSet:
+        elif type(other) is Atom:
             return NONE
         elif type(other) is Mole:
             res = Mole()
@@ -209,24 +199,24 @@ class Mole(dict):
         for key in self:
             if type(self[key]) is Mole and self[key].is_inconsistent():
                 res = True; break
-            elif type(self[key]) is KSet and self[key].is_empty():
+            elif type(self[key]) is Atom and self[key].is_empty():
                 res = True; break
         return res
 
     def clone(self) -> 'Mole':
         res = Mole()
         for key in self:
-            # `self[key]` is a `KSet` or `Mole`, which has clone()
+            # `self[key]` is a `Atom` or `Mole`, which has clone()
             res[key] = self[key].clone()
         return res
 
 
 def wr(value):
     """Stands for 'wrap'"""
-    return value if type(value) is Mole else KSet(content={value})
+    return value if type(value) is Mole else Atom(content={value})
 
 
-def only(singleton: Union[KSet, Mole]):
+def only(singleton: Union[Atom, Mole]):
     if type(singleton) is Mole:
         return singleton
     else:
@@ -240,16 +230,18 @@ if __name__ == '__main__':
     atom1 = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION'))
     atom2 = Mole(_types = wr('WFF'), _cons = wr('CONJUNCTION'))
     atom3 = Mole(_types = wr('WFF'), _cons = wr('NEG'), body=Mole())
-    atom4 = Mole(_types = wr('WFF'), _cons = wr('ATOM'), _text=KSet({'5'}))
+    atom4 = Mole(_types = wr('WFF'), _cons = wr('ATOM'), _text=Atom({'5'}))
     pp(atom3, width=3)
     atom3['body/name'] = wr('Greese')
     atom4['body/blood_type'] = wr('A')
     atom4['_text'] = wr('tasty')
     atom3['body']['_text'] = wr('gross')
     print('Atom 3'); print(str(atom3))
+    atom3_old, atom4_old = atom3.clone(), atom4.clone()
     atom5 = atom3 & atom4
+    assert(atom3_old == atom3); assert(atom4_old == atom4)
     print('Atom 5'); pp(atom5)
-    atom6 = wr('A KSet')
+    atom6 = wr('A Atom')
     atom7 = atom3 & atom6
     atom8 = atom4 & atom3
     assert(atom5 == atom8)
@@ -257,10 +249,9 @@ if __name__ == '__main__':
     print('Atom 7'); pp(atom7)
     print('Atom 8'); pp(atom8)
     assert(atom1 == atom2)
-    s1 = KSet({2,3,5,1,4})
-    s2 = KSet([1,2,3,4,5])
+    s1 = Atom({2,3,5,1,4})
+    s2 = Atom([1,2,3,4,5])
     assert(s1 == s2)
     print('Atom 3\'s complexity: {}'.format(atom3.complexity))
     print('Atom 5\'s complexity: {}'.format(atom5.complexity))
     print('Atom 8\'s complexity: {}'.format(atom8.complexity))
-    assert(atom3['body'].parent == atom3 == atom3.root)
