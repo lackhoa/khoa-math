@@ -38,7 +38,7 @@ info_node   = LogNode(info_logger)
 
 # Switches to turn off the nodes
 setup_node.on = False
-# debug_node.on = False
+debug_node.on = False
 
 
 def custom_traceback(exc, val, tb):
@@ -74,16 +74,24 @@ def main_func():
                      formu  = pq_r,
                      dep    = wr(frozenset({qr, p})))
 
-    DEP_CAP = 4
     start_roots = [Mole(_types = wr('WFF_TEST')),  # Danger!
-                   Mole(_types = wr('UNI')),
-                   Mole(_types = wr('ISO_TEST')),
-                   Mole(_types = wr('MULTI')),
+                   Mole(_types = wr('UNI'),
+                        sub1   = Atom({frozenset({1,2}), frozenset({3})}),
+                        super  = Atom({frozenset({1,2,3}), frozenset({2,3,4})})),
+                   Mole(_types = wr('UNI'),
+                        sub0   = Atom({frozenset({6,3,4})}),
+                        sub1   = Atom({frozenset({1,2}), frozenset({3})})),
+                   Mole(_types = wr('ISO_TEST'), x = Atom({1,2,3})),
+                   Mole(_types = wr('ISO_TEST'), y = Atom({1,2,3})),
+                   Mole(_types = wr('MULTI'), y = Atom({1,2,3})),
                    and_intro_root,
                    and_elim_root,
                    both_root]
     start_time = timeit.default_timer()
-    for i, start in enumerate(start_roots[1:6]):
+    START_SLICE = 8
+    STOP_SLICE  = 9
+    DEP_CAP = 6
+    for i, start in enumerate(start_roots[START_SLICE:STOP_SLICE]):
         for j, t in enumerate(
                 kenum(State(node=start, max_dep=DEP_CAP, orig=debug_node))):
             info_node.log('{}. RETURNED ({}):'.format(i, j))

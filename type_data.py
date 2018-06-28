@@ -107,19 +107,9 @@ cons_dic['WFF_TEST']['CONJUNCTION'] = CI(
 
 # Union testing
 cons_dic['UNI'] = {}
-# Missing one of the subsets
-cons_dic['UNI']['ONE'] = CI(
-    form = Mole(sub0  = SET,
-                sub1  = Atom({frozenset({1,2}), frozenset({3})}),
-                super = Atom({frozenset({1,2,3}), frozenset({2,3,4})})),
-    rels = [Rel(type_ = 'UNION',
-                subs  = ['sub0', 'sub1'],
-                sup   = 'super')])
 # Missing the superset
-cons_dic['UNI']['TWO'] = CI(
-    form = Mole(sub0  = Atom({frozenset({6,3,4})}),
-                sub1  = Atom({frozenset({1,2}), frozenset({3})}),
-                super = SET),
+cons_dic['UNI']['ONE'] = CI(
+    form = Mole(sub0  = SET, sub1  = SET, super = SET),
     rels = [Rel(type_ = 'UNION',
                 subs  = ['sub0', 'sub1'],
                 sup   = 'super')])
@@ -127,16 +117,8 @@ cons_dic['UNI']['TWO'] = CI(
 
 # Isomorphism testing
 cons_dic['ISO_TEST'] = {}
-# Missing left
-cons_dic['ISO_TEST']['ONE'] = CI(
-    form = Mole(x = INT, y = Atom({4,5,8})),
-    rels = [*iso(left   = 'x',
-                 right  = 'y',
-                 lr_fun = adapter(lambda x: x+1),
-                 rl_fun = adapter(lambda y: y-1))])
-# Missing right
-cons_dic['ISO_TEST']['TWO'] = CI(
-    form = Mole(x = Atom({4,5,8}), y = INT),
+cons_dic['ISO_TEST']['UNIQUE'] = CI(
+    form = Mole(x = INT, y = INT),
     rels = [*iso(left   = 'x',
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),
@@ -145,7 +127,7 @@ cons_dic['ISO_TEST']['TWO'] = CI(
 # Multiple relations testing
 cons_dic['MULTI'] = {}
 cons_dic['MULTI']['ONE'] = CI(
-    form = Mole(x = INT, y = Atom({4,5,8}), z = INT),
+    form = Mole(x = INT, y = INT, z = INT),
     rels = [*iso(left   = 'x',
                  right  = 'y',
                  lr_fun = adapter(lambda x: x+1),

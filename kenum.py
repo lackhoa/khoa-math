@@ -59,7 +59,31 @@ def check_time(original_function):
     return new_function
 
 
-@check_time
+def is_enumerable(mole):
+    """Return False if the molecule is surely unenumerable given any depth"""
+    def can_enumerate_type(type_: str):
+        def is_base_constructor(con: str):
+            res = True
+            form = cons_dic[type_][con].form
+            for val in form.values():
+                if type(val) is Mole:
+                    this_type = only(val['_types'])
+                    if this_type == type_ or (not can_enumerate_type(this_type)):
+                        res = False; break
+                elif not val.is_explicit():
+                    res = False; break
+            return res
+
+        all_constructors = cons_dic[type_].keys()
+        return any(map(is_base_constructor, all_constructors))
+
+    if any(map(lambda k: k not in ['_types', '_cons'], mole.keys())):
+        return True
+    else:
+        return can_enumerate_type(only(mole['_types']))
+
+
+# @check_time
 def kenum(s: State):
     s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
     s.orig.log('The node is:'); s.orig.log_m(s.node)
@@ -76,26 +100,31 @@ def kenum(s: State):
     elif type(s.node) == Mole:
         s.orig.log('It\'s a molecule')
 
+        if not is_enumerable(s.node):
+            s.orig.log('This molecule is obviously unenumerable')
+            raise InfinityError(s.node)
+        else: s.orig.log('There is a hope for enumeration')
+
         if s.node in glob.legits:
             s.orig.log('Molecule already legit, yielding!')
             yield s.node
             return
 
         s.orig.log('Let\'s go to Formation Phase')
-        for well_formed in form_p(s.clone()):
+        for well_formed in form_p(s.clone(orig=s.orig.sub())):
             this_wf_orig = s.orig.branch()
             this_wf_orig.log('Chosen this from Formation phase')
             this_wf_orig.log_m(well_formed)
             this_wf_orig.log('Let\'s go to Relation Phase')
 
             rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
-            for partial_ in cycle_rel_p(s.clone(node=well_formed), rels):
+            for partial_ in cycle_rel_p(s.clone(node=well_formed, orig=this_wf_orig.sub()), rels):
                 this_rel_orig = this_wf_orig.branch()
                 this_rel_orig.log('Chosen this from Relation Phase:')
                 this_rel_orig.log_m(partial_)
                 this_rel_orig.log('Let\'s go to Finishing Phase')
 
-                for finished in fin_p(s.clone(node=partial_)):
+                for finished in fin_p(s.clone(node=partial_, orig=this_rel_orig.sub())):
                     this_fin_orig = this_rel_orig.branch()
                     this_fin_orig.log('Chosen this from Finishing Phase:')
                     this_fin_orig.log_m(finished)
@@ -134,7 +163,7 @@ def form_p(s: State):
         else: con_orig.log('Inconsistent')
 
 
-@check_time
+# @check_time
 def cycle_rel_p(s: State, rels, time_lim = None):
     MS = 0.001  # One millisecond
     INIT_TIME_LIM = 10*MS
@@ -172,7 +201,7 @@ def cycle_rel_p(s: State, rels, time_lim = None):
                 yield new_node
 
 
-@check_time
+# @check_time
 def repeat_rel_p(s: State, rel_iter, time_lim):
     try:
         this_rel = next(rel_iter)
