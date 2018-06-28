@@ -17,12 +17,8 @@ class KEnumError(Exception):
     pass
 class InfinityError(KEnumError):
     def __init__(self, node):
-        self.message = 'Cannot enumerate this atom: {}'.format(node)
+        self.message = 'Cannot enumerate this node: {}'.format(node)
         self.node = node
-class RelationError(KEnumError):
-    def __init__(self, rels):
-        self.message = 'Cannot checked these relations'
-        self.rels = rels
 class OutOfTimeError(KEnumError):
     def __init__(self, node):
         self.message = 'Out of time while enumerating this node'.format(node)
@@ -186,7 +182,7 @@ def cycle_rel_p(s: State, rels, time_lim = None):
                         yield res
                 else:
                     new_orig.log('But that wasn\'t due to a timeout')
-                    raise RelationError(unchecked_rels)
+                    raise InfinityError(s.node)
             else:
                 new_orig.log('All relations checked! Yielding this:'); new_orig.log_m(s.node)
                 yield s.node
