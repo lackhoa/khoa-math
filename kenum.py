@@ -30,18 +30,26 @@ class State:
                  node: Union[Mole, Atom],
                  max_dep: int,
                  orig: LogNode,
-                 deadline: float = None):
-        self.node, self.max_dep, self.orig, self.deadline = node, max_dep, orig, deadline
+                 deadline: float = None,
+                 time_lim: float = None,
+                 got_timeout: float = False):
+        self.node, self.max_dep, self.orig, self.deadline, self.time_lim, self.got_timeout\
+        = node, max_dep, orig, deadline, time_lim, got_timeout
 
     def clone(self, **kwargs):
-        """Offer a shallow copy with modification"""
-        res = State(self.node, self.max_dep, self.orig, self.deadline)
+        """Offer a shallow copy with custom modification"""
+        res = State(self.node, self.max_dep, self.orig, self.deadline,
+                    self.time_lim, self.got_timeout)
         for k in kwargs:
             setattr(res, k, kwargs[k])
         return res
 
 
 def check_time(original_function):
+    """
+    Decorator: Check time before executing the function
+    If out of time, raise OutOfTimeError
+    """
     def new_function(*args,**kwargs):
         s = args[0]; assert type(s) is State
         if s.deadline is not None:
@@ -50,9 +58,25 @@ def check_time(original_function):
                 raise OutOfTimeError(s.node)
             else:
                 s.orig.log('Time until deadline: {}'.format(s.deadline-time.time()))
-        res = original_function(*args,**kwargs)
-        return res
+        return original_function(*args,**kwargs)
     return new_function
+
+
+def time_man(orig_fun):
+    """Decorator: Time Manager"""
+    def new_fun(*args, **kwargs):
+        INIT_TIME_LIM = 0.01
+        COEF = 10  # To multiply the previous time limit
+        s = args[0]
+        while True:
+            s.time_lim = INIT_TIME_LIM if s.time_lim is None else COEF*s.time_lim
+            for res in orig_fun(*args, **kwargs):
+                yield res
+            if not s.got_timeout:
+                break
+            else:
+                s.got_timeout = False
+    return new_fun
 
 
 def is_enumerable(mole):
@@ -79,7 +103,8 @@ def is_enumerable(mole):
         return can_enumerate_type(only(mole['_types']))
 
 
-# @check_time
+@check_time
+@time_man
 def kenum(s: State):
     s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
     s.orig.log('The node is:'); s.orig.log_m(s.node)
@@ -108,25 +133,30 @@ def kenum(s: State):
 
         s.orig.log('Let\'s go to Formation Phase')
         for well_formed in form_p(s.clone(orig=s.orig.sub())):
-            this_wf_orig = s.orig.branch()
-            this_wf_orig.log('Chosen this from Formation phase')
-            this_wf_orig.log_m(well_formed)
-            this_wf_orig.log('Let\'s go to Relation Phase')
+            try:
+                s.deadline = time.time() + s.time_lim
+                this_wf_orig = s.orig.branch()
+                this_wf_orig.log('Chosen this from Formation phase')
+                this_wf_orig.log_m(well_formed)
+                this_wf_orig.log('Let\'s go to Relation Phase')
 
-            rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
-            for partial_ in cycle_rel_p(s.clone(node=well_formed, orig=this_wf_orig.sub()), rels):
-                this_rel_orig = this_wf_orig.branch()
-                this_rel_orig.log('Chosen this from Relation Phase:')
-                this_rel_orig.log_m(partial_)
-                this_rel_orig.log('Let\'s go to Finishing Phase')
+                rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
+                for partial_ in cycle_rel_p(s.clone(node=well_formed, orig=this_wf_orig.sub()), rels):
+                    this_rel_orig = this_wf_orig.branch()
+                    this_rel_orig.log('Chosen this from Relation Phase:')
+                    this_rel_orig.log_m(partial_)
+                    this_rel_orig.log('Let\'s go to Finishing Phase')
 
-                for finished in fin_p(s.clone(node=partial_, orig=this_rel_orig.sub())):
-                    this_fin_orig = this_rel_orig.branch()
-                    this_fin_orig.log('Chosen this from Finishing Phase:')
-                    this_fin_orig.log_m(finished)
-                    glob.legits.add(finished)
-                    this_fin_orig.log('All phases are complete, yielding from kenum')
-                    yield finished
+                    for finished in fin_p(s.clone(node=partial_, orig=this_rel_orig.sub())):
+                        this_fin_orig = this_rel_orig.branch()
+                        this_fin_orig.log('Chosen this from Finishing Phase:')
+                        this_fin_orig.log_m(finished)
+                        glob.legits.add(finished)
+                        this_fin_orig.log('All phases are complete, yielding from kenum')
+                        yield finished
+            except OutOfTimeError:
+                this_wf_orig.log('So we ran out of time on this constructor')
+                s.got_timeout = True
 
 
 def form_p(s: State):
@@ -159,72 +189,59 @@ def form_p(s: State):
         else: con_orig.log('Inconsistent')
 
 
-# @check_time
-def cycle_rel_p(s: State, rels, time_lim = None):
-    MS = 0.001  # One millisecond
-    INIT_TIME_LIM = 10*MS
-    COEF = 10  # The amount to multiply the previous time limit
-    if time_lim is None:  # If this is the first cycle
-        time_lim = INIT_TIME_LIM
-
-    for new_node, unchecked_rels, timeout in repeat_rel_p(
-            s, iter(rels), time_lim):
+@check_time
+@time_man
+def cycle_rel_p(s: State, rels):
+    for new_node, unchecked_rels in repeat_rel_p(
+            s, iter(rels)):
         new_orig = s.orig.branch()
         new_orig.log('Chosen from `repeat_rel_p`:'); new_orig.log_m(new_node)
         if new_node == s.node:
             new_orig.log('`repeat_rel_p` didn\'t do anything')
             if unchecked_rels:
                 new_orig.log('There are unchecked relations, which is bad')
-                if timeout:
-                    time_lim = COEF*time_lim
-                    new_orig.log('Got a timeout, next time limit is: {}'.format(time_lim))
-                    for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels, time_lim):
-                        yield res
-                else:
-                    new_orig.log('But that wasn\'t due to a timeout')
-                    raise InfinityError(s.node)
+                raise InfinityError(s.node)
             else:
-                new_orig.log('All relations checked! Yielding this:'); new_orig.log_m(s.node)
+                new_orig.log('All relations checked! Yielding:'); new_orig.log_m(s.node)
                 yield s.node
         else:
             new_orig.log('Got new information!')
             if unchecked_rels:
                 new_orig.log('Still got some relations, going to the next cycle')
-                for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels, time_lim):
+                for res in cycle_rel_p(s.clone(node=new_node, orig=new_orig), unchecked_rels):
                     yield res
             else:
                 new_orig.log('No more relations left, yielding this:'); new_orig.log_m(new_node)
                 yield new_node
 
 
-# @check_time
-def repeat_rel_p(s: State, rel_iter, time_lim):
+@check_time
+def repeat_rel_p(s: State, rel_iter):
     try:
         this_rel = next(rel_iter)
     except StopIteration:
         s.orig.log('No more relations left, yielding')
-        yield (s.node, (), False)
+        yield (s.node, ())
         return
     try:
-        new_deadline = time.time() + time_lim
+        new_deadline = time.time() + s.time_lim
         for new_node in rel_p(s.clone(deadline=new_deadline), this_rel):
             choice_orig = s.orig.branch()
             choice_orig.log('Chosen '); choice_orig.log_m(new_node)
             choice_orig.log('Moving on to the next relation')
             rel_iter, new_rel_iter = tee(rel_iter)  # New path, new iterator
-            for res, unchecked_rels, timeout in repeat_rel_p(
-                    s.clone(node=new_node, orig=choice_orig), new_rel_iter, time_lim):
-                yield (res, unchecked_rels, timeout)
+            for res, unchecked_rels in repeat_rel_p(
+                    s.clone(node=new_node, orig=choice_orig), new_rel_iter):
+                yield (res, unchecked_rels)
     except KEnumError as e:
         if type(e) is OutOfTimeError:
-            got_timeout = True
             s.orig.log('We ran out of time for this relation')
-        else:
-            got_timeout = False
+            s.got_timeout = True
+        elif type(e) is InfinityError:
             s.orig.log('Cannot apply this relation (right now)')
         s.orig.log('Moving on to the next relation anyways')
-        for res, unchecked_rels, will_timeout in repeat_rel_p(s, rel_iter, time_lim):
-            yield (res, (this_rel,)+unchecked_rels, got_timeout or will_timeout)
+        for res, unchecked_rels in repeat_rel_p(s, rel_iter):
+            yield (res, (this_rel,)+unchecked_rels)
 
 
 def rel_p(s: State, rel: Rel):
