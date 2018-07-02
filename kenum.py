@@ -5,7 +5,7 @@ from rel import *
 import glob
 
 from typing import *
-from itertools import product, starmap
+from itertools import product, starmap, repeat
 
 from functools import partial, reduce
 import time
@@ -72,18 +72,20 @@ class State(dict):
             self.logger.log(msg=msg, level=level)
 
 
-def check_time(original_function):
-    def new_function(*args,**kwargs):
-        s = args[0]; assert type(s) is State
-        if s.deadline is not None:
-            if time.time() > s.deadline:
-                s.orig.log('We\'re late by: {} s'.format(time.time()-s.deadline))
-                raise OutOfTimeError(s.node)
-            else:
-                s.orig.log('Time until deadline: {}'.format(s.deadline-time.time()))
-        res = original_function(*args,**kwargs)
-        return res
-    return new_function
+
+
+
+
+
+
+def pipe(*procs):
+    def glue(proc1, proc2):
+        def func(s):
+            for intermediate in proc1(s):
+                for res in proc2(intermediate):
+                    yield res
+        return func
+    return procs[0] if len(procs)==1 else glue(procs[0], pipe(procs[1:]))
 
 
 def is_enumerable(mole):
@@ -110,65 +112,79 @@ def is_enumerable(mole):
         return can_enumerate_type(only(mole['_types']))
 
 
-# @check_time
 def kenum(s: State):
-    s.orig.log(30*'#'); s.orig.log('Welcome to kenum!')
-    s.orig.log('The node is:'); s.orig.log_m(s.node)
+    s.log(30*'#' + 'Welcome to kenum!')
+    s.log('The node is:'); s.log_m(s.node)
     if type(s.node) == Atom:
-        s.orig.log('It\'s an atom')
+        s.log('It\'s an atom')
         if s.node.is_explicit():
             for val in s.node:
-                s.orig.log('Yielding this value: {}'.format(wr(val)))
-                yield wr(val)
+                sb = s.branch(s.node = Atom(wr(val)))
+                s.log('Yielding this value: {}'.format(wr(val)))
+                yield sb
         else:
-            s.orig.log('Can\'t get any value for it')
-            raise InfinityError(s.node)
+            s.log('Can\'t get any value for it')
+            yield InfinityError()
 
     elif type(s.node) == Mole:
-        s.orig.log('It\'s a molecule')
-
-        if not is_enumerable(s.node):
-            s.orig.log('This molecule is obviously unenumerable')
-            raise InfinityError(s.node)
-        else: s.orig.log('There is a hope for enumeration')
+        s.log('It\'s a molecule')
+        if 'deadline' in s and time.time() > s.deadline:
+            s.log('We\'re late by: {} s'.format(time.time()-s.deadline))
 
         if s.node in glob.legits:
-            s.orig.log('Molecule already legit, yielding!')
-            yield s.node
+            s.log('Molecule already legit, yielding!')
+            yield s
             return
 
-        s.orig.log('Let\'s go to Formation Phase')
-        for well_formed in form_p(s.clone(orig=s.orig.sub())):
-            this_wf_orig = s.orig.branch()
-            this_wf_orig.log('Chosen this from Formation phase')
-            this_wf_orig.log_m(well_formed)
-            this_wf_orig.log('Let\'s go to Relation Phase')
+        if not is_enumerable(s.node):
+            s.log('This molecule is obviously unenumerable')
+            yield InfinityError()
+            return
+        else:
+            s.log('There is a hope for enumeration, so let\'s begin!')
 
-            rels = cons_dic[only(well_formed['_types'])][only(well_formed['_cons'])].rels
-            for partial_ in cycle_rel_p(s.clone(node=well_formed, orig=this_wf_orig.sub()), rels):
-                this_rel_orig = this_wf_orig.branch()
-                this_rel_orig.log('Chosen this from Relation Phase:')
-                this_rel_orig.log_m(partial_)
-                this_rel_orig.log('Let\'s go to Finishing Phase')
+        if s.node in glob.cache:
+            s.log('The molecule is already in cache')
+            for cached_node in glob.cache[s.node]:
+                sb = s.branch(node = cached_node)
+                yield sb
+            return
 
-                for finished in fin_p(s.clone(node=partial_, orig=this_rel_orig.sub())):
-                    this_fin_orig = this_rel_orig.branch()
-                    this_fin_orig.log('Chosen this from Finishing Phase:')
-                    this_fin_orig.log_m(finished)
-                    glob.legits.add(finished)
-                    this_fin_orig.log('All phases are complete, yielding from kenum')
-                    yield finished
+        memo = set()  # To build the cache
+        well_formed = form_p(s)
+        while well_formed:
+            # HERE!
+            sb = s.branch(node = well_formed[0])
+            new_deadline = time.time() + 0.1
+            while True:
+                for res in pipe(cycle_rel_p, fin_p)(s):
+                    if type(res) is State:
+                        if res.node not in memo:
+                            memo.add(res.node)
+                            yield res
+                        else: s.log('Duplication detected')
+                    elif type(res) is OutOfTimeError:
+                        break
+
+                    if 'deadline' in s and time.time() > s.deadline:
+                        s.log('We\'re late by: {} s'.format(time.time()-s.deadline))
+                        yield OutOfTimeError()
+                break
+            well_formed = well_formed[1:]
+
+        s.log('Updating the cache')
+        glob.cache[s.node] = memo
 
 
 def form_p(s: State):
     """Assure that the s.node is well-formed"""
-    s.orig.log('#'*30); s.orig.log('Welcome to Formation Phase')
+    s.log('#'*30); s.log('Welcome to Formation Phase')
     assert(s.node['_types'].is_singleton()), 'How come the type is unknown?'
     s.node_type = only(s.node['_types'])
     cons = s.node['_cons'] & Atom(cons_dic[only(s.node['_types'])].keys())
-    s.orig.log('Current constructor is: {}'.format(s.node['_cons']))
-    s.orig.log('Possible constructors after unified are: {}'.format(cons))
-    s.orig.log('Exploring all constructors')
+    s.log('Current constructor is: {}'.format(s.node['_cons']))
+    s.log('Possible constructors after unified are: {}'.format(cons))
+    s.log('Exploring all constructors')
     for con in cons:
         con_orig = s.orig.branch(); con_orig.log('Chosen constructor {}'.format(con))
         form, rels = cons_dic[only(s.node['_types'])][con]
@@ -191,12 +207,15 @@ def form_p(s: State):
 
 
 # @check_time
-def cycle_rel_p(s: State, rels, time_lim = None):
+def cycle_rel_p(s: State, rels = None, time_lim = None):
     MS = 0.001  # One millisecond
     INIT_TIME_LIM = 10*MS
     COEF = 10  # The amount to multiply the previous time limit
-    if time_lim is None:  # If this is the first cycle
+    # Initialization code for first time
+    if time_lim is None:
         time_lim = INIT_TIME_LIM
+    if rels is None:
+        rels = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].rels
 
     for new_node, unchecked_rels, timeout in repeat_rel_p(
             s, iter(rels), time_lim):
@@ -233,7 +252,7 @@ def repeat_rel_p(s: State, rel_iter, time_lim):
     try:
         this_rel = next(rel_iter)
     except StopIteration:
-        s.orig.log('No more relations left, yielding')
+        s.log('No more relations left, yielding')
         yield (s.node, (), False)
         return
     try:
@@ -249,26 +268,26 @@ def repeat_rel_p(s: State, rel_iter, time_lim):
     except KEnumError as e:
         if type(e) is OutOfTimeError:
             got_timeout = True
-            s.orig.log('We ran out of time for this relation')
+            s.log('We ran out of time for this relation')
         else:
             got_timeout = False
-            s.orig.log('Cannot apply this relation (right now)')
-        s.orig.log('Moving on to the next relation anyways')
+            s.log('Cannot apply this relation (right now)')
+        s.log('Moving on to the next relation anyways')
         for res, unchecked_rels, will_timeout in repeat_rel_p(s, rel_iter, time_lim):
             yield (res, (this_rel,)+unchecked_rels, got_timeout or will_timeout)
 
 
 def rel_p(s: State, rel: Rel):
     """Apply relation `rel` to aid in enumeration"""
-    s.orig.log('#'*30); s.orig.log('Welcome to Relation Phase')
+    s.log('#'*30); s.log('Welcome to Relation Phase')
 
-    s.orig.log('Working with relation \"{}\"'.format(rel))
+    s.log('Working with relation \"{}\"'.format(rel))
     if rel.type == 'FUN':
-        s.orig.log('It\'s a functional relation')
+        s.log('It\'s a functional relation')
         for res in _fun_rel(s, rel):
             yield res
     elif rel.type == 'UNION':
-        s.orig.log('It\'s a union relation')
+        s.log('It\'s a union relation')
         for res in _uni_rel(s, rel):
             yield res
 
@@ -276,9 +295,9 @@ def rel_p(s: State, rel: Rel):
 def _fun_rel(s: State, rel):
     in_paths, out_path = rel['inp'], rel['out']
     in_roles = [car(path) for path in in_paths]
-    s.orig.log('The inputs\' nodes are:')
+    s.log('The inputs\' nodes are:')
     for role in in_roles:
-        s.orig.log_m(s.node[role])
+        s.log_m(s.node[role])
 
     legit_ins = [kenum(s.clone(node    = s.node[role],
                                max_dep = s.max_dep-1,
@@ -306,7 +325,7 @@ def _fun_rel(s: State, rel):
 
 
 def _uni_rel(s: State, rel):
-    s.orig.log('Try enumerating the superset part')
+    s.log('Try enumerating the superset part')
     super_path, subs_path = rel['sup'], rel['subs']
     super_role, subs_role = car(super_path), [car(path) for path in subs_path]
     try:
@@ -347,8 +366,8 @@ def _uni_rel(s: State, rel):
                     sub_orig.log('Inconsistent')
 
     except KEnumError:
-        s.orig.log('Well, that didn\'t work')
-        s.orig.log('Then it must mean that the subsets are known')
+        s.log('Well, that didn\'t work')
+        s.log('Then it must mean that the subsets are known')
         subs_legit = (kenum(s.clone(
                                     node    = s.node[r],
                                     max_dep = s.max_dep-1,
@@ -373,7 +392,7 @@ def _uni_rel(s: State, rel):
 
 def fin_p(s: State):
     """Enumerate all children that haven't been enumerated"""
-    s.orig.log('#'*30); s.orig.log('We are now in the Finishing Phase')
+    s.log('#'*30); s.log('We are now in the Finishing Phase')
     form = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].form
     needed_keys = list(form.keys())
     mc_e = [kenum(s.clone(node    = s.node[key],
@@ -383,13 +402,13 @@ def fin_p(s: State):
     mcs_s = product(*mc_e)
     for mcs in mcs_s:
         mcs_orig = s.orig.branch()
-        mcs_orig.log('Chosen a new children suit')
+        mcs.log('Chosen a new children suit')
         res = s.node.clone()
         for index, child in enumerate(mcs):
             res[needed_keys[index]] = child
-        mcs_orig.log('Attached children suit:')
-        mcs_orig.log_m(res)
-        mcs_orig.log('Let\'s yield!')
+        mcs.log('Attached children suit:')
+        mcs.log_m(res)
+        mcs.log('Let\'s yield!')
         yield res
 
 
