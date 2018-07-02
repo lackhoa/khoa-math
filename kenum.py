@@ -2,10 +2,8 @@ from misc import *
 from khoa_math import *
 from type_data import *
 from rel import *
-from call_tree import *
 import glob
 
-import anytree
 from typing import *
 from itertools import product, starmap
 
@@ -13,7 +11,7 @@ from functools import partial, reduce
 import time
 
 
-class KEnumError(Exception):
+class KEnumError:
     pass
 class InfinityError(KEnumError):
     def __init__(self, node):
@@ -25,20 +23,53 @@ class OutOfTimeError(KEnumError):
         self.node = node
 
 
-class State:
-    def __init__(self,
-                 node: Union[Mole, Atom],
-                 max_dep: int,
-                 orig: LogNode,
-                 deadline: float = None):
-        self.node, self.max_dep, self.orig, self.deadline = node, max_dep, orig, deadline
+class State(dict):
+    def __init__(self, **kwargs):
+        super().__init__(kwargs)
+        self.prefix = '' if 'prefix' not in self else self.prefix
+        self.on = True if 'on' not in self else self.on
+        self.choice, self.phase = 0, 0
 
-    def clone(self, **kwargs):
-        """Offer a shallow copy with modification"""
-        res = State(self.node, self.max_dep, self.orig, self.deadline)
+    def __getattr__(self, attr):
+        if attr == 'fork':
+            return self.fork
+        else:
+            return self[attr]
+
+    def __setattr__(self, attr, value):
+        self[attr] = value
+
+    def fork(self, **kwargs):
+        """Offer a shallow copy with optional modification"""
+        res = State()
+        for k in self:
+            res[k] = self[k]
         for k in kwargs:
-            setattr(res, k, kwargs[k])
+            res[k] = kwargs[k]
         return res
+
+    def branch(self):
+        new_prefix = self.prefix + chr(97+self.choice)
+        res = self.fork(prefix=new_prefix)
+        self.choice += 1
+        return res
+
+    def sub(self):
+        new_prefix = self.prefix + str(self.phase)
+        res = self.fork(prefix=new_prefix)
+        self.phase += 1
+        return res
+
+    def log(self, msg, level=50):
+        if self.on:
+            msg = '[{}]: {}'.format(self.prefix, msg)
+            self.logger.log(msg=msg, level=level)
+
+    def log_m(self, mole, level=50):
+        """ Log a molecule only if it\'s on"""
+        if self.on:
+            msg = '{}\n'.format(str(mole))
+            self.logger.log(msg=msg, level=level)
 
 
 def check_time(original_function):
@@ -360,3 +391,11 @@ def fin_p(s: State):
         mcs_orig.log_m(res)
         mcs_orig.log('Let\'s yield!')
         yield res
+
+
+if __name__ == '__main__':
+    print('Testing the logging')
+    s = State(logger = logging.getLogger()); s.log('This is from s')
+    s_sub = s.sub(); s_sub.log('This is from s_sub')
+    s_branch = s_sub.branch(); s_branch.log('This is from s_branch')
+    sbb = s_branch.branch(); sbb.log('This is a branch of s_branch')
