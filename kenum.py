@@ -13,14 +13,13 @@ import time
 
 class KEnumError:
     pass
-class InfinityError(KEnumError):
+class InfinityToken(KEnumError):
     def __init__(self, node):
         self.message = 'Cannot enumerate this node: {}'.format(node)
         self.node = node
-class OutOfTimeError(KEnumError):
+class TimeoutToken(KEnumError):
     def __init__(self, node):
-        self.message = 'Out of time while enumerating this node'.format(node)
-        self.node = node
+        self.message = 'Out of time while enumerating node:'.format(node)
 
 
 class State(dict):
@@ -72,18 +71,22 @@ class State(dict):
             self.logger.log(msg=msg, level=level)
 
 
-
-
-
-
-
-
 def pipe(*procs):
     def glue(proc1, proc2):
         def func(s):
             for intermediate in proc1(s):
-                for res in proc2(intermediate):
-                    yield res
+                if type(intermediate) is TimeoutToken:
+                    # Timeout tokens are propagated
+                    new_deadline = (yield TimeoutToken)
+                    # Resume point
+                    assert(new_deadline > time.time())
+                    s.deadline = new_deadline
+                elif type(intermediate) is InfinityToken:
+                    # Infinity tokens are propagated and unrecoverable
+                    yield intermediate; return
+                else:
+                    for res in proc2(intermediate):
+                        yield res
         return func
     return procs[0] if len(procs)==1 else glue(procs[0], pipe(procs[1:]))
 
@@ -112,6 +115,17 @@ def is_enumerable(mole):
         return can_enumerate_type(only(mole['_types']))
 
 
+def check_consistency(orig_fun):
+    def new_fun(*args, **kwargs):
+        for res in orig_fun(*args, **kwargs):
+            if not res.node.is_inconsistent():
+                res.log('Consistent, yielding!')
+                yield res
+            else:
+                res.log('Inconsistent')
+    return new_fun
+
+
 def kenum(s: State):
     s.log(30*'#' + 'Welcome to kenum!')
     s.log('The node is:'); s.log_m(s.node)
@@ -124,7 +138,7 @@ def kenum(s: State):
                 yield sb
         else:
             s.log('Can\'t get any value for it')
-            yield InfinityError()
+            yield InfinityToken()
 
     elif type(s.node) == Mole:
         s.log('It\'s a molecule')
@@ -138,7 +152,7 @@ def kenum(s: State):
 
         if not is_enumerable(s.node):
             s.log('This molecule is obviously unenumerable')
-            yield InfinityError()
+            yield InfinityToken()
             return
         else:
             s.log('There is a hope for enumeration, so let\'s begin!')
@@ -151,66 +165,111 @@ def kenum(s: State):
             return
 
         memo = set()  # To build the cache
-        well_formed = form_p(s)
-        while well_formed:
-            # HERE!
-            sb = s.branch(node = well_formed[0])
-            new_deadline = time.time() + 0.1
-            while True:
-                for res in pipe(cycle_rel_p, fin_p)(s):
+        states_procs = [well_formed, pipe(cycle_rel_p, fin_p)(well_formed)
+                        for well_formed in form_p(s)]
+        while states_procs:
+            next_deadline = time.time() + (s.deadline-time.time())/8 if 'deadline' in s
+                            else time.time() + 0.1
+            for state, proc in states_procs:
+                state.deadline = next_deadline  # Insert more coins
+                for res in proc:
                     if type(res) is State:
                         if res.node not in memo:
                             memo.add(res.node)
                             yield res
                         else: s.log('Duplication detected')
-                    elif type(res) is OutOfTimeError:
-                        break
+                    elif type(res) is TimeoutToken:
+                        break  # Go to next constructor
+                    elif type(res) is InfinityToken:
+                        yield res; return
+                # Process is done, remove it
+                procs.remove(proc)
 
-                    if 'deadline' in s and time.time() > s.deadline:
-                        s.log('We\'re late by: {} s'.format(time.time()-s.deadline))
-                        yield OutOfTimeError()
-                break
-            well_formed = well_formed[1:]
+                if 'deadline' in s and time.time() > s.deadline:
+                    s.log('Late by: {} s'.format(time.time()-s.deadline))
+                    new_deadline = (yield TimeoutToken)
+                    assert(new_deadline > time.time())
+                    s.deadline = new_deadline
 
-        s.log('Updating the cache')
+        s.log('Enumeration done, updating the cache')
         glob.cache[s.node] = memo
 
 
+@check_consistency
 def form_p(s: State):
-    """Assure that the s.node is well-formed"""
-    s.log('#'*30); s.log('Welcome to Formation Phase')
-    assert(s.node['_types'].is_singleton()), 'How come the type is unknown?'
+    """Assure node returned is well-formed"""
+    s.log(30*'#' + 'Welcome to Formation Phase')
+    assert(s.node['_types'].is_singleton()), 'How is the type unknown?'
     s.node_type = only(s.node['_types'])
     cons = s.node['_cons'] & Atom(cons_dic[only(s.node['_types'])].keys())
     s.log('Current constructor is: {}'.format(s.node['_cons']))
     s.log('Possible constructors after unified are: {}'.format(cons))
-    s.log('Exploring all constructors')
     for con in cons:
-        con_orig = s.orig.branch(); con_orig.log('Chosen constructor {}'.format(con))
+        sb = s.branch(node = s.node.clone())
+        sb.log('Chosen constructor {}'.format(con))
         form, rels = cons_dic[only(s.node['_types'])][con]
 
         if s.max_dep == 1 and any(map(lambda x: type(x) is Mole, form.values())):
-            con_orig.log('Out of depth, try another constructor')
+            sb.log('Out of depth, try another constructor')
             continue
         else:
-            con_orig.log('Depth remaining: {}'.format(s.max_dep))
+            sb.log('Depth remaining: {}'.format(s.max_dep))
 
-        res = s.node.clone()
-        res['_cons'] = wr(con)
-        res &= form
-        con_orig.log('Attached all components')
-        con_orig.log_m(res)
-        if not res.is_inconsistent():
-            con_orig.log('Consistent, yielding from formation phase')
-            yield res
-        else: con_orig.log('Inconsistent')
+        sb['_cons'] = wr(con)
+        new_node &= form
+        sb.log('Attached all components:'); con_orig.log_m(res)
+        yield sb
 
 
-# @check_time
+class Edge():
+    def __init__(self, head: Iterable, tail: Iterable):
+        self.head = set(head)
+        self.tail = set(tail)
+
+class Graph():
+    def __init__(self, vertices = set(), edges = set())
+        self.vertices = set(vertices)
+        self.edges    = set(edges)
+
+def rels_to_graph(rels):
+    graph = Graph()
+    for rel in rels:
+        if rel.type == 'FUN':
+            graph.vertices |= set(rel['inp']) | set(rel['out'])
+            graph.edges.append(Edge(tail=rel['inp'], head=rel['out']))
+        elif rel.type = 'UNI':
+            graph.vertices |= set(rel['subs']) | set(rel['sup'])
+            graph.edges.extend([Edge(tail=rel['subs'], head=rel['sup']),
+                                Edge(tail=rel['sup'], head=rel['subs'])])
+        elif rel.type = 'ISO':
+            graph.vertices |= set(rel['left']) | set(rel['right'])
+            graph.edges.extend([Edge(tail=rel['left'], head=rel['right']),
+                                Edge(tail=rel['right'], head=rel['left'])])
+    return graph
+
+def min_start(graph: Graph):
+    def span(subv, graph):
+        res = subv
+        changed = True
+        while changed:
+            for edge in graph.edges:
+                if edge.tail.issubset(res):
+                    old_res = res
+                    res |= edge.head
+                    changed = (res != old_res)
+        return res
+
+    res = set()
+    for subv in powerset(graph.vertices):
+        if filter(lambda v: v.issubset(subv), res):
+            continue
+        elif span(subv, graph) == graph.vertices:
+            res.add(subv)
+    return res
+
+
 def cycle_rel_p(s: State, rels = None, time_lim = None):
     MS = 0.001  # One millisecond
-    INIT_TIME_LIM = 10*MS
-    COEF = 10  # The amount to multiply the previous time limit
     # Initialization code for first time
     if time_lim is None:
         time_lim = INIT_TIME_LIM
@@ -232,7 +291,7 @@ def cycle_rel_p(s: State, rels = None, time_lim = None):
                         yield res
                 else:
                     new_orig.log('But that wasn\'t due to a timeout')
-                    raise InfinityError(s.node)
+                    raise InfinityToken(s.node)
             else:
                 new_orig.log('All relations checked! Yielding this:'); new_orig.log_m(s.node)
                 yield s.node
@@ -247,7 +306,6 @@ def cycle_rel_p(s: State, rels = None, time_lim = None):
                 yield new_node
 
 
-# @check_time
 def repeat_rel_p(s: State, rel_iter, time_lim):
     try:
         this_rel = next(rel_iter)
@@ -266,7 +324,7 @@ def repeat_rel_p(s: State, rel_iter, time_lim):
                     s.clone(node=new_node, orig=choice_orig), new_rel_iter, time_lim):
                 yield (res, unchecked_rels, timeout)
     except KEnumError as e:
-        if type(e) is OutOfTimeError:
+        if type(e) is TimeoutToken:
             got_timeout = True
             s.log('We ran out of time for this relation')
         else:
@@ -293,123 +351,76 @@ def rel_p(s: State, rel: Rel):
 
 
 def _fun_rel(s: State, rel):
-    in_paths, out_path = rel['inp'], rel['out']
-    in_roles = [car(path) for path in in_paths]
-    s.log('The inputs\' nodes are:')
-    for role in in_roles:
-        s.log_m(s.node[role])
-
-    legit_ins = [kenum(s.clone(node    = s.node[role],
-                               max_dep = s.max_dep-1,
-                               orig    = s.orig.sub()))
-                 for role in in_roles]
-    for legit_in in product(*legit_ins):
-        in_orig = s.orig.branch()
-        in_orig.log('Chosen a new input suit')
-        res = s.node.clone()
-        for index, inp in enumerate(legit_in):
-            res[in_roles[index]] &= inp
-        in_orig.log('Attached input suit:'); in_orig.log_m(res)
-
-        arguments = [res[path] for path in in_paths]
-        output = rel['fun'](*arguments)
-
-        res[out_path] &= output
-        in_orig.log('Attached output:')
-        in_orig.log_m(res)
-        if not res.is_inconsistent():
-            in_orig.log('Yielding!')
-            yield res
-        else:
-            in_orig.log('Inconsistent')
+    in_paths, out_paths = rel['inp'], rel['out']
+    arguments = [res[path] for path in in_paths]
+    outputs = rel['fun'](*arguments)
+    for out_path, output in zip(out_paths, outputs):
+        res.node[out_path] = output
+    in_orig.log('Attached output:')
+    in_orig.log_m(res)
+    if not res.is_inconsistent():
+        in_orig.log('Yielding!')
+        yield res
+    else:
+        in_orig.log('Inconsistent')
 
 
+@check_consistency
 def _uni_rel(s: State, rel):
-    s.log('Try enumerating the superset part')
-    super_path, subs_path = rel['sup'], rel['subs']
-    super_role, subs_role = car(super_path), [car(path) for path in subs_path]
-    try:
-        for uni_legit in kenum(s.clone(node    = s.node[super_role],
-                                       max_dep = s.max_dep-1,
-                                       orig    = s.orig.sub())):
-            rc = s.node.clone()
-            rc[super_role] &= uni_legit
-            uni_orig = s.orig.branch()
-            uni_orig.log('Chosen the superset part:'); uni_orig.log_m(rc)
-            for sub_path in subs_path[:-1]:
-                rc[sub_path] &= Atom(content=powerset(only(uni_legit)))
-            uni_orig.log('Updated the subsets')
-            uni_orig.log('Result is'); uni_orig.log_m(rc)
+    sub_path, super_path = rel['subs'], rel['sup']
+    subs, super_ = [s.node[p] for p in sub_paths], s.node[super_path]
+    if not super_.is_singleton():
+        s.node[super_path] = reduce(lambda x, y: only(x)|only(y), subs)
+        yield s
+    else:
+        for subsets in product(powerset(only(super_)),
+                               repeat=len(subs_path)-1):
+            sb = s.branch(node = s.node.clone())
+            for sub_path, subset in zip(subs, subsets):
+                sb.node[sub_path] &= wr(subset)
+            if sb.nodesub_path.is_inconsistent():
+                sb.log('Inconsistent, moving on to other subsets')
+                continue
+            sb.log('Attached subsets except for the last:'); sb.log_m(res)
+            subsets_so_far: List[Set] = [only(sb.node[role]) for role in subs_path[:-1]]
+            union_so_far  : Set       = reduce(lambda x, y: x | y, subsets_so_far)
+            leftover      : Set       = only(super_) - union_so_far
+            val_for_last = Atom(content=(leftover | x for x in powerset(union_so_far)))
+            sb.node[subs_path[-1]] &= val_for_last
+            sub_orig.log('Attached the superset:'); sub_orig.log_m(res)
+            yield res
 
-            uni_orig.log('Now we are ready to enumerate the subsets')
-            legit_subs = (kenum(s.clone(node    = rc[sub_role],
-                                        max_dep = s.max_dep-1,
-                                        orig    = s.orig.sub()))
-                          for sub_role in subs_role[:-1])
-            for sub_suit in product(*legit_subs):
-                sub_orig = uni_orig.branch()
-                uni_orig.log('Chosen subsets (except for the last)')
-                res = rc.clone()
-                for i, v in enumerate(sub_suit):
-                    res[subs_role[i]] &= v
-                sub_orig.log('Attached those:'); sub_orig.log_m(res)
-                subsets_so_far = (only(res[role]) for role in subs_path[:-1])  # type: list (frozen)set
-                union_so_far = reduce(lambda x, y: x | y, subsets_so_far)  # type: (frozen)set
-                leftover = only(uni_legit) - union_so_far  # type: (frozen)set
-                val_for_last = Atom(content=(leftover | x for x in powerset(union_so_far)))
-                res[subs_path[-1]] &= val_for_last
-                sub_orig.log('Attached the superset:'); sub_orig.log_m(res)
-                if not res.is_inconsistent():
-                    sub_orig.log('Yielding')
-                    yield res
-                else:
-                    sub_orig.log('Inconsistent')
 
-    except KEnumError:
-        s.log('Well, that didn\'t work')
-        s.log('Then it must mean that the subsets are known')
-        subs_legit = (kenum(s.clone(
-                                    node    = s.node[r],
-                                    max_dep = s.max_dep-1,
-                                    orig    = s.orig.sub()))
-                      for r in subs_role)
-        for rs in product(*subs_legit):
-            sub_orig = s.orig.branch()
-            sub_orig.log(['Chosen subsets'])
-            res = s.node.clone()
-            for index, v in enumerate(rs):
-                res[subs_role[index]] &= v
-            sub_orig.log('Attached those subsets:'); sub_orig.log_m(res)
-            subsets: Iterable[set] = (only(res[path]) for path in subs_path)
-            superset: Set = reduce(lambda x, y: x | y, subsets)
-            res[super_path] &= wr(superset)
-            sub_orig.log('Attached the union:'); sub_orig.log_m(res)
-            if not res.is_inconsistent():
-                sub_orig.log('Yielding')
-                yield res
-            else:
-                sub_orig.log('Inconsistent')
-
+@check_consistency
 def fin_p(s: State):
     """Enumerate all children that haven't been enumerated"""
-    s.log('#'*30); s.log('We are now in the Finishing Phase')
+    s.log(30*'#' + 'We are now in the Finishing Phase')
     form = cons_dic[only(s.node['_types'])][only(s.node['_cons'])].form
     needed_keys = list(form.keys())
-    mc_e = [kenum(s.clone(node    = s.node[key],
-                          max_dep = s.max_dep-1,
-                          orig    = s.orig.sub()))
-                  for key in needed_keys]
-    mcs_s = product(*mc_e)
-    for mcs in mcs_s:
-        mcs_orig = s.orig.branch()
-        mcs.log('Chosen a new children suit')
-        res = s.node.clone()
-        for index, child in enumerate(mcs):
-            res[needed_keys[index]] = child
-        mcs.log('Attached children suit:')
-        mcs.log_m(res)
-        mcs.log('Let\'s yield!')
-        yield res
+    subs = [s.sub(node=s.node[key], max_dep=s.max_dep-1) for key in needed_keys]
+    mc_gens = [kenum(sub) for sub in subs]
+    results = [[] for _ in range(len(needed_keys))]
+    for index, mc_gen in enumerate(mc_gens):
+        for res in mc_gen():
+            if type(res) is TimeoutToken:
+                yield res
+                # Resume
+                assert(s.deadline > time.time())
+                for sub in subs: sub.deadline = s.deadline  # Sync up the deadline
+
+            elif type(res) is InfinityToken:
+                yield res; return
+
+            else:
+                results[index].append(state.node)
+
+    for suit in product(results):
+        sb = s.branch(node = s.node.clone())
+        for index, child in enumerate(suit):
+            sb.node[needed_keys[index]] = child
+            sb.log('Attached children suit:'); sb.log_m(sb.node)
+            sb.log('Yielding!')
+            yield sb
 
 
 if __name__ == '__main__':

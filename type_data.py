@@ -24,7 +24,7 @@ cons_dic['WFF']['NEGATION'] = CI(
     form=Mole(_text = STR, body = Mole(_types = wr('WFF'))),
     rels=[kfun(fun = lambda s: '(~{})'.format(s),
                inp = ['body/_text'],
-               out = '_text')])
+               out = ['_text'])])
 
 cons_dic['WFF']['CONJUNCTION'] = CI(
     form=Mole(_text   = STR,
@@ -32,7 +32,7 @@ cons_dic['WFF']['CONJUNCTION'] = CI(
               right_f = Mole(_types= wr('WFF'))),
     rels=[kfun(fun   = (lambda s1, s2: '({}&{})'.format(s1, s2)),
                inp   = ['left_f/_text', 'right_f/_text'],
-               out   = '_text')])
+               out   = ['_text'])])
 
 # Proofs
 cons_dic['PROOF'] = {}

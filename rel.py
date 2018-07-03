@@ -27,8 +27,7 @@ def funo(fun, inp, out):
 
 
 def iso(lr_fun, rl_fun, left, right):
-    return (funo(fun=lr_fun, inp=[left], out=right),
-            funo(fun=rl_fun, inp=[right], out=left))
+    return Rel(type_='ISO', lr_fun=lr_fun, rl_fun=rl_fun, left=left, right=right)
 
 
 def eq(left, right):
@@ -48,10 +47,10 @@ def kfun(fun, inp, out):
 
 
 def kiso(lr_fun, rl_fun, left, right):
-    return (kfun(fun=lr_fun, inp=[left], out=right),
-            kfun(fun=rl_fun, inp=[right], out=left))
+    return iso(lr_fun=adapter(lr_fun), rl_fun=adapter(rl_fun),
+               left=left, right=right)
 
 
 def keq(left, right):
-    iden = adapter(lambda x: x)
-    return iso(lr_fun=iden, rl_fun=iden, left=left, right=right)
+    iden = lambda x: x
+    return kiso(lr_fun=iden, rl_fun=iden, left=left, right=right)
