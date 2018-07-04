@@ -130,17 +130,17 @@ INT       = Atom(qualifier = lambda x: type(x) is int, custom_repr='INT')
 SINGLETON = Atom(qualifier = lambda x: type(x) in [set, frozenset] and len(x) == 1)
 
 
-class Mole(dict):
+class Struct(dict):
+    """ Represent a single composite value """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @property
-    def complexity(self):
-        return 1 + sum(k.complexity for k in self.values() if type(k) is Mole)
+    def __getitem__(self, path: str):
+        if path == '': return self  # Special property
+        elif car(path) == path: return super().__getitem__(path)
+        else: return self[car(path)][cdr(path)]
 
     def __setitem__(self, path: str, value):
-        assert(type(value) in [Mole, Atom]),\
-                'Watch the type!'
         assert(path != ''),\
                 'You don\'t have to do this! You don\'t need to do this!'
         if car(path) == path:
@@ -152,36 +152,20 @@ class Mole(dict):
                 self[car(path)] = Mole()  # This is the commitment
                 self[car(path)][cdr(path)] = value
 
-    def __getitem__(self, path: str):
-        if path == '': return self  # Special property
-        elif car(path) == path: return super().__getitem__(path)
-        else: return self[car(path)][cdr(path)]
-
-    def __missing__(self, key):
-        return MObj.UNIT
-
     def __hash__(self) -> int:
         """Hopefully this does not take too much time"""
         return hash(tuple(sorted(self.items(), key=lambda item: item[0])))
 
     def __repr__(self) -> str:
-        def normalize(self):
-            res = {}
-            for key in self:
-                if type(self[key]) is Mole:
-                    res[key] = normalize(self[key])
-                else:
-                    res[key] = self[key]
-            return res
-        def prune(d):
-            if '_text' in d and d['_text'].is_singleton():
-                d = '^{}^'.format(only(d['_text']))
-            else:
-                for key in d:
-                    if type(d[key]) is dict:
-                        d[key] = prune(d[key])
-            return d
-        return pformat(prune(normalize(self)))
+        return self['_text']
+
+
+class Mole(Struct):
+    """ Represent multiple composite values """
+    def __setitem__(self, path: str, value):
+        assert(type(value) in [Mole, Atom]),\
+                'Watch the type!'
+        super().__setitem__(path, value)
 
     def __and__(self, other: ['Mole', Atom, MObj]):
         if other is MObj.UNIT:
@@ -193,7 +177,17 @@ class Mole(dict):
             for key in self.keys() | other.keys():
                 res[key] = self[key] & other[key]
             return res
-    
+
+    def clone(self) -> 'Mole':
+        res = Mole()
+        for key in self:
+            # `self[key]` is a `Atom` or `Mole`, which has clone()
+            res[key] = self[key].clone()
+        return res
+
+    def __missing__(self, key):
+        return MObj.UNIT
+
     def is_inconsistent(self) -> bool:
         res = False
         for key in self:
@@ -203,25 +197,28 @@ class Mole(dict):
                 res = True; break
         return res
 
-    def clone(self) -> 'Mole':
-        res = Mole()
-        for key in self:
-            # `self[key]` is a `Atom` or `Mole`, which has clone()
-            res[key] = self[key].clone()
-        return res
-
 
 def wr(value):
     """Stands for 'wrap'"""
-    return value if type(value) is Mole else Atom(content={value})
-
-
-def only(singleton: Union[Atom, Mole]):
-    if type(singleton) is Mole:
-        return singleton
+    if type(value) is not Struct:
+        return Atom(content={value})
     else:
-        assert(singleton.is_singleton()), 'This set is NOT a singleton'
-        return singleton[0]
+        res = Mole()
+        for key, val in value:
+            res[key] = wr(val)
+        return res
+
+def only(aggr: Union[Atom, Mole]):
+    """The reverse of 'wrap'"""
+    if type(aggr) is Mole:
+        res = Struct()
+        for key, val in aggr:
+            res[key] = only(val)
+        assert(is_legit(res)), 'The only structure contained in the molecule is NOT legit'
+        return res
+    else:
+        assert(aggr.is_singleton()), 'This set is NOT a singleton'
+        return aggr[0]
 
 
 # A bit of testing

@@ -31,6 +31,10 @@ class Rel(dict):
             return '{} <-> {}'.format(self['left'], self['right'])
 
 
+def uno(subs, sup):
+    return Rel(type_='UNION', subs=subs, sup=sub)
+
+
 def funo(fun, inp, out):
     return Rel(type_='FUN', fun=fun, inp=inp, out=out)
 
@@ -42,24 +46,3 @@ def iso(lr_fun, rl_fun, left, right):
 def eq(left, right):
     iden = lambda x: x
     return iso(lr_fun=iden, rl_fun=iden, left=left, right=right)
-
-
-def adapter(fun: Callable):
-    """
-    E.g: if f(a) = b then adapter(f)(Atom({a})) = Atom({b})
-    """
-    return lambda *args: wr(fun(*map(lambda s: only(s), args)))
-
-
-def kfun(fun, inp, out):
-    return funo(fun=adapter(fun), inp=inp, out=out)
-
-
-def kiso(lr_fun, rl_fun, left, right):
-    return iso(lr_fun=adapter(lr_fun), rl_fun=adapter(rl_fun),
-               left=left, right=right)
-
-
-def keq(left, right):
-    iden = lambda x: x
-    return kiso(lr_fun=iden, rl_fun=iden, left=left, right=right)
