@@ -22,29 +22,26 @@ class TimeoutToken(KEnumError):
         self.message = 'Out of time while enumerating node:'.format(node)
 
 
-class State(dict):
+class State():
     def __init__(self, **kwargs):
-        super().__init__(kwargs)
-        self.prefix = '' if 'prefix' not in self else self.prefix
-        self.on = True if 'on' not in self else self.on
-        self.choice, self.phase = 0, 0
+        self.__dict__ = kwargs
+        for key, value in [('prefix', ''), ('on', True), ('choice', 0), ('phase', 0)]:
+            if not hasattr(self, key):
+                setattr(self, key, value)
 
-    def __getattr__(self, attr):
-        if attr == 'fork':
-            return self.fork
+    def __getattr__(self, name):
+        """Attributes are inherited by default, but copied on write"""
+        if name in self.__dict__:
+            return self.__dict__[name]
+        elif 'parent' in self.__dict__:
+            return getattr(self.__dict__['parent'], name)
         else:
-            return self[attr]
-
-    def __setattr__(self, attr, value):
-        self[attr] = value
+            raise AttributeError
 
     def fork(self, **kwargs):
-        """Offer a shallow copy with optional modification"""
-        res = State()
-        for k in self:
-            res[k] = self[k]
-        for k in kwargs:
-            res[k] = kwargs[k]
+        """Create a shallow copy of self with modification"""
+        res = State(**kwargs)
+        res.parent = self
         return res
 
     def branch(self):
@@ -133,7 +130,7 @@ def kenum(s: State):
         s.log('It\'s an atom')
         if s.node.is_explicit():
             for val in s.node:
-                sb = s.branch(s.node = Atom(wr(val)))
+                sb = s.branch(node = Atom(wr(val)))
                 s.log('Yielding this value: {}'.format(wr(val)))
                 yield sb
         else:
@@ -165,11 +162,13 @@ def kenum(s: State):
             return
 
         memo = set()  # To build the cache
-        states_procs = [well_formed, pipe(cycle_rel_p, fin_p)(well_formed)
+        states_procs = [(well_formed, pipe(cycle_rel_p, fin_p)(well_formed))
                         for well_formed in form_p(s)]
         while states_procs:
-            next_deadline = time.time() + (s.deadline-time.time())/8 if 'deadline' in s
-                            else time.time() + 0.1
+            if hasattr(s, 'deadline'):
+                next_deadline = time.time() + (s.deadline-time.time())/8
+            else:
+                next_deadline = time.time() + 0.1
             for state, proc in states_procs:
                 state.deadline = next_deadline  # Insert more coins
                 for res in proc:
@@ -186,7 +185,7 @@ def kenum(s: State):
                 procs.remove(proc)
 
                 if 'deadline' in s and time.time() > s.deadline:
-                    s.log('Late by: {} s'.format(time.time()-s.deadline))
+                    s.log('Late by: {} s'.format(time.time() - s.deadline))
                     new_deadline = (yield TimeoutToken)
                     assert(new_deadline > time.time())
                     s.deadline = new_deadline
@@ -227,7 +226,7 @@ class Edge():
         self.tail = set(tail)
 
 class Graph():
-    def __init__(self, vertices = set(), edges = set())
+    def __init__(self, vertices = set(), edges = set()):
         self.vertices = set(vertices)
         self.edges    = set(edges)
 
@@ -235,16 +234,19 @@ def rels_to_graph(rels):
     graph = Graph()
     for rel in rels:
         if rel.type == 'FUN':
-            graph.vertices |= set(rel['inp']) | set(rel['out'])
-            graph.edges.append(Edge(tail=rel['inp'], head=rel['out']))
-        elif rel.type = 'UNI':
-            graph.vertices |= set(rel['subs']) | set(rel['sup'])
-            graph.edges.extend([Edge(tail=rel['subs'], head=rel['sup']),
-                                Edge(tail=rel['sup'], head=rel['subs'])])
-        elif rel.type = 'ISO':
-            graph.vertices |= set(rel['left']) | set(rel['right'])
-            graph.edges.extend([Edge(tail=rel['left'], head=rel['right']),
-                                Edge(tail=rel['right'], head=rel['left'])])
+            graph.vertices |= set(rel['inp'])
+            graph.vertice.add(rel['out'])
+            graph.edges.append(Edge(tail=rel['inp'], head=[rel['out']]))
+        elif rel.type == 'UNI':
+            graph.vertices |= set(rel['subs'])
+            graph.vertices.add(rel['sup'])
+            graph.edges.add(Edge(tail=[rel['sup']], head=rel['subs']))
+            graph.edges.add(Edge(tail=rel['subs'], head=[rel['sup']]))
+        elif rel.type == 'ISO':
+            graph.vertices.add(rel['left'])
+            graph.vertices.add(rel['right'])
+            graph.edges.add(Edge(tail=[rel['left']], head=[rel['right']]))
+            graph.edges.add(Edge(tail=[rel['right']], head=[rel['left']]))
     return graph
 
 def min_start(graph: Graph):
@@ -406,7 +408,6 @@ def fin_p(s: State):
                 yield res
                 # Resume
                 assert(s.deadline > time.time())
-                for sub in subs: sub.deadline = s.deadline  # Sync up the deadline
 
             elif type(res) is InfinityToken:
                 yield res; return
@@ -424,8 +425,13 @@ def fin_p(s: State):
 
 
 if __name__ == '__main__':
-    print('Testing the logging')
-    s = State(logger = logging.getLogger()); s.log('This is from s')
+    print('Testing the state and the logging')
+    s = State(logger = logging.getLogger(), key='This key was inherited')
+    s.log('This is from s')
     s_sub = s.sub(); s_sub.log('This is from s_sub')
+    assert(s_sub.key == s.key)
+    print(s_sub.key)
     s_branch = s_sub.branch(); s_branch.log('This is from s_branch')
+    s_branch.key = 'This key was overwritten'
+    print(s_branch.key)
     sbb = s_branch.branch(); sbb.log('This is a branch of s_branch')

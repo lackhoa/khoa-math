@@ -13,6 +13,15 @@ class Rel(dict):
         self.type = type_
         super().__init__(**kwargs)
 
+    def __getattr__(self, name):
+        if hasattr(self, name):
+            return getattr(self, name)
+        else:
+            return self[name]
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
     def __repr__(self) -> str:
         if self.type == 'FUN':
             return '{} -> {}'.format(' '.join(self['inp']), self['out'])
